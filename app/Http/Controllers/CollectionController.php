@@ -21,6 +21,7 @@ class CollectionController extends Controller
     use Ledger;
 	public function index(Request $request)
     {
+        // dd($request->all());
         $login_year = Session::get('loginYear');
 
         $data = Collection::with('customer','branch');

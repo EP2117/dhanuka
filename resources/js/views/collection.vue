@@ -197,8 +197,7 @@
                 storage_path: '',
             };
         },
-
-        created() {
+        created(){
             this.user_year = document.querySelector("meta[name='user-year-likelink']").getAttribute('content');
             this.user_role = document.querySelector("meta[name='user-role']").getAttribute('content');
 
@@ -215,7 +214,6 @@
 
             this.getCollections();    
         },
-
         mounted() {
             let app = this;
             app.initCustomers();
@@ -282,13 +280,11 @@
                 //console.log(formatedValue);
                 app.search.to_date = formatedValue;
             });
-
             $("#customer_id").on("select2:select", function(e) {
 
                 var data = e.params.data;
                 app.search.customer_id = data.id;
             });
-
             $("#branch_id").on("select2:select", function(e) {
 
                 var data = e.params.data;
@@ -300,21 +296,17 @@
                 var data = e.params.data;
                 app.search.state_id = data.id;
                 axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
-
             });
         },
-
         methods: {
             initStates() {
                     axios.get("/state").then(({ data }) => (this.states = data.data));
                     $("#state_id").select2();
             },
-
             initCustomers() {
               axios.get("/customers").then(({ data }) => (this.customers = data.data));
               $("#customer_id").select2();
             },
-
             initBranches() {
               axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
               $("#branch_id").select2();
@@ -332,8 +324,9 @@
                     "&branch_id=" +
                     app.search.branch_id +
                     "&customer_id=" +
-                    app.search.customer_id;
-
+                    app.search.customer_id+
+                     "&state_id=" +
+                    app.search.state_id;
                     axios.get("/collection?" + search).then(({ data }) => (app.collections = data.data))
                     .then(function() {
                         $("#loading").hide();
