@@ -50,7 +50,15 @@
                             <option v-for="branch in branches" :value="branch.id"  >{{branch.branch_name}}</option>
                         </select>
                     </div>  
-
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label >State</label>
+                        <select id="state_id" class="form-control mm-txt"
+                                 v-model="search.state_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="s in states" :value="s.id"  >{{s.state_name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-4 col-lg-3 mm-txt">
                         <label for="customer_id">Customer</label>
                         <select id="customer_id" class="form-control mm-txt"
@@ -177,11 +185,13 @@
                     collection_no: "",
                     customer_id: "",
                     branch_id: "",
+                    state_id:'',
                 },
                 customers: [],
                 collections: [],
                 user_role: '',
                 user_year: "",
+                states:[],
                 branches: [],
                 site_path: '',
                 storage_path: '',
@@ -210,7 +220,7 @@
             let app = this;
             app.initCustomers();
             app.initBranches();
-
+            app.initStates();
             $("#from_date")
                 .datetimepicker({
             icons: {
@@ -284,9 +294,22 @@
                 var data = e.params.data;
                 app.search.branch_id = data.id;
             });
+            $("#state_id").select2();
+            $("#state_id").on("select2:select", function(e) {
+                app.townships=[];
+                var data = e.params.data;
+                app.search.state_id = data.id;
+                axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
+
+            });
         },
 
         methods: {
+            initStates() {
+                    axios.get("/state").then(({ data }) => (this.states = data.data));
+                    $("#state_id").select2();
+            },
+
             initCustomers() {
               axios.get("/customers").then(({ data }) => (this.customers = data.data));
               $("#customer_id").select2();
@@ -296,11 +319,9 @@
               axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
               $("#branch_id").select2();
             },
-
             getCollections(page = 1) {
                 $("#loading").show();
                 let app = this;
-
                 var search =
                     "&from_date=" +
                     app.search.from_date +

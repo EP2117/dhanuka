@@ -17,7 +17,6 @@
                 <i class="fas fa-plus"></i> Add New Invoice
             </router-link>
         </div>
-
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Search By</h6>
@@ -29,18 +28,15 @@
                         <input type="text" class="form-control datetimepicker" id="from_date" name="from_date"
                         v-model="search.from_date">
                     </div>
-
                     <div class="form-group col-md-4 col-lg-3">
                         <label for="to_date">To Date</label>
                         <input type="text" class="form-control datetimepicker" id="to_date" name="to_date"
                         v-model="search.to_date">
                     </div>
-
                     <div class="form-group col-md-4 col-lg-3">
                         <label for="invoice_no">Invoice No.</label>
                         <input type="text" class="form-control" id="invoice_no" name="invoice_no" v-model="search.invoice_no">
                     </div>
-
                     <div class="form-group col-md-4 col-lg-3 mm-txt" v-if="(user_role == 'system' || user_role == 'admin' || user_role == 'Country Head')">
                         <label for="branch_id">Branch</label>
                         <select id="branch_id" class="form-control mm-txt"
@@ -50,7 +46,6 @@
                             <option v-for="branch in branches" :value="branch.id"  >{{branch.branch_name}}</option>
                         </select>
                     </div>
-
                     <div class="form-group col-md-4 col-lg-3">
                         <label for="customer_id">Customer</label>
                         <select id="customer_id" class="form-control mm-txt"
@@ -60,7 +55,15 @@
                             <option v-for="cus in customers" :value="cus.id"  >{{cus.cus_name}}</option>
                         </select>
                     </div>
-
+                     <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label >State</label>
+                        <select id="state_id" class="form-control mm-txt"
+                                 v-model="search.state_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="s in states" :value="s.id"  >{{s.state_name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-4 col-lg-3 mm-txt"  v-if="user_role != 'van_user' && user_role != 'office_order_user' && sale_type == 1">
                         <label for="sale_man_id">Sale Man</label>
                         <select id="sale_man_id" class="form-control mm-txt"
@@ -70,8 +73,7 @@
                             <option v-for="sale_man in sale_men" :value="sale_man.id"  >{{sale_man.sale_man}}</option>
                         </select>
                     </div>
-
-                    <!--<div class="form-group col-md-4 col-lg-3 mm-txt"  v-if="(user_role == 'system' || user_role == 'admin' || user_role == 'office_user' || user_role == 'Country Head') && sale_type == 1">
+                    <div class="form-group col-md-4 col-lg-3 mm-txt"  v-if=" user_role == 'admin'">
                         <label for="office_sale_man_id">Office Sale Man</label>
                         <select id="office_sale_man_id" class="form-control mm-txt"
                             name="office_sale_man_id" v-model="search.office_sale_man_id" style="width:100%" required
@@ -81,7 +83,7 @@
                         </select>
                     </div> 
 
-                    <div class="form-group col-md-4 col-lg-3">
+                    <!--<div class="form-group col-md-4 col-lg-3">
                         <label for="ref_no">Reference No.</label>
                         <input type="text" class="form-control" id="ref_no" name="ref_no" v-model="search.ref_no">
                     </div>-->
@@ -137,6 +139,7 @@
                                 <th class="text-center">Branch</th>
                                 <th class="text-center">Customer</th>
                                 <th class="text-center">Sale Man</th>
+                                <th class="text-center" v-if="user_role=='admin'">Office User</th>
                                 <!--<th class="text-center">Office Sale Man</th>
                                 <th class="text-center">Sale Warehouse</th>-->
                                 <!--<th class="text-center">Net Total</th>
@@ -154,6 +157,8 @@
                                 <th class="text-center">Branch</th>
                                 <th class="text-center">Customer</th>
                                 <th class="text-center">Sale Man</th>
+                                <th class="text-center" v-if="user_role=='admin'">Office User</th>
+
                                 <!--<th class="text-center">Sub Total</th>
                                 <th class="text-center">Pay Amount</th>-->
                                 <th class="text-center">Net Total</th>
@@ -172,6 +177,7 @@
                                 <td class="mm-txt">{{sale.customer.cus_name}}</td>
                                 <td class="mm-txt" v-if="sale.office_sale_man_id != null">{{sale.sale_man.sale_man}}</td>
                                 <td v-else></td>
+                                <td class="mm-txt" v-if="user_role=='admin'">{{sale.created_user.name}}</td>
                                 <!--<td class="text-right">{{sale.total_amount}}</td>
                                 <td class="text-right">{{sale.pay_amount}}</td>-->
                                 <td class="text-right">{{sale.net_total}}</td>
@@ -472,10 +478,12 @@
                     customer_id: "",
                     sale_man_id: "",
                     office_sale_man_id: "",
+                    // created_user:'',
                     ref_no: "",
                     delivery_approve: "",
                     invoice_type: "",
                     branch_id: "",
+                    state_id: "",
                 },
                 pagination: {
                     total: "",
@@ -497,6 +505,7 @@
                 user_role: '',
                 user_year: '',
                 branches: [],
+                states:[],
                 site_path: '',
                 storage_path: '',
                 sale_men: [],
@@ -535,12 +544,20 @@
             app.initOfficeSaleMan();
             app.initCustomers();
             app.initBranches();
+            app.initStates();
+            
+            // app.initCreatedUser();
             //app.calcLStorageSize();
 
             $("#sale_man_id").on("select2:select", function(e) {
 
                 var data = e.params.data;
                 app.search.sale_man_id = data.id;
+            });
+            $("#office_sale_man_id").on("select2:select", function(e) {
+
+                var data = e.params.data;
+                app.search.office_sale_man_id = data.id;
             });
 
             $("#office_sale_man_id").on("select2:select", function(e) {
@@ -554,7 +571,14 @@
                 var data = e.params.data;
                 app.search.branch_id = data.id;
             });
+             $("#state_id").select2();
+            $("#state_id").on("select2:select", function(e) {
+                app.townships=[];
+                var data = e.params.data;
+                app.search.state_id = data.id;
+                axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
 
+            });
             $("#from_date")
                 .datetimepicker({
             icons: {
@@ -630,7 +654,10 @@
               axios.get("/sale_men").then(({ data }) => (this.sale_men = data.data));              
               $("#sale_man_id").select2();
             },
-
+             initStates() {
+                    axios.get("/state").then(({ data }) => (this.states = data.data));
+                    $("#state_id").select2();
+            },
             initSaleMan() {
               axios.get("/sale_man").then(({ data }) => (this.sale_mans = data.data));
               //$("#sale_man_id").select2();
@@ -692,9 +719,10 @@
                     app.search.invoice_type +
                     "&branch_id=" +
                     app.search.branch_id +
+                     "&state_id=" +
+                    app.search.state_id+
                     "&sale_man_id=" +
                     app.search.sale_man_id; 
-
                 axios.get("/sale/type/" +app.sale_type + "?page=" + page + search).then(function(response) {
                     $("#loading").hide();
                     let data = response.data.data;

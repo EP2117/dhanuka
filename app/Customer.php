@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-	use SoftDeletes;
-
+    use SoftDeletes;
+    protected $with=['state'];
     public function sales(){
         return $this->hasMany('App\Sale')->select('id','customer_id');
     }

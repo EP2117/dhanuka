@@ -40,7 +40,6 @@
                         <label for="invoice_no">Invoice No.</label>
                         <input type="text" class="form-control" id="invoice_no" name="invoice_no" v-model="search.invoice_no">
                     </div>
-
                     <div class="form-group col-md-4 col-lg-3 mm-txt">
                         <label for="branch_id">Branch</label>
                         <select id="branch_id" class="form-control mm-txt"
@@ -60,7 +59,15 @@
                             <option v-for="warehouse in warehouses" :value="warehouse.id"  >{{warehouse.warehouse_name}}</option>
                         </select>
                     </div>-->
-
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label >State</label>
+                        <select id="state_id" class="form-control mm-txt"
+                                 v-model="search.state_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="s in states" :value="s.id"  >{{s.state_name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-4 col-lg-3">
                         <label for="township_id">Township</label>
                         <select id="township_id" class="form-control mm-txt"
@@ -239,6 +246,7 @@
                     township_id: "",
                     cus_type: "",
                     sale_man_id: "",
+                    state_id:'',
                     office_sale_man_id: "",
                     sort_by: '',
                     order: '',
@@ -251,6 +259,7 @@
                 warehouses:[],
                 user_year: '',
                 sale_mans: [],
+                states:[],
                 office_sale_mans: [],
                 branches: [],
                 site_path: '',
@@ -275,6 +284,7 @@
             app.initTownships();
             app.initTypes();
             app.initBranches();
+            app.initStates();
 
             app.initSaleMan();
 
@@ -303,7 +313,14 @@
                     axios.get("warehouses_bybranch/null").then(({ data }) => (app.warehouses = data.data));
                 }
             });
+             $("#state_id").select2();
+            $("#state_id").on("select2:select", function(e) {
+                app.townships=[];
+                var data = e.params.data;
+                app.search.state_id = data.id;
+                axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
 
+            });
             $("#from_date")
                 .datetimepicker({
             icons: {
@@ -399,7 +416,10 @@
               axios.get("/sale_man").then(({ data }) => (this.sale_mans = data.data));
               $("#sale_man_id").select2();
             },**/
-
+            initStates() {
+                    axios.get("/state").then(({ data }) => (this.states = data.data));
+                    $("#state_id").select2();
+            },
             initSaleMan() {
               axios.get("/sale_men").then(({ data }) => (this.sale_mans = data.data));              
               $("#sale_man_id").select2();
@@ -445,9 +465,6 @@
 
                 $("#loading").show();
                 let app = this;
-
-
-
                 var search =
                     "&from_date=" +
                     app.search.from_date +
@@ -473,6 +490,8 @@
                     app.search.order +
                     "&branch_id=" +
                     app.search.branch_id +
+                    "&state_id=" +
+                    app.search.state_id +
                     "&sort_by=" +
                     app.search.sort_by;
 

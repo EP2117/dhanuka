@@ -151,15 +151,20 @@ class SaleController extends Controller
         } else {
             $data = Sale::with('order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','branch')
                     ->where('sale_type', $request->sale_type)->where('is_opening',0);
-
             if($request->sale_man_id != "") {
                 $data->where('office_sale_man_id', $request->sale_man_id);
             }
-
-            if($request->invoice_no != "") {
-                $data->where('invoice_no', $request->invoice_no);
+              if($request->office_sale_man_id != "") {
+                $data->where('created_by', $request->office_sale_man_id);
             }
-
+            if($request->invoice_no != "") {
+                $data->where('invoice_no', $request->invoice_no);   
+            }
+            if($request->state_id != "") {
+                $data->whereHas('customer',function($q)use($request){
+                    $q->where('state_id',$request->state_id);
+                });   
+            }
             if($request->from_date != '' && $request->to_date != '')
             {
                 $data->whereBetween('invoice_date', array($request->from_date, $request->to_date));
@@ -744,7 +749,11 @@ class SaleController extends Controller
                 $sales->where('branch_id',$branch);
             }
         }
-
+        if($request->state_id != "") {
+            $sales->whereHas('customer',function($q)use($request){
+                $q->where('state_id',$request->state_id);
+            });   
+        }
         if(isset($request->branch_id) && $request->branch_id != "") {
             $sales->where('branch_id', $request->branch_id);
         }

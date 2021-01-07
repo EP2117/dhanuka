@@ -46,11 +46,14 @@ class CollectionController extends Controller
                 $data->where('branch_id',$branch);
             }
         }
-
         if($request->branch_id != "") {
             $data->where('branch_id',  $request->branch_id);
         }
-
+        if($request->state_id != "") {
+            $data->whereHas('customer',function($q)use($request){
+                $q->where('state_id',$request->state_id);
+            });   
+        }
         if($request->from_date != '' && $request->to_date != '')
         {
             $data->whereBetween('collection_date', array($request->from_date, $request->to_date));

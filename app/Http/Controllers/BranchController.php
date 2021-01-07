@@ -44,11 +44,9 @@ class BranchController extends Controller
             foreach(Auth::user()->branches as $b) {
                 array_push($access_branches, $b->id);
             }
-            
             $data = Branch::where('is_active',1);
             $data->whereIn('id',$access_branches);
             $data = $data->orderBy('branch_name', 'ASC')->get(); 
-
         } else {
             $data = Branch::where('is_active',1);
             $data->where('id',Auth::user()->branch_id);
