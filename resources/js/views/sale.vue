@@ -753,7 +753,6 @@
                     return product.selling_uoms[key].uom_name;
                 }
             },
-
             getUomRelation(product,uom_id) {
                 var key = product.selling_uoms.findIndex(x => x.pivot.uom_id == uom_id);
                 return product.selling_uoms[key].pivot.relation;

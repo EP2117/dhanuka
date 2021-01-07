@@ -48,8 +48,16 @@
                         <button
                             class="form-control btn btn-primary font-weight-bold"
                             @click="getProfitAndLoss(1)"
-                        ><i class="fas fa-search"></i> &nbsp;&nbsp;Search </button>
+                        ><i class="fas fa-search"></i> 
+                        &nbsp;&nbsp;Search </button>
                     </div>
+                     <!-- <div class="form-group col-md-3 col-lg-2">
+                        <label class="small">&nbsp;</label>
+                        <button
+                            class="form-control btn btn-primary font-weight-bold"
+                            @click="printPDF()"
+                        ><i class="fas fa-printi"></i> &nbsp;&nbsp;Print PDF </button>
+                    </div> -->
                 </div>
             </div>
         </div>
@@ -59,6 +67,9 @@
             </div>
             <div class="card-body">
                 <!-- <div class="table-responsive" > -->
+                  <div class="text-right mb-2">
+                    <button class="btn btn-primary btn-icon btn-sm" @click="printPDF()"><i class="fas fa-print"></i> &nbsp;PDF</button>
+                </div>
                 <div class="table-responsive" v-if="profit_and_loss!='' || expense !='' || income!=''">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">  <!--kamlesh-->
                         <thead class="thead-light">

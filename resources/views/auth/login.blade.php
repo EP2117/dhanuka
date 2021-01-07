@@ -100,7 +100,11 @@
                                                     <option value=''>Choose Year</option>
                                                     <?php
                                                         for($y=2020; $y<=$current_year; $y++) {
-                                                            echo "<option value='".$y."'>".$y."</option>";
+                                                            if($y == $current_year) {
+                                                                echo "<option value='".$y."' selected>".$y."</option>";
+                                                            } else {
+                                                                echo "<option value='".$y."'>".$y."</option>";    
+                                                            }
                                                         }
                                                     ?>
                                                 </select>

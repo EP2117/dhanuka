@@ -7,6 +7,7 @@
     font-family: 'ZawgyiOne2008';
       src: url({{ storage_path('fonts/ZawgyiOne2008.ttf') }}) format("truetype");
   }
+ /* @page { margin:20px 60px 10px 25px; } */
   .body {
     font-family: 'ZawgyiOne2008' !important;
   }
@@ -120,12 +121,15 @@
     </div>
   </div>-->
   <!--<div>-->
-    <table id="t01" cellpadding="0" cellspacing="0" style="border:none;width:100%">
+    <table id="t01" cellpadding="0" cellspacing="0" style="border:none;width:100%;">
       <thead>
         <tr style="border:none;">
           <td colspan="9" style="border:none;height:20px;">
               &nbsp;
           </td>
+        <!--<td colspan="9" style="border:none;">
+              <div style="text-align: center;width:100%;height: auto;"><img src="{{public_path('storage/image/print_header.jpg')}}" /></div>
+          </td>-->
         </tr>
         <tr style="border:none;">
           <td colspan="9" style="border:none;height:30px; background-color: #4472c4;color:#fffff; text-align: center;font-weight: bold">
@@ -186,7 +190,7 @@
       </thead>
       <?php
         $count = count($sale->products);
-        $extra_count = $count < 7 ? 7-$count : 0;
+        $extra_count = $count < 15 ? 15-$count : 0;
         $k = 0;
         foreach($sale->products as $product) {
           $k++;

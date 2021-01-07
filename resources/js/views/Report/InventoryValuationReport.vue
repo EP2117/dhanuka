@@ -70,11 +70,9 @@
                 <h6 class="m-0 font-weight-bold text-primary">Product List</h6>
             </div>
             <div class="card-body">
-
-                <div class="text-right mb-2">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
-                </div>
-
+                <!-- <div class="text-right mb-2">
+                    <button class="btn btn-primary btn-icon btn-sm" @click="printPDF()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                </div> -->
                <div class="table-responsive" v-if="products.length > 0">
                     <table class="table table-bordered table-striped table_num" id="dataTable" width="100%" cellspacing="0">
                         <thead>

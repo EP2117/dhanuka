@@ -132,8 +132,10 @@
                                             <td class="text-right"></td>
                                             <td>{{sale.invoice_date}}</td>
                                             <td>{{sale.invoice_no}}</td>
-                                             <td>
+                                             <td v-if="sale.sale_man != null">
                                                 <input type="text" :id="'sale_man'+sale.id" class="form-control num_txt sale_man" :value="sale.sale_man.sale_man" :readonly="isReadonly" />
+                                            </td>
+                                            <td v-else>
                                             </td>
                                             <td>
                                                 <input type="text" :id="'inv_amt'+sale.id" class="form-control num_txt inv_amt" readonly :value="sale.total_amount" />
@@ -716,8 +718,19 @@
                         }
                         //invoice lists
                         html += '<td class="text-right"></td><td>'+value.invoice_date+'</td><td>'+value.invoice_no+'</td>';
-                        // html += '<td class="text-right"></td><td>'+value.sale_man.sale_man+'</td><td>'+value.invoice_no+'</td>';
-                        html += '<td><input type="text" id="sale_man'+value.id+'" class="form-control num_txt sale_man" readonly value="'+value.sale_man.sale_man+'" /></td>';
+                        // html += '<td class="text-right"></td>';
+                        if(value.sale_man != null) {
+                         html += '<td>'+value.sale_man.sale_man+'</td>';
+                        } else {
+                         html += '<td></td>';
+                        }
+                        html += '<td>'+value.invoice_no+'</td>';
+
+                        if(value.sale_man != null) {
+                         html += '<td><input type="text" id="sale_man'+value.id+'" class="form-control num_txt sale_man" readonly value="'+value.sale_man.sale_man+'" /></td>';
+                        } else {
+                         html += '<td></td>';
+                        }
 
                         html += '<td><input type="text" id="inv_amt'+value.id+'" class="form-control num_txt inv_amt" readonly value="'+value.total_amount+'" /></td>';
 

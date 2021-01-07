@@ -125,8 +125,9 @@
                     <span>Supplier</span>
                 </a>
             </router-link>
-            <hr class="sidebar-divider">
+            @if(Auth::user()->role->id == 1)
 
+            <hr class="sidebar-divider">
             <router-link  tag="li" to="/supplier_ob" class="nav-item">
                 <a class="nav-link" >
                     <i class="fas fa-users"></i>
@@ -140,6 +141,7 @@
                     <span>Customer Opening Balance</span>
                 </a>
             </router-link>
+            @endif
             
 
         <!--<hr class="sidebar-divider">-->
@@ -426,7 +428,7 @@
 
                 <hr class="sidebar-divider">
 
-                @if(Auth::user()->role->role_name != 'office_order_user' && Auth::user()->role->role_name != 'delivery' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7)
+                @if( Auth::user()->role->role_name != 'delivery' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7)
 
                 <!-- Van Sale == 2; Office Sale == 1; -->
                     <router-link  tag="li" to="/account_head" class="nav-item">
@@ -439,7 +441,7 @@
                     <!--for only system and admin role -->
 
                 @endif
-                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
                     <hr class="sidebar-divider">
                     <router-link  tag="li" to="/sub_account" class="nav-item">
                         <a class="nav-link" href="#">
@@ -448,7 +450,7 @@
                         </a>
                     </router-link>
                 @endif
-                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
                     <hr class="sidebar-divider">
                     <router-link  tag="li" to="/receipt" class="nav-item">
                         <a class="nav-link" href="#">
@@ -457,7 +459,7 @@
                         </a>
                     </router-link>
                 @endif
-                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+                @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
                     <hr class="sidebar-divider">
                     <router-link  tag="li" to="/payment" class="nav-item">
                         <a class="nav-link" href="#">
@@ -466,7 +468,7 @@
                         </a>
                     </router-link>
                 @endif
-                    @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+                    @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
                         <hr class="sidebar-divider">
                         <router-link  tag="li" to="/cashbook" class="nav-item">
                             <a class="nav-link" href="#">
@@ -549,20 +551,22 @@
                         <span>Daily Purchase Product Wise Report</span>
                     </a>
                 </router-link>
-                <hr class="sidebar-divider">
-                <router-link  tag="li" to="/report/purchase_outstanding" class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Purchase Outstanding Report</span>
-                    </a>
-                </router-link>
-                <hr class="sidebar-divider">
-                <router-link  tag="li" to="/report/sale_outstanding" class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Sale Outstanding Report</span>
-                    </a>
-                </router-link>
+                {{-- @if(Auth::user()->role->id == 1) --}}
+                    <hr class="sidebar-divider">
+                    <router-link  tag="li" to="/report/purchase_outstanding" class="nav-item" >
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Purchase Outstanding Report</span>
+                        </a>
+                    </router-link>
+                    <hr class="sidebar-divider" >
+                    <router-link  tag="li" to="/report/sale_outstanding" class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Sale Outstanding Report</span>
+                        </a>
+                    </router-link>
+                {{-- @endif --}}
                 <hr class="sidebar-divider">
                 <router-link  tag="li" to="/report/credit_collection" class="nav-item">
                     <a class="nav-link" href="#">

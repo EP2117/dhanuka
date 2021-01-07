@@ -12,7 +12,7 @@
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h4 class="mb-0 text-gray-800">Sale Order</h4>
-            <router-link :to="'/order/new'" class="d-sm-inline-block btn btn-primary shadow-sm inventory" v-if='user_role == "system" || user_role == "office_order_user" || user_role == "Local Supervisor"'>
+            <router-link :to="'/order/new'" class="d-sm-inline-block btn btn-primary shadow-sm inventory" v-if='user_role == "system" || user_role == "office_user" || user_role == "office_order_user" || user_role == "Local Supervisor"'>
                 <i class="fas fa-plus"></i> Add New Order
             </router-link>
         </div>
@@ -313,8 +313,7 @@
             this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
             //this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
             this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
-            
-            if(this.user_role == "van_user") {
+            if( this.user_role == "van_user") {
                 var url =  window.location.origin;
                 window.location.replace(this.site_path);
             }
@@ -322,7 +321,6 @@
 
             console.log(localStorage.getItem('storedData200')); 
         },
-
         mounted() {
             let app = this;
             app.initSaleMan();

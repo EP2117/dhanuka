@@ -1465,17 +1465,17 @@
               $("#loading").show();
               axios
                 .get("/sale/" + id)
-                .then(function(response) {  
+                .then(function(response) {
                     //prevent to Edit (save button permission)
-                    // if(app.user_role == "admin" || app.user_role == "system") {
-                    //     if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0) {
-                    //         app.isDisabled = false;
-                    //     } else {
-                    //         app.isDisabled = true;
-                    //     }                        
-                    // } else {
-                    //     app.isDisabled = true;
-                    // }
+                    if(app.user_role == "admin" || app.user_role == "system") {
+                        if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0) {
+                            app.isDisabled = false;
+                        } else {
+                            app.isDisabled = true;
+                        }                        
+                    } else {
+                        app.isDisabled = true;
+                    }
                     app.form.invoice_date = moment(response.data.sale.invoice_date).format('YYYY-MM-DD');
                     app.ex_products = response.data.sale.products;
                     console.log(response.data.sale.products);
@@ -1485,7 +1485,6 @@
 
                     if(response.data.sale.payment_type == 'credit') {
                         $("#pay_amount").attr('readonly',false);
-                        
                     } else {
                         $("#pay_amount").attr('readonly',true);     
                     }
@@ -1593,7 +1592,6 @@
                                 $(option).attr('data-price', "");
                                 $(option).attr('data-perprice', "");
                                 t3.append(option);
-
                                 var option = document.createElement("option");
                                 option.value = product.uom_id;
                                 option.text = product.uom.uom_name;
@@ -1627,10 +1625,7 @@
                                     $(option).attr("data-productid", product.id);
                                     t3.append(option);
                                 });
-
                              cell3.appendChild(t3);
-
-
                             var cell4=row.insertCell(3);
                             var rate=document.createElement("input");
                                 rate.name = "rate[]";

@@ -314,7 +314,7 @@
                 window.location.replace(url);
             }  *****/
 
-            if(this.user_role == "van_user" || this.user_role == "office_user") {
+            if(this.user_role == "van_user" ) {
                 var url =  window.location.origin;
                 window.location.replace(this.site_path);
             }   
@@ -494,7 +494,6 @@
             });
            
         },
-
         methods: {
             initProducts() {
               axios.get("/order/products/").then(({ data }) => (this.products = data.data));
