@@ -113,7 +113,7 @@
                             <td class="text-center">{{r.credit.sub_account_name}}</td>
                             <td class="text-center">{{r.amount}}</td>
                             <td class="text-center">{{r.remark}}</td>
-                            <td class="text-left">
+                            <td class="text-left" v-if="user_role=='admin'">
                                 <div class="dropdown">
                                     <a class="btn btn-sm btn-icon-only text-danger " href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
@@ -217,6 +217,7 @@ export default {
             perPage: 30,
             currentPage: 1,
             user_year:'',
+            user_role:'',
             rows:'',
             credit:[],
             debit:[],

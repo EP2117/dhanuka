@@ -119,12 +119,12 @@
                             <!--                                <span class="badge badge-danger">Inactive</span>-->
                             <!--                            </td>-->
                             <!--                            <td class="text-center"></td>-->
-                            <td class="text-left">
+                            <td class="text-left" v-if="user_role=='admin'">
                                 <div class="dropdown">
                                     <a class="btn btn-sm btn-icon-only text-danger " href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </a>
-                                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-arrow">
+                                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-arrow" >
                                         <a class="dropdown-item">
                                             <router-link tag="span" :to="'/payment/edit/' + p.id" >
                                                 <a href="#" title="Edit/View" class="">
@@ -224,6 +224,7 @@ export default {
             currentPage: 1,
             rows:'',
             user_year:'',
+            user_role:'',
             credit:[],
             debit:[],
 

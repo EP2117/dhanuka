@@ -1892,14 +1892,12 @@
 
                         var key = this.products.findIndex(x => x.product_id == product_id);
                         var available_qty = parseFloat(this.products[key].in_count) - parseFloat(this.products[key].out_count);
-                        console.log(product_qty);
-                        console.log("Available"+available_qty);
-                        if(parseInt(product_qty) > parseInt(available_qty)) {
-
-                            swal("Warning!", "Not enough quantity! Availabel quantity is "+available_qty+" "+uom_name+".", "warning");
-
-                            $(obj).focus(); obj.value='';
-                        }
+                        // console.log(product_qty);
+                        // console.log("Available"+available_qty);
+                        // if(parseInt(product_qty) > parseInt(available_qty)) {
+                        //     swal("Warning!", "Not enough quantity! Availabel quantity is "+available_qty+" "+uom_name+".", "warning");
+                        //     $(obj).focus(); obj.value='';
+                        // }
                     }
 
                     //claculate total amount
