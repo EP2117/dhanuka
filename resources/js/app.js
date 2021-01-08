@@ -122,6 +122,7 @@ const routes = [
       component: Product
     },
     {
+      name:'product_form',
       path: '/product/edit/:id',
       component: ProductForm
     },

@@ -140,6 +140,7 @@
                                         <option value="">Select One</option>
                                         <option v-for="product in products" :data-uom="product.uom_name" 
                                         :data-price="product.selling_price"
+                                        :data-costprice="product.cost_price"
                                         :data-uomid="product.uom_id" :value="product.product_id" 
                                         data-pivotid = "0">{{product.product_name}}</option>
                                     </select>
@@ -173,6 +174,8 @@
                                                     <option value="">Select One</option>
                                                     <option v-for="product in products" :data-uom="product.uom_name" 
                                                     :data-price="product.selling_price"
+                                                    :data-purchaseprice="product.purchase_price"
+                                                    :data-costprice="product.cost_price"
                                                     :data-uomid="product.uom_id" :value="product.product_id" 
                                                     data-pivotid = "0">{{product.product_name}}</option>
                                                 </select>
@@ -261,12 +264,8 @@
                                         </tr>                                    
                                     </tbody>
                                 </table>
-
-
                             </div>                         
-
                         </div>
-
                         <!-- for sale order product -->
                         <div class="row mt-4" v-else>
                             <div class="col-md-12 text-right mt-0">
@@ -278,6 +277,8 @@
                                         <option value="">Select One</option>
                                         <option v-for="product in products" :data-uom="product.uom_name" 
                                         :data-price="product.selling_price"
+                                        :data-purchaseprice="product.purchase_price"
+                                        :data-costprice="product.cost_price"
                                         :data-uomid="product.uom_id" :value="product.product_id" 
                                         data-pivotid = "0">{{product.product_name}}</option>
                                     </select>
@@ -606,15 +607,29 @@
 
             $(".txt_product").on("select2:select", function(e) {
                 var data = e.params.data;
-
+                var id=data.id;
                 app.selling_uoms = [];
-
                 var row_id = $(this).closest('tr').attr('id');
-
                var uom      = e.target.options[e.target.options.selectedIndex].dataset.uom;
+               var cost_price = e.target.options[e.target.options.selectedIndex].dataset.costprice;
+               var purchase_price = e.target.options[e.target.options.selectedIndex].dataset.purchaseprice;
                var uom_id   = e.target.options[e.target.options.selectedIndex].dataset.uomid;
                var price    = e.target.options[e.target.options.selectedIndex].dataset.price;
-
+               console.log('Cost Price  '+ cost_price);
+               console.log('Purchase Price ' + purchase_price);
+               if(cost_price==0 && purchase_price==0){
+                swal("Warning!", "Please add purchase price!", "warning")
+                app.$router.push({name:'product'});
+                // app.$router.push({name:'product_form', params: {id: '[id]'}}); 
+                // Swal.fire({
+                //   icon: 'error',
+                //   title: 'Oops...',
+                //   text: 'Something went wrong!',
+                //   footer: '<a href>Why do I have this issue?</a>'
+                // })
+                //    alert('Cost price is zero and purchase price is noe')
+               }
+            //    alert(cost_price)
                 //$(this).closest('td').next().next().find('.txt_uom').attr('data-uom',uom);
                 $("#uom_"+row_id).attr('data-uom',uom);
 

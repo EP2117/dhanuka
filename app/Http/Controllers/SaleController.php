@@ -433,6 +433,9 @@ class SaleController extends Controller
             // $q=$m=0;
              $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
              $store_cost_price=Product::find($request->product[$i]);
+             if($cost_price==0){
+                 $cost_price=$store_cost_price->purchase_price;
+             }
              $store_cost_price->cost_price=$cost_price;
              $store_cost_price->save();
                 //add products in transition table=> transition_type = out (for sold out)
