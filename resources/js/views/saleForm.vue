@@ -592,13 +592,10 @@
                 }
                 app.filterProducts(brand_id,cat_id,product_select_id);
             });
-
             $(".categories").select2();
             $(".categories").on("select2:select", function(e) {
-
                 var data = e.params.data;
                 var cat_id = data.id;
-
                 var row_id = $(this).closest('tr').attr('id');
                 var brand_id = $("#brand_"+row_id).find(':selected').val();
                 var product_select_id =  $("#product_"+row_id);
@@ -619,8 +616,8 @@
                console.log('Purchase Price ' + purchase_price);
                if(cost_price==0 && purchase_price==0){
                 swal("Warning!", "Please add purchase price!", "warning")
-                app.$router.push({name:'product'});
-                // app.$router.push({name:'product_form', params: {id: '[id]'}}); 
+                // app.$router.push({name:'product'});
+                app.$router.push({name:'product_form', params: {id: id}}); 
                 // Swal.fire({
                 //   icon: 'error',
                 //   title: 'Oops...',

@@ -500,6 +500,7 @@ trait GetReport{
         return $data;
     }
     public function getCostPrice($p_id){
+        // dd($p_id);
         $p = DB::table("products")
         ->select(DB::raw("products.id as product_id,ps.s_valuation_amount,pt.cost_price,products.purchase_price,ps.s_qty, pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
         ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
@@ -537,6 +538,7 @@ trait GetReport{
                 // dd($products);
                 $total_valuation=0;
                 // foreach($products as $p){
+                    // dd($p->entry_qty);
                     $bal=($p->entry_qty+(int)$p->in_qty)-(int)$p->out_qty;
                 
                     $p->balance=$bal;
