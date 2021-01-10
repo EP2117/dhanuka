@@ -580,9 +580,7 @@
             $(".brands").on("select2:select", function(e) {
                 var data = e.params.data;
                 var brand_id = data.id;
-
                 var row_id = $(this).closest('tr').attr('id');
-
                 var cat_id = $("#category_"+row_id).find(':selected').val();
                 var product_select_id = $("#product_"+row_id);
                 if(brand_id != "") {

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Product;
 use App\ProductTransition;
 use App\InventoryAdjustment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Traits\Report\GetReport;
 use Illuminate\Support\Facades\Session;
 
 class InventoryAdjustmentController extends Controller
@@ -16,6 +18,7 @@ class InventoryAdjustmentController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    use GetReport;
     public function index(Request $request)
     {
         // $data=InventoryAdjustment::paginate(30);
@@ -99,12 +102,13 @@ class InventoryAdjustmentController extends Controller
      */
     public function store(Request $request)
     {
-        // dd($request->all());
         if(!empty($request->reference_no)) {
             $validatedData = $request->validate([
                 'reference_no' => 'max:255|unique:inventory_adjustment',
             ]);
         }
+        DB::beginTransaction();
+        try {
         $max_id = InventoryAdjustment::max('id');
             if($max_id) {
                 $max_id = $max_id + 1;
@@ -123,7 +127,7 @@ class InventoryAdjustmentController extends Controller
         $adjustment->save();
         $adjustment_id = $adjustment->id;
 
-        
+    
         for($i=0; $i<count($request->product); $i++) {
             if($request->add_qty[$i]==null){
                 $qty=$request->less_qty[$i];
@@ -141,30 +145,43 @@ class InventoryAdjustmentController extends Controller
             $last_row=DB::table('product_inventory_adjustment')->orderBy('id', 'DESC')->first();
 
             $pivot_id = $last_row->id;
-
-
+            $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+             $store_cost_price=Product::find($request->product[$i]);
+             if($cost_price==0){
+                 $cost_price=$store_cost_price->purchase_price;
+             }
+             $store_cost_price->cost_price=$cost_price;
+             $store_cost_price->save();
             //add products in transition table
-        	$obj = new ProductTransition();
-        	$obj->product_id 			= $request->product[$i];
-        	$obj->transition_type   	= $type;
-        	$obj->transition_adjustment_id 	= $adjustment_id;
+            $obj = new ProductTransition();
+            $obj->product_id 			= $request->product[$i];
+            $obj->transition_type   	= $type;
+            $obj->transition_adjustment_id 	= $adjustment_id;
             $obj->transition_product_pivot_id   = $pivot_id;
             $obj->branch_id = Auth::user()->branch_id;
-        	//$obj->warehouse_id			= 1; // for Main Warehouse Entry
+            //$obj->warehouse_id			= 1; // for Main Warehouse Entry
             $obj->warehouse_id = Auth::user()->warehouse_id;
-        	$obj->transition_date 		= $request->adjustment_date;
+            $obj->transition_date 		= $request->adjustment_date;
             $obj->transition_product_uom_id        = $request->uom[$i];
             $obj->transition_product_quantity      = $qty;
-        	$obj->product_uom_id 		= $request->uom[$i];
-        	$obj->product_quantity 		= $qty;
-        	$obj->created_by = Auth::user()->id;
-        	$obj->updated_by = Auth::user()->id;
+            $obj->cost_price            = $cost_price * $qty;
+            $obj->product_uom_id 		= $request->uom[$i];
+            $obj->product_quantity 		= $qty;
+            $obj->created_by = Auth::user()->id;
+            $obj->updated_by = Auth::user()->id;
             $obj->save();
             // dd($obj);
         }
-
         $status = "success";
         return compact('status');
+    } catch (\Throwable $e) {
+        dd($e->getMessage());
+        DB::rollback();
+        $status = "fail";
+        return compact('status');
+        throw $e;
+    
+    }
     }
 
     public function edit($id)
@@ -246,7 +263,8 @@ class InventoryAdjustmentController extends Controller
 
                 $pivot_id = $last_row->id;
 
-
+                $store_cost_price=Product::find($request->product[$i]);
+                $cost_price=$store_cost_price->cost_price;
                 //add products in transition table
                 $obj = new ProductTransition;
                 $obj->product_id            = $request->product[$i];
@@ -259,6 +277,7 @@ class InventoryAdjustmentController extends Controller
                 $obj->transition_date       = $request->adjustment_date;
                 $obj->transition_product_uom_id        = $request->uom[$i];
                 $obj->transition_product_quantity      = $qty;
+                $obj->cost_price=$cost_price;
                 $obj->product_uom_id        = $request->uom[$i];
                 $obj->product_quantity      = $qty;
                 $obj->created_by = Auth::user()->id;

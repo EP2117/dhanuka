@@ -453,11 +453,12 @@ trait GetReport{
         }
         $products = DB::table("products")
         ->where('products.is_active',1)
-        ->select(DB::raw("products.id as product_id,pt.transition_date,ps.s_valuation_amount,pt.cost_price,products.purchase_price,ps.s_qty, pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
+        ->select(DB::raw("products.id as product_id,pt.transition_date,ps.s_valuation_amount,pt.cost_price,pt.in_cost_price,products.purchase_price,ps.s_qty,pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
         ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
                          SUM(CASE  WHEN transition_type = 'in'  AND transition_entry_id IS NOT NULL THEN product_quantity  ELSE 0 END) as entry_qty,
                          SUM(CASE  WHEN transition_type = 'in' AND transition_entry_id IS NULL THEN product_quantity  ELSE 0 END) as in_qty,
-                         SUM(CASE  WHEN transition_type = 'out' AND transition_sale_id IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
+                         SUM(CASE  WHEN transition_type = 'out' AND ( transition_sale_id || transition_adjustment_id)  IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
+                         SUM(CASE  WHEN transition_type = 'in'  AND transition_adjustment_id IS NOT NULL THEN cost_price ELSE 0 END ) as in_cost_price,
                          SUM(CASE  WHEN transition_type = 'out'  THEN product_quantity  ELSE 0 END) as out_qty
                          FROM product_transitions Where ".$where." 
                           GROUP BY product_transitions.product_id
@@ -496,17 +497,17 @@ trait GetReport{
             $products->where('pt.warehouse_id', $request->warehouse_id);
         }*/
         $data  = $products->orderBy("product_name")->get();
-        // dd($data);
         return $data;
     }
     public function getCostPrice($p_id){
         // dd($p_id);
         $p = DB::table("products")
-        ->select(DB::raw("products.id as product_id,ps.s_valuation_amount,pt.cost_price,products.purchase_price,ps.s_qty, pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
+        ->select(DB::raw("products.id as product_id,ps.s_valuation_amount,pt.cost_price,pt.in_cost_price,products.purchase_price,ps.s_qty, pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
         ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
                          SUM(CASE  WHEN transition_type = 'in'  AND transition_entry_id IS NOT NULL THEN product_quantity  ELSE 0 END) as entry_qty,
                          SUM(CASE  WHEN transition_type = 'in' AND transition_entry_id IS NULL THEN product_quantity  ELSE 0 END) as in_qty,
-                         SUM(CASE  WHEN transition_type = 'out' AND transition_sale_id IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
+                         SUM(CASE  WHEN transition_type = 'out' AND (transition_sale_id || transition_adjustment_id || transition_transfer_id) IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
+                         SUM(CASE  WHEN transition_type = 'in'  AND transition_adjustment_id IS NOT NULL THEN cost_price ELSE 0 END ) as in_cost_price,
                          SUM(CASE  WHEN transition_type = 'out'  THEN product_quantity  ELSE 0 END) as out_qty
                          FROM product_transitions
                           GROUP BY product_transitions.product_id
@@ -536,6 +537,7 @@ trait GetReport{
                 ->leftjoin('categories', 'categories.id', '=', 'products.category_id')
                 ->where('products.id',$p_id)->first();
                 // dd($products);
+                // dd($p);
                 $total_valuation=0;
                 // foreach($products as $p){
                     // dd($p->entry_qty);
@@ -546,8 +548,8 @@ trait GetReport{
                     $p->p_valuation_amount=$p->p_valuation_amount==null ? 0 :(int)$p->p_valuation_amount;
                     $p->s_qty=$p->s_qty==null?0 :(int)$p->s_qty;
                     // $p->cost_price=$p->cost_price==null?0 :(int)$p->cost_price;
-                    $total_valuation+=($p->entry_qty * $p->purchase_price)+((int)$p->p_valuation_amount-(int)$p->cost_price);
-                    $p->t_valuation_amount=((int)$p->entry_qty * (int)$p->purchase_price)+(int)((int)$p->p_valuation_amount-(int)$p->cost_price);
+                    $total_valuation+=($p->entry_qty * $p->purchase_price)+(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
+                    $p->t_valuation_amount=((int)$p->entry_qty * (int)$p->purchase_price)+(int)(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
                     if($p->t_valuation_amount==0 && $p->balance==0){
                         $p->product_cost_price=0;
                     }else{

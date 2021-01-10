@@ -106,11 +106,8 @@ class ProductTransitionController extends Controller
             /*$data = DB::table("product_transitions")
 
                     ->select(DB::raw("product_id, products.product_name,products.product_price,products.retail1_price,products.retail2_price,products.wholesale_price,uom_id,uoms.uom_name,SUM(CASE  WHEN transition_type = 'in' THEN product_quantity  ELSE 0 END)  as in_count, SUM(CASE  WHEN transition_type = 'out' THEN product_quantity  ELSE 0 END)  as out_count"))
-
                     ->leftjoin('products', 'products.id', '=', 'product_transitions.product_id')
-
                     ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
-
                     ->where("product_transitions.warehouse_id",Auth::user()->warehouse_id);  */
             $data = DB::table("products")
 
@@ -483,14 +480,16 @@ class ProductTransitionController extends Controller
         // dd($data);
         $total_valuation=0;
         foreach($data as $p){
-            $bal=($p->entry_qty+(int)$p->in_qty)-(int)$p->out_qty;
+            $bal=((int)$p->entry_qty+(int)$p->in_qty)-(int)$p->out_qty;
             $p->balance=$bal;
-            // $p->s_valuation_amount=$p->s_valuation_amount==null ? 0 : (int)$p->s_valuation_amount;
+
             $p->p_valuation_amount=$p->p_valuation_amount==null ? 0 :(int)$p->p_valuation_amount;
-            $p->s_qty=$p->s_qty==null?0 :(int)$p->s_qty;
-            // $p->cost_price=$p->cost_price==null?0 :(int)$p->cost_price;
-            $total_valuation+=($p->entry_qty * $p->purchase_price)+((int)$p->p_valuation_amount-(int)$p->cost_price);
-            $p->t_valuation_amount=((int)$p->entry_qty * (int)$p->purchase_price)+(int)((int)$p->p_valuation_amount-(int)$p->cost_price);
+            $p->s_qty=$p->s_qty==null ? 0 :(int)$p->s_qty;
+            // $total_valuation+=((int)$p->entry_qty * $p->purchase_price)+(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
+            $total_valuation+=((int)$p->entry_qty * $p->purchase_price)+(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
+            $p->t_valuation_amount=((int)$p->entry_qty * (int)$p->purchase_price)+(int)(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
+            // $p->
+            // $total_valuation+=$p->
         }
         // dd($data);
         // dd($total_valuation);
@@ -637,6 +636,6 @@ class ProductTransitionController extends Controller
                         ->where('customer_id','=',1)
                         ->groupBy('customer_id')
                         ->first();
-	    dd($chk_order->previous_balance);
+	    // dd($chk_order->previous_balance);
     }
 }
