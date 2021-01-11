@@ -9,8 +9,9 @@ use App\Transfer;
 use App\ProductTransition;
 use Carbon\Carbon;
 use App\Product;
-use DB;
 use Session;
+use Illuminate\Support\Facades\DB;
+
 
 class TransferController extends Controller
 {
@@ -156,6 +157,8 @@ class TransferController extends Controller
      */
     public function store(Request $request)
     {
+        DB::beginTransaction();
+        try {
         //auto generate invoice no;
         $max_id = Transfer::withTrashed()->max('id');
         if($max_id) {
@@ -205,7 +208,11 @@ class TransferController extends Controller
     			//for pre-defined product uom
     			$relation_val = 1;
     		}
-
+            $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+            $store_cost_price=Product::find($request->product[$i]);
+            if($cost_price==0){
+                $cost_price=$store_cost_price->purchase_price;
+            }
             //add products in transition table=> transfer_type = out (for transfer warehouse)
             $obj = new ProductTransition;
             $obj->product_id            = $request->product[$i];
@@ -217,6 +224,7 @@ class TransferController extends Controller
             $obj->transition_date       = $request->transfer_date;
             $obj->transition_product_uom_id        = $request->uom[$i];
             $obj->transition_product_quantity      = $request->qty[$i];
+            $obj->cost_price            = $cost_price * $request->qty[$i];
             $obj->product_uom_id        = $main_uom_id;
             $obj->product_quantity      = $request->qty[$i] * $relation_val;
             $obj->created_by = Auth::user()->id;
@@ -225,7 +233,14 @@ class TransferController extends Controller
         }
 
         $status = "success";
-        return compact('status');
+        DB::commit();
+            return compact('status');
+        } catch (\Throwable $e) {
+            DB::rollback();
+            $status = "fail";
+            return compact('status');
+            throw $e;
+        }
     }
 
     /**
@@ -237,7 +252,8 @@ class TransferController extends Controller
      */
     public function update(Request $request, $id)
     {
-
+        DB::beginTransaction();
+        try {
         $transfer = Transfer::find($id);
         $transfer->transfer_date = $request->transfer_date;
         $transfer->from_warehouse_id = Auth::user()->warehouse_id;
@@ -289,15 +305,14 @@ class TransferController extends Controller
 	    			$relation_val = 1;
 	    		}
 	    		$product_qty = $request->qty[$i] * $relation_val;
-
+                $p=Product::find($request->product[$i]);
+                $cost_price=$p->cost_price;
                 DB::table('product_transitions')
                     ->where('transition_product_pivot_id', $request->product_pivot[$i])
                     ->where('transition_transfer_id', $id)
-                    ->update(array('product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));
+                    ->update(array('cost_price'=>$cost_price *$request->qty[$i],'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));
             } else {
-
                 //add product into pivot table if not exist
-
                 //get product pre-defined UOM
 	        	$product_result = Product::select('uom_id')->find($request->product[$i]);
 	        	$main_uom_id = $product_result->uom_id;
@@ -321,7 +336,9 @@ class TransferController extends Controller
 	    		} else {
 	    			//for pre-defined product uom
 	    			$relation_val = 1;
-	    		}
+                }
+                $store_cost_price=Product::find($request->product[$i]);
+                $cost_price=$store_cost_price->cost_price;
 
 	    		//add products in transition table=> transfer_type = out (for transfer warehouse)
 	            $obj = new ProductTransition;
@@ -333,7 +350,9 @@ class TransferController extends Controller
 	            $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
 	            $obj->transition_date       = $request->transfer_date;
 	            $obj->transition_product_uom_id        = $request->uom[$i];
-	            $obj->transition_product_quantity      = $request->qty[$i];
+                $obj->transition_product_quantity      = $request->qty[$i];
+                $obj->cost_price            = $cost_price * $request->qty[$i];
+
 	            $obj->product_uom_id        = $main_uom_id;
 	            $obj->product_quantity      = $request->qty[$i] * $relation_val;
 	           // $obj->created_by = Auth::user()->id;
@@ -343,7 +362,14 @@ class TransferController extends Controller
         }
 
         $status = "success";
+        DB::commit();
         return compact('status');
+    } catch (\Throwable $e) {
+        DB::rollback();
+        $status = "fail";
+        return compact('status');
+        throw $e;
+    }
 
     }
 

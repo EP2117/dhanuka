@@ -125,6 +125,7 @@ class InventoryAdjustmentController extends Controller
         $adjustment->updated_by = Auth::user()->id;        
         $adjustment->invoice_no = $adjustment_no;
         $adjustment->save();
+        // dd($adjustment);
         $adjustment_id = $adjustment->id;
 
     
@@ -173,6 +174,7 @@ class InventoryAdjustmentController extends Controller
             // dd($obj);
         }
         $status = "success";
+        DB::commit();
         return compact('status');
     } catch (\Throwable $e) {
         dd($e->getMessage());
@@ -203,6 +205,8 @@ class InventoryAdjustmentController extends Controller
         // dd($request->all());
 
         // dd($request->all());
+        DB::beginTransaction();
+        try {
         if(!empty($request->reference_no)) {
             $validatedData = $request->validate([
                 'reference_no' => 'max:255|unique:inventory_adjustment,reference_no,'.$id,
@@ -248,21 +252,27 @@ class InventoryAdjustmentController extends Controller
                     ->update([
                         'add_qty' => $request->add_qty[$i],'less_qty'=>$request->less_qty[$i]
                     ]);
+                    // if($request->add_qty[$i]==null){
+                    //     $qty=$request->less_qty[$i];
+                    //     $type="out";
+                    // }else{
+                    //     $qty=$request->add_qty[$i];
+                    //     $type="in";
 
+                    // }
+                    $p=Product::find($request->product[$i]);
+                    $cost_price=$p->cost_price;
+                    // dd($qty);
                 DB::table('product_transitions')
                     ->where('transition_product_pivot_id', $request->product_pivot[$i])
                     ->where('transition_adjustment_id', $id)
-                    ->update(array('product_quantity' => $qty,'transition_type'=>$type, 'transition_product_quantity' => $qty));
+                    ->update(array('cost_price'=>$cost_price *$qty,'product_quantity' => $qty,'transition_type'=>$type, 'transition_product_quantity' => $qty));
             } else {
-
                 //add product into pivot table if not exist
                 $pivot = $adjustment->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'add_qty' => $request->add_qty[$i],'less_qty' => $request->less_qty[$i]]);
-
                 //get last pivot insert id
                 $last_row=DB::table('product_inventory_adjustment')->orderBy('id', 'DESC')->first();
-
                 $pivot_id = $last_row->id;
-
                 $store_cost_price=Product::find($request->product[$i]);
                 $cost_price=$store_cost_price->cost_price;
                 //add products in transition table
@@ -287,7 +297,15 @@ class InventoryAdjustmentController extends Controller
         }
 
         $status = "success";
+        DB::commit();
         return compact('status');
+    } catch (\Throwable $e) {
+        dd($e->getMessage());
+        DB::rollback();
+        $status = "fail";
+        return compact('status');
+        throw $e;
+    }
     }
 
     /**
