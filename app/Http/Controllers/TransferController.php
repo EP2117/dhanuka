@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\Report\GetReport;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class TransferController extends Controller
 {
+    use GetReport;
     public function index(Request $request)
     {
         $login_year = Session::get('loginYear');
@@ -236,6 +238,7 @@ class TransferController extends Controller
         DB::commit();
             return compact('status');
         } catch (\Throwable $e) {
+            dd($e->getMessage());
             DB::rollback();
             $status = "fail";
             return compact('status');
@@ -365,6 +368,7 @@ class TransferController extends Controller
         DB::commit();
         return compact('status');
     } catch (\Throwable $e) {
+        dd($e->getMessage());
         DB::rollback();
         $status = "fail";
         return compact('status');
