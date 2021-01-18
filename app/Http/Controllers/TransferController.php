@@ -233,7 +233,6 @@ class TransferController extends Controller
             $obj->updated_by = Auth::user()->id;
             $obj->save();         
         }
-
         $status = "success";
         DB::commit();
             return compact('status');
@@ -264,9 +263,7 @@ class TransferController extends Controller
         //$transfer->created_by = Auth::user()->id;
         $transfer->updated_by = Auth::user()->id;        
         $transfer->save();
-        
         $ex_pivot_arr = $request->ex_product_pivot;
-
         //remove id in pivot that are removed in Transfer Form
         $results =array_diff($ex_pivot_arr,$request->product_pivot); //get id that are not in request pivot array
         foreach($results as $key => $val) {
@@ -325,10 +322,8 @@ class TransferController extends Controller
 
 	            //get last pivot insert id
 	            $last_row=DB::table('product_transfer')->orderBy('id', 'DESC')->first();
-
 	            $pivot_id = $last_row->id; 
-
-	            //calculate quantity for product pre-defined UOM
+	            //calculate quantity for product pre-defined UOM 
 	        	$uom_relation = DB::table('product_selling_uom')
 	    			   			->select('relation')
 	    			   			->where('product_id',$request->product[$i])

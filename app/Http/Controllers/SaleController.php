@@ -1472,6 +1472,7 @@ class SaleController extends Controller
                     ->whereRaw('(total_amount-(pay_amount + collection_amount)) > 0')
                     ->get();
         } else { $data = ''; }
+        // dd($data);
         return response(compact('data'), 200);
     }
 

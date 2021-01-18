@@ -50,7 +50,6 @@
                                     <option v-for="branch in branches" :value="branch.id"  >{{branch.branch_name}}</option>
                                 </select>
                             </div>
-
                             <div class="form-group col-md-4">
                                 <label for="customer_id">Customer</label>
                                 <select id="customer_id" class="form-control"
@@ -332,7 +331,6 @@
                 app.selected_invoices.push(data.id); 
 
                 var unique_invoices = app.selected_invoices.filter((a, b) => app.selected_invoices.indexOf(a) === b);
-                // console.log(unique_invoices);
                 app.selected_invoices = unique_invoices;
 
                 $('.invoices').val(app.selected_invoices).trigger('change');
@@ -344,7 +342,6 @@
                 } else {
                     $('.pay_amt:visible').attr('required',true);
                 }
-
                 if($("#"+data.id).attr('data-pivotid') != 0) {
                     var pindex = app.form.remove_pivot_id.indexOf($("#"+data.id).attr('data-pivotid'));
                     if (pindex > -1) {
