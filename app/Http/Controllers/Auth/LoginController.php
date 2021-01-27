@@ -55,13 +55,13 @@ class LoginController extends Controller
             session(['loginYear' => $request->year]);
 
             //check already logged in user exist or not (if exist, auto logout)
-            if(Auth::user()->online_status == 1){
+            /*if(Auth::user()->online_status == 1){
                 Auth::logout();
                 Session::forget('loginYear');
                 return Redirect::to("login")->withErrors([
                                 'email' => "Warning! There is currently logged in user with this email and password.",
                             ]);
-            } else {
+            } else {*/
 
                 //$user = User::find(Auth()->user()->id);
                 if(Auth::user()->role->role_name != 'system') {
@@ -73,7 +73,7 @@ class LoginController extends Controller
                 //save activity to log table
                 //\LoginActivity::addToLog('Login',$request->year);
                 return redirect()->intended('/');  
-            }          
+            //}          
         }
 
          return Redirect::to("login")->withErrors([
