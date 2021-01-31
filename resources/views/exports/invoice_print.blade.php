@@ -8,8 +8,18 @@
       src: url({{ storage_path('fonts/ZawgyiOne2008.ttf') }}) format("truetype");
   }
  /* @page { margin:20px 60px 10px 25px; } */
+ @font-face {
+    font-family: "Pyidaungsu";
+    src: local("Pyidaungsu"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Regular.woff") format("woff"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Regular.ttf") format("ttf");
+  }
+
+  @font-face {
+    font-family: "Pyidaungsu";
+    src: local("Pyidaungsu"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Bold.woff") format("woff"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Bold.ttf") format("ttf");
+    font-weight: bold;
+  }
   .body {
-    font-family: 'ZawgyiOne2008' !important;
+    font-family: 'Pyidaungsu' !important;
   }
   .title {
     font-size: 35px;
@@ -20,7 +30,7 @@
     font-size: 25px;
   }
   .mm-txt{
-    font-family: 'ZawgyiOne2008' !important;  
+    font-family: 'Pyidaungsu' !important;  
     font-size:16px;
   }
   .box {
@@ -36,7 +46,7 @@
    /* margin-top:20px; */
   } 
   table#t01 tr.tr_heigh td{
-    height: 30px;
+    height: 20px;
   }
   td {
     border: 1px solid black;
@@ -81,7 +91,31 @@
   .serial_no {
     width:5%;
   }
+  .pt_header{
+    border:none;height:30px; 
+    background-color: #4472c4 !important;
+    color:#fffff !important;
+     text-align: center !important;
+     font-weight: bold;
+   },
+  @media print
+     {
+       thead {display: table-header-group;},
+      
+      @page {
+          margin: 0 0 10px 0px;
+      }
+
+      /* .footer {
+         bottom: 10px;
+          left: 0px;
+          width: 100%;
+      } */
+    
+     }
   </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
 </head>
 <body>
   <?php
@@ -124,15 +158,16 @@
     <table id="t01" cellpadding="0" cellspacing="0" style="border:none;width:100%;">
       <thead>
         <tr style="border:none;">
-          <td colspan="9" style="border:none;height:20px;">
+          {{-- <td colspan="9" style="border:none;height:20px;">
               &nbsp;
-          </td>
+          </td> --}}
         <!--<td colspan="9" style="border:none;">
               <div style="text-align: center;width:100%;height: auto;"><img src="{{public_path('storage/image/print_header.jpg')}}" /></div>
           </td>-->
         </tr>
         <tr style="border:none;">
-          <td colspan="9" style="border:none;height:30px; background-color: #4472c4;color:#fffff; text-align: center;font-weight: bold">
+          {{-- style="border:none;height:30px; background-color: #4472c4;color:#fffff; text-align: center;font-weight: bold" --}}
+          <td colspan="9"  class="pt_header">
               SALES INVOICE
           </td>
         </tr>
@@ -295,5 +330,13 @@
         </tr>
       </tfoot>-->
     </table>
+    <script >
+      $(document).ready(function(){
+       setTimeout(function(){
+        window.onload=window.print();
+       }, 300);
+     });
+       
+     </script>
 </body>
 </html>
