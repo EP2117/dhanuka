@@ -106,11 +106,7 @@
           margin: 0 0 10px 0px;
       }
 
-      /* .footer {
-         bottom: 10px;
-          left: 0px;
-          width: 100%;
-      } */
+  
     
      }
   </style>
