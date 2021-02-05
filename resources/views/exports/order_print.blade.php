@@ -2,10 +2,22 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
   <style type="text/css">
     @font-face {
     font-family: 'ZawgyiOne2008';
       src: url({{ storage_path('fonts/ZawgyiOne2008.ttf') }}) format("truetype");
+  }
+  @font-face {
+    font-family: "Pyidaungsu";
+    src: local("Pyidaungsu"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Regular.woff") format("woff"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Regular.ttf") format("ttf");
+  }
+
+  @font-face {
+    font-family: "Pyidaungsu";
+    src: local("Pyidaungsu"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Bold.woff") format("woff"), url("https://www.mmwebfonts.com/fonts/Pyidaungsu-2.1_Bold.ttf") format("ttf");
+    font-weight: bold;
   }
   .body {
     font-family: 'ZawgyiOne2008' !important;
@@ -160,8 +172,8 @@
           <td class='mm-txt' style="text-align: center; width:50px;">စဥ္</td>
           <td class='mm-txt' style="text-align: center;width:300px;">အမ်ိဳးအမည္</td>
           <td class='mm-txt' style="text-align: center; min-width:50px;">အေရအတြက္</td>
-          <td class='mm-txt' style="text-align: center; min-width:30px;">ေစ်းႏႈန္း</td>
-          <td class='mm-txt' style="text-align: center;">သင့္ေငြ</td>
+          <td class='mm-txt' style="text-align: center; min-width:30px;">စျေးနှုန်း</td>
+          <td class='mm-txt' style="text-align: center;">သင့်ငွေ</td>
         </tr>
       </thead>
       <?php
@@ -221,5 +233,13 @@
         <td colspan="2" style="text-align: right;"><br /><br />Receive By</td>
       </tr>-->
     </table>
+    <script >
+      $(document).ready(function(){
+       setTimeout(function(){
+        window.onload=window.print();
+       }, 300);
+     });
+           
+     </script>
 </body>
 </html>

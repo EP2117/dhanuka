@@ -6,7 +6,7 @@
     @font-face {
     font-family: 'ZawgyiOne2008';
       src: url({{ storage_path('fonts/ZawgyiOne2008.ttf') }}) format("truetype");
-  }
+   }
  /* @page { margin:20px 60px 10px 25px; } */
  @font-face {
     font-family: "Pyidaungsu";
@@ -105,13 +105,9 @@
       @page {
           margin: 0 0 10px 0px;
       }
-
-  
-    
      }
   </style>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
 </head>
 <body>
   <?php
