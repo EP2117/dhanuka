@@ -30,8 +30,13 @@
     <!-- bootstrap datetime picker styles -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/css/bootstrap-datepicker.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+
+
+
 </head>
+
 <body id="page-top">
+
   <!-- Page Wrapper -->
   <div id="app">
     <div id="wrapper">
@@ -165,10 +170,8 @@
                                 <div class="col1-1">
                                     <h3>Sale</h3>
                                     <ul>
-                                        <li><i class="fas fa-list-ul"></i></i>Sale Order</li>
                                         <li><i class="fas fa-file-invoice-dollar"></i>Sale Invoice</li>
                                         <li><i class="fas fa-file-invoice-dollar"></i>Credit Collection</li>
-
                                     </ul>
                                 </div>
                                 <div class="col1-2 office-sale">
@@ -203,7 +206,7 @@
                         </div>
                         @endif
 
-                        @if((Auth::user()->role->role_name != 'van_user' && Auth::user()->role->role_name != 'delivery' && Auth::user()->role->role_name != 'office_order_user') || Auth::user()->role->id == 6 || Auth::user()->role->id == 7)
+                        @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system')
                         <div class="col-lg-4 col-md-4">
                         <div class="card-5 carhover">
                             <a href="{{url('/report')}}">
@@ -223,8 +226,27 @@
                             </a>
                         </div>
                         </div>
+                        @elseif(Auth::user()->role->role_name == 'office_user')
+                        <div class="col-lg-4 col-md-4">
+                        <div class="card-5 carhover">
+                            <a href="{{url('/report')}}">
+                            <div class="main-col">
+                                <div class="col1-1">
+                                    <h3>Report</h3>
+                                    <ul>
+                                        <li><i class="fas fa-scroll"></i>Minimun Qty Report</li>
+                                    </ul>
+                                </div>
+                                <div class="col1-2 report">
+                                   <i class="fas fa-paste"></i>
+                                </div>
+                            </div>
+                            </a>
+                        </div>
+                        </div>
                         @endif
-                             @if((Auth::user()->role->role_name != 'van_user' && Auth::user()->role->role_name != 'delivery' && Auth::user()->role->role_name != 'office_order_user') || Auth::user()->role->id == 6 || Auth::user()->role->id == 7)
+
+                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin')
                                  <div class="col-lg-4 col-md-4">
                                      <div class="card-5 carhover">
                                          <a href="{{url('/purchase_office')}}">
@@ -244,7 +266,7 @@
                                      </div>
                                  </div>
                              @endif
-                             @if((Auth::user()->role->role_name != 'van_user' && Auth::user()->role->role_name != 'delivery' && Auth::user()->role->role_name != 'office_order_user') || Auth::user()->role->id == 6 || Auth::user()->role->id == 7)
+                             @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system')
                                  <div class="col-lg-4 col-md-4">
                                      <div class="card-5 carhover">
                                          <a href="{{url('/account')}}">
