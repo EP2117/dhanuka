@@ -1447,6 +1447,7 @@ class SaleController extends Controller
         if($chk_balance) {
              $previous_balance = $chk_balance->previous_balance;
         }
+        return view('exports.invoice_print', compact('sale','previous_balance'));
 
         $pdf = PDF::loadView('exports.invoice_print', compact('sale','previous_balance'));
        // $pdf->setPaper('a5' , 'portrait');
