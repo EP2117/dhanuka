@@ -37,8 +37,19 @@ body {
     
 }
 
+@font-face {
+font-family:'Pyidaungsu';
+src:local('Pyidaungsu'), url('public/fonts/Pyidaungsu-2.1_Regular.woff') format('woff'), url('public/fonts/Pyidaungsu-2.1_Regular.ttf') format('ttf');
+}
+
+@font-face {
+font-family:'Pyidaungsu';
+src:local('Pyidaungsu'), url('public/fonts/Pyidaungsu-2.1_Bold.woff') format('woff'), url('public/fonts/Pyidaungsu-2.1_Bold.ttf') format('ttf');
+font-weight:bold;
+}
+
 .mm-txt {
-  font-family: 'ZawgyiOne2008' !important;
+  font-family: 'Pyidaungsu' !important;
 }
 
 .sidebar .nav-item .nav-link[data-toggle="collapse"]::after {
@@ -209,7 +220,7 @@ a.red-icon:hover{
 }
 
 .select2-results__options{
-  font-family: 'Zawgyi-One' !important;
+  font-family: 'Pyidaungsu' !important;
   font-size: .85rem !important;
 }
 
@@ -218,7 +229,7 @@ span.select2-search {
 }
 
 .select2-selection__rendered {
-  font-family: 'Zawgyi-One' !important;
+  font-family: 'Pyidaungsu' !important;
   font-size: .85rem !important;
 }
 

@@ -10910,11 +10910,22 @@ body {
 
 @font-face {
   font-family: "ZawgyiOne2008";
-  src: url(/fonts/ZawgyiOne2008.ttf?e5e2acb2d3bdf1d128355125e41f1964) format("truetype"), url(/fonts/ZawgyiOne2008.svg?e8a54bf02e60f8433c32429331cfbc2b) format("svg");
+  src: url(/fonts/ZawgyiOne2008.ttf?e5e2acb2d3bdf1d128355125e41f1964) format("truetype"), url(/fonts/ZawgyiOne2008.svg?20bb6925db22db0ac1b43454849685ce) format("svg");
+}
+
+@font-face {
+  font-family: "Pyidaungsu";
+  src: local("Pyidaungsu"), url(/fonts/Pyidaungsu-2.1_Regular.woff?8abee759d2fc40ad34e8bd7aa9ec3e9f) format("woff"), url(/fonts/Pyidaungsu-2.1_Regular.ttf?169ea8d6850d9a3841237a4d17355c80) format("ttf");
+}
+
+@font-face {
+  font-family: "Pyidaungsu";
+  src: local("Pyidaungsu"), url(/fonts/Pyidaungsu-2.1_Bold.woff?8c30a69dac92915044e8a980e71991f2) format("woff"), url(/fonts/Pyidaungsu-2.1_Bold.ttf?55c8d8dee688affaa6c4023e3c87d905) format("ttf");
+  font-weight: bold;
 }
 
 .mm-txt {
-  font-family: "ZawgyiOne2008" !important;
+  font-family: "Pyidaungsu" !important;
 }
 
 .sidebar .nav-item .nav-link[data-toggle=collapse]::after {
@@ -11084,7 +11095,7 @@ a.red-icon:hover {
 }
 
 .select2-results__options {
-  font-family: "Zawgyi-One" !important;
+  font-family: "Pyidaungsu" !important;
   font-size: 0.85rem !important;
 }
 
@@ -11093,7 +11104,7 @@ span.select2-search {
 }
 
 .select2-selection__rendered {
-  font-family: "Zawgyi-One" !important;
+  font-family: "Pyidaungsu" !important;
   font-size: 0.85rem !important;
 }
 
