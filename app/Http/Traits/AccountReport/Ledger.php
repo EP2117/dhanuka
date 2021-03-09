@@ -385,7 +385,8 @@ trait Ledger
                 // }
                
                 if($request->type=="Customer"){
-                   
+                    $op_debit+=$op->credit;
+                    $op_credit+=$op->debit;
                 }elseif($request->type=='Supplier'){
                     $op_debit+=$op->credit;
                     $op_credit+=$op->debit;
