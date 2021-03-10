@@ -72,8 +72,8 @@ class CustomerImport implements ToCollection
                         $type = new CustomerType;
                         $type->customer_type_name = $row[7];
                         $type->created_by = $user_id;
-                        $obj->updated_by = $user_id;
-                        $obj->save();
+                        $type->updated_by = $user_id;
+                        $type->save();
                         $cus_type = $type->id;
                     }
 
