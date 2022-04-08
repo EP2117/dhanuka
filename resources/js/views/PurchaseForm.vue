@@ -86,6 +86,20 @@
                                        v-model="form.credit_day" @blur="calcDueDate()" :readonly="is_readonly">
                             </div>
                         </div>
+                        <div class="row mt-3">
+                            <div class="form-group col-md-4">
+                                <label for="currency_id">Currency</label>
+                                <select class="form-control"
+                                        name="currency_id" id="currency_id" style="min-width:100px;" v-model="form.currency_id"
+                                >
+                                    <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>&nbsp;</label>
+                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate"> ) MMK</span></div>
+                            </div>
+                        </div>
                         <div class="row mt-4 mb-3">
                             <div class="col-md-12">
                                 <span class="d-none d-sm-inline-block btn-sm btn-primary shadow-sm bg-blue"><i class="fas fa-search-plus text-white"></i> Product Details</span>
@@ -97,7 +111,7 @@
                                 <!--<a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white"  v-if="((user_role == 'admin' || user_role == 'system') && !isDisabled) || (!isEdit)"  data-toggle="modal" data-target="#mix_form">
                                     <i class="fas fa-plus"></i> Add Mixed Product
                                 </a>-->
-                                <a class='d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system') && !isDisabled) || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus'></i></a>
+                                <a class='d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system' || user_role == 'office_user') && !isDisabled) || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus'></i></a>
                                 <!--<a class='blue-icon' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system') && !isDisabled) || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus-square' style='font-size: 30px;'></i></a>-->
                                 <div style="display:none;">
                                     <select class="form-control txt_product"
@@ -140,8 +154,10 @@
                                         <th scope="col" class="mm-txt">အရေအတွက်</th>
                                         <th scope="col" >Purchase Unit</th>
 <!--                                        <th scope="col" >Stock Available</th>-->
-                                        <th scope="col" class="mm-txt">စျေးနှုန်း</th>
-                                        <th scope="col" class="mm-txt">သင့္ေင ြ</th>
+                                        <th scope="col" class="mm-txt" v-if="!isMMK">စျေးနှုန်း(<label class="sign">{{sign}}</label>)</th>
+                                        <th scope="col" class="mm-txt">စျေးနှုန်း(MMK)</th>
+                                        <th scope="col" class="mm-txt" v-if="!isMMK">သင့္ေင ြ(<label class="sign">{{sign}}</label>)</th>
+                                        <th scope="col" class="mm-txt">သင့္ေင ြ(MMK)</th>
                                         <th scope="col" class="text-center"></th>
                                     </tr>
                                     </thead>
@@ -197,52 +213,94 @@
 
 <!--                                                <input type="text" style="min-width:100px;" class="form-control txt_available" name="stock_available[]" id="stock_available_1" readonly />-->
 <!--                                            </td>-->
+
+                                            <td v-if="!isMMK">
+                                                <input type="text" class="form-control decimal_no unit_price_fx_select" style="width:90px;" name="unit_price_fx[]" id="unit_price_fx_1" :required="!isMMK"  />
+                                            </td>
                                             <td>
                                                 <!-- <input type="text" class="form-control float_num" style="width:100px;" name="unit_price[]" @blur="calTotalAmount($event.target)" required /> -->
-                                                <input type="text" class="form-control decimal_no unit_price_select" style="width:90px;" name="unit_price[]" id="unit_price_1"  required @input="calAmt($event.target.id)" />
+                                                <input type="text" class="form-control decimal_no unit_price_select" style="width:90px;" name="unit_price[]" id="unit_price_1"  :readonly="!isMMK" required @input="calAmt($event.target.id)" />
 <!--                                                <select class="form-control float_num unit_price_select" style="width:90px;" name="unit_price[]" id="unit_price_1" required>-->
 <!--                                                    <option value="">Select One</option>-->
 <!--                                                </select>-->
                                             </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" class="form-control decimal_no" readonly style="width:100px;" name="total_amount_fx[]" id="total_amount_fx_1" />
+                                            </td>
                                             <td>
-                                                <input type="text" class="form-control num_txt" readonly style="width:100px;" name="total_amount[]" id="total_amount_1" required />
+                                                <input type="text" class="form-control num_txt" readonly style="width:100px;" name="total_amount[]" id="total_amount_1" required  :readonly="!isMMK" />
                                             </td>
                                             <td class="text-center">
                                                 <a class='remove-row red-icon' title='Remove' v-if="user_role != 'admin'"><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>
                                             </td>
                                         </tr>
                                     </template>
-                                    <tr class="total_row"   >
-                                        <td colspan="4" class="text-right mm-txt">စုစုေပါင္း</td>
-                                        <td colspan="2">
-                                            <input type="text" v-model="form.sub_total" class="form-control num_txt" readonly style="width:150px;" required />
+                                    <tr class="total_row total_row_first">
+                                        <td :colspan="total_colspan" class="text-right mm-txt">စုစုေပါင္း</td>
+                                        <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">{{sign}}</label>
+                                                <input type="text" v-model="form.sub_total_fx" class="form-control decimal_no" readonly style="width:100px;display:inline-block;" />
+                                            </div>
+                                        </td>
+
+                                        <td colspan="2" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">MMK</label>
+                                                <input type="text" v-model="form.sub_total" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr class="total_row">
-                                        <td colspan="4" class="text-right mm-txt">ေလ်ာ့ေင ြ</td>
-                                        <td colspan="2">
-                                            <input type="text" v-model="form.discount" class="form-control num_txt" style="width:150px;" @keyup="changeDiscount($event.target)" />
+                                        <td :colspan="total_colspan" class="text-right mm-txt">ေလ်ာ့ေင ြ</td>
+                                        <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">{{sign}}</label>
+                                                <input type="text" v-model="form.discount_fx" class="form-control decimal_no" style="width:100px;display:inline-block;" @keyup="changeDiscountFx($event.target)" />
+                                            </div>
+                                        </td>
+                                        </td>
+                                        <td colspan="2" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">MMK</label>
+                                                <input type="text" v-model="form.discount" class="form-control num_txt" style="width:100px;display:inline-block;" @keyup="changeDiscount($event.target)" :readonly="!isMMK" />
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr class="total_row">
-                                        <td colspan="4" class="text-right mm-txt">လက္ခံရရိွေင ြ</td>
-                                        <td colspan="2" v-if="form.payment_type == 'credit'">
-                                            <input type="text" v-model="form.pay_amount" class="form-control num_txt" style="width:150px;" @keyup="calBalance($event.target)" />
+                                        <td :colspan="total_colspan" class="text-right mm-txt">လက္ခံရရိွေင ြ</td>
+                                        <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">{{sign}}</label>
+                                                <input type="text" v-model="form.pay_amount_fx" class="form-control decimal_no" style="width:100px;display:inline-block;" @keyup="calBalance($event.target)" />
+                                            </div>
                                         </td>
-                                        <td colspan="2" v-else>
-                                            <input type="text" v-model="form.pay_amount" class="form-control num_txt" style="width:150px;" @keyup="calBalance($event.target)" readonly />
+                                        <td colspan="2" v-if="form.payment_type == 'credit'" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">MMK</label>
+                                                <input type="text" v-model="form.pay_amount" class="form-control num_txt" style="width:100px;display:inline-block;" @keyup="calBalance($event.target)" :readonly="!isMMK" />
+                                            </div>
+                                        </td>
+                                        <td colspan="2" class="p-0 m-0 pt-2" v-else>
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">MMK</label>
+                                                <input type="text" v-model="form.pay_amount" class="form-control num_txt" style="width:100px;display:inline-block;" @keyup="calBalance($event.target)" :readonly="!isMMK"  />
+                                            </div>
                                         </td>
                                     </tr>
-<!--                                    <tr class="total_row">-->
-<!--                                        <td colspan="4" class="text-right mm-txt">ယခင္လက္က်န္ေင ြ</td>-->
-<!--                                        <td colspan="2">-->
-<!--                                            <input type="text" v-model="form.previous_balance" class="form-control num_txt" readonly style="width:150px;"/>-->
-<!--                                        </td>-->
-<!--                                    </tr>-->
-                                    <tr class="total_row">
-                                        <td colspan="4" class="text-right mm-txt">လက္က်န္ေင ြစုစုေပါင္း</td>
-                                        <td colspan="2">
-                                            <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
+                                    <tr class="total_row">                                        
+                                        <td :colspan="total_colspan" class="text-right mm-txt">လက္က်န္ေင ြစုစုေပါင္း</td>
+                                        <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">{{sign}}</label>
+                                                <input type="text" v-model="form.balance_amount_fx" class="form-control decimal_no" readonly style="width:100px; display:inline-block;" />
+                                            </div>
+                                        </td>
+                                        <td colspan="2" class="p-0 m-0 pt-2">
+                                            <div style="display:inline-block;">
+                                                <label style="display:inline-block;">MMK</label>
+                                                <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                            </div>
                                         </td>
                                     </tr>
                                     </tbody>
@@ -258,7 +316,7 @@
                                 <input type="submit" class="btn btn-primary btn-sm" value="Save Entry"  :disabled = "isDisabled">
                             </div>
 
-                            <div class="col-md-12" v-if="(user_role == 'system' || user_role == 'admin') && isEdit && !isDisabled">
+                            <div class="col-md-12" v-if="(user_role == 'system' || user_role == 'admin' || user_role == 'office_user') && isEdit && !isDisabled">
                                 <input type="submit" class="btn btn-primary btn-sm" value="Update">
                             </div>
 
@@ -392,10 +450,15 @@ export default {
                 uom: [],
                 qty: [],
                 unit_price: [],
+                unit_price_fx: [],
                 total_amount: [],
+                total_amount_fx: [],
                 sub_total: 0,
+                sub_total_fx: 0,
                 pay_amount: 0,
+                pay_amount_fx: 0,
                 balance_amount:0,
+                balance_amount_fx:0,
                 ex_product_pivot: [],
                 product_pivot: [],
                 is_foc: [],
@@ -408,11 +471,16 @@ export default {
                 due_date: '',
                 duplicate_ref_no: false,
                 discount: 0,
+                discount_fx: 0,
                 previous_balance: '',
+                currency_id: 1,
+                currency_rate: '',
 
             }),
             isEdit: false,
+            isMMK: true,
             brands: [],
+            currency: [],
             categories: [],
             products: [],
             uoms: [],
@@ -431,6 +499,9 @@ export default {
             edit_form: '',
             site_path: '',
             storage_path: '',
+            sign: '',
+            total_colspan : 4,
+            prev_pay_amount: 0,
         };
     },
 
@@ -449,7 +520,7 @@ export default {
         // this.form.office_sale_man_id = document.querySelector("meta[name='user-id-likelink']").getAttribute('content');
 
         this.user_role = document.querySelector("meta[name='user-role']").getAttribute('content');
-         if(this.user_role != "admin" && this.user_role != "system") {
+         if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user") {
             var url =  window.location.origin;
             window.location.replace(url);
         }
@@ -485,13 +556,162 @@ export default {
         // app.initBrands();
         // app.initCategories();
         app.initUoms();
+        app.initCurrency();
+
+        $("#currency_id").select2();
+       /*** $("#currency_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.form.currency_id = data.id;
+        }); ***/
+
+        $("#currency_id").on("select2:select", function(e) {            
+            var data = e.params.data;
+            app.form.currency_id = data.id;
+            var sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+            $("#product_table .total_row_first").prevAll().remove();
+            if(data.id != 1) {
+                app.isMMK = false;
+                app.total_colspan = 5;
+                app.addProduct();
+            } else{
+                app.isMMK = true;
+                app.total_colspan = 4;
+                app.addProduct();
+            }
+
+            app.sign = sign;
+           
+            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    //app.form.pay_amount = app.prev_pay_amount;
+                    //app.form.pay_amount_fx = 0;
+                }
+            } else {
+                app.form.pay_amount = 0;
+                app.form.pay_amount_fx = 0;
+            }
+            var discount = 0;
+            var discount_fx = 0;
+            if(app.isMMK) {
+                if(app.form.discount == '') {
+                    discount = 0;
+                } else {
+                    discount = app.form.discount;
+                }
+                app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
+            } else {
+                if(app.form.discount_fx == '') {
+                    discount = 0;
+                    discount_fx = 0;
+                    app.form.discount = 0;
+                } else {                        
+                    discount_fx = app.form.discount_fx;
+                    discount = app.decimalFormat(parseFloat(app.form.discount_fx) * parseFloat(currency_rate));
+                    app.form.discount = parseInt(discount)
+                }
+                app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
+                app.form.balance_amount_fx = parseFloat(app.form.sub_total_fx) - (parseFloat(app.form.pay_amount_fx)+parseFloat(discount_fx));
+            }
+
+            /***app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+            var balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+            app.form.balance_amount_fx = app.decimalFormat(balance_amount_fx);***/
+            /**$(".sign").html(sign);
+            for (let i = 0; i < document.getElementsByClassName("sign").length; i++) {
+              document.getElementsByClassName("sign")[i].innerHTML = sign;
+            }**/
+            
+        });
+
         $(".txt_product").select2();
         $("#supplier_id").select2();
         $("#supplier_id").on("select2:select", function(e) {
             var data = e.params.data;
             app.form.supplier_id = data.id;
             //get customer's previous balance
-            axios.get("/purchase/"+data.id+"/get_previous_balance").then(({ data }) => (app.form.previous_balance = data.previous_balance));
+           /** axios.get("/purchase/"+data.id+"/get_previous_balance").then(({ data }) => (app.form.previous_balance = data.previous_balance));**/
+           axios.get("/purchase/"+data.id+"/get_previous_balance").then(function(response) {
+                    app.form.previous_balance = response.data.previous_balance;
+                    app.prev_pay_amount = response.data.supplier_advance
+                    app.form.pay_amount = response.data.supplier_advance;
+                    /***if(app.isMMK) {
+                        app.prev_pay_amount = response.data.supplier_advance
+                        app.form.pay_amount = response.data.supplier_advance;
+                    } else {
+                        if(response.data.supplier_advance != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = response.data.supplier_advance;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = response.data.supplier_advance;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            app.form.pay_amount = 0;
+                            app.form.pay_amount_fx = 0;
+                        }
+                    }***/
+
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
+                    }
+                    var discount = 0;
+                    var discount_fx =0;
+                    if(app.isMMK) {
+                        if(app.form.discount == '') {
+                            discount = 0;
+                        } else {
+                            discount = app.form.discount;
+                        }
+                        app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
+                    } else {
+                        if(app.form.discount_fx == '') {
+                            discount = 0;
+                            discount_fx = 0;
+                            app.form.discount = 0;
+                        } else {                        
+                            discount_fx = app.form.discount_fx;
+                            discount = app.decimalFormat(parseFloat(app.form.discount_fx) * parseFloat(currency_rate));
+                            app.form.discount = parseInt(discount)
+                        }
+                        app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
+                        app.form.balance_amount_fx = parseFloat(app.form.sub_total_fx) - (parseFloat(app.form.pay_amount_fx)+parseFloat(discount_fx));
+                    }
+                    /****app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+                    var balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+                    app.form.balance_amount_fx = app.decimalFormat(balance_amount_fx);***/
+                    
+                });
         });
         // console.log(this);
         // $(".unit_price_select").select2();
@@ -499,9 +719,92 @@ export default {
             // var data = e.params.data;
             app.calTotalAmount($(this));
         });
+        $(".unit_price_fx_select").on("keyup", function(e) {
+            //var data = e.params.data;
+            app.calTotalAmountFx($(this));
+        });
         $(".txt_qty").on("keyup", function(e) {
-            // var data = e.params.data;
-            app.calTotalAmount($(this));
+            //var data = e.params.data;
+            if(app.isMMK) {
+                app.calTotalAmount($(this));
+            } else {
+                app.calTotalAmountFx($(this));
+            }
+        });
+        $(document).on('keyup','#currency_rate',function(e) {
+            var sub_total = 0;
+            var sub_total_fx = 0;
+            var qty = 0;
+            var c_rate = $("#currency_rate").val() == '' ? 0 : $("#currency_rate").val();            
+            for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                if(document.getElementsByName('total_amount[]')[i].value != "") {
+                    document.getElementsByName('unit_price[]')[i].value = parseInt(parseFloat(document.getElementsByName('unit_price_fx[]')[i].value) * parseFloat(c_rate));
+
+                    qty = document.getElementsByName('qty[]')[i].value == '' ? 0 : document.getElementsByName('qty[]')[i].value;
+
+                    document.getElementsByName('total_amount[]')[i].value = parseInt(qty) * parseInt(document.getElementsByName('unit_price[]')[i]);
+
+                    //document.getElementsByName('total_amount[]')[i].value = parseInt(parseFloat(document.getElementsByName('total_amount_fx[]')[i].value) * parseFloat(c_rate));
+
+                    sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                    sub_total_fx += parseFloat(document.getElementsByName('total_amount_fx[]')[i].value);
+
+
+                }
+            }
+            app.form.currency_rate = c_rate;
+            app.form.sub_total = sub_total;
+            app.form.sub_total_fx= sub_total_fx;
+            var discount = 0;
+            var discount_fx = 0;
+            if(app.form.discount_fx == '') {
+                discount = 0;
+                discount_fx = 0;
+            } else {
+                discount_fx = app.form.discount_fx;
+                discount = parseFloat(app.form.discount_fx) * parseFloat(app.form.currency_rate);
+                app.form.discount = parseInt(discount);
+            }
+
+            /***if(app.form.payment_type == 'cash') {
+                if(app.form.pay_amount_fx == 0) {
+                    app.form.pay_amount_fx = parseFloat(app.form.sub_total_fx) - parseFloat(discount_fx);
+                    app.form.pay_amount = app.decimalFormat(parseFloat(app.form.pay_amount_fx) * parseFloat(app.form.currency_rate));
+                } else {
+                    app.form.pay_amount = app.decimalFormat(parseFloat(app.form.pay_amount_fx) * parseFloat(app.form.currency_rate));   
+                }
+            } else {
+                if(app.form.pay_amount_fx == '') {
+                    app.form.pay_amount_fx = 0;
+                    app.form.pay_amount = 0;
+                } else {
+                    app.form.pay_amount = app.decimalFormat(parseFloat(app.form.pay_amount_fx) * parseFloat(app.form.currency_rate));
+                }
+            }***/
+
+            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    //app.form.pay_amount = app.prev_pay_amount;
+                    //app.form.pay_amount_fx = 0;
+                }
+            } else {
+                app.form.pay_amount = 0;
+                app.form.pay_amount_fx = 0;
+            }
+
+            app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+            var balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+            app.form.balance_amount_fx = app.decimalFormat(balance_amount_fx);
         });
         // $(".txt_qty").select2();
         // $(".txt_qty").on("keyup", function() {
@@ -552,6 +855,7 @@ export default {
             var uom      = e.target.options[e.target.options.selectedIndex].dataset.uom;
             // console.log(uom);
             var uom_id   = e.target.options[e.target.options.selectedIndex].dataset.uomid;
+
             var price    = e.target.options[e.target.options.selectedIndex].dataset.price;
 
             var retail1_price    = e.target.options[e.target.options.selectedIndex].dataset.retail1;
@@ -567,7 +871,9 @@ export default {
                  app.addProduct();
              } */
             //add Warehouse UOM Selling Price
+          if(app.isMMK) {
            $("#unit_price_"+row_id).val(purchase_price);
+          }
             // price_selectbox_id.find('option').remove();
             // price_selectbox_id.append('<option value="">Select One</option>');
             // if(retail1_price != null && retail1_price != "null" && retail1_price != '') {
@@ -715,27 +1021,107 @@ export default {
             } else {
                 $(this).parents("tr").remove();
                 var sub_total = 0;
+                var sub_total_fx = 0;
+
                 for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                     if(document.getElementsByName('total_amount[]')[i].value != "") {
-                        sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                        if(app.isMMK) {
+                            sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                        } else {
+                            sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                            sub_total_fx += parseFloat(document.getElementsByName('total_amount_fx[]')[i].value);
+                        }
+                        
                     }
                 }
 
                 app.form.sub_total = sub_total;
+                app.form.sub_total_fx = sub_total_fx;
                 var discount = 0;
+                var discount_fx = 0;
+                if(!app.isMMK) {
+                    discount_fx = app.form.discount_fx == '' ? 0 : app.form.discount_fx;
+                }
                 if(app.form.discount == '' || sub_total == 0 || sub_total == '') {
                     discount = 0;
                 } else {
                     discount = app.form.discount;
                 }
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
-                } else {
-                    if(app.form.pay_amount == '') {
+
+                if(app.isMMK) {
+                    /***if(app.form.payment_type == 'cash') {
+                        if(app.form.pay_amount == 0) {
+                            app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                        }
+                    } else {
+                        if(app.form.pay_amount == '') {
+                            app.form.pay_amount = 0;
+                        }
+                    }***/
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
                         app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
                     }
+
+                    app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+                } else {
+                    /****if(app.form.payment_type == 'cash') {
+                        if(app.form.pay_amount == 0) {
+                            app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                        }
+                        if(app.form.pay_amount_fx == 0) {
+                            app.form.pay_amount_fx = parseFloat(app.form.sub_total_fx) - parseFloat(discount_fx);
+                        }
+                    } else {
+                        if(app.form.pay_amount == '') {
+                            app.form.pay_amount = 0;
+                        }
+                        if(app.form.pay_amount_fx == '') {
+                            app.form.pay_amount_fx = 0;
+                        }
+                    }*****/
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
+                    }
+
+                    app.form.balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+
+                    app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
                 }
-                app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+                
 
             }
         });
@@ -754,27 +1140,99 @@ export default {
                     } else {
                         $(this).parents("tr").remove();
                         var sub_total = 0;
+                        var sub_total_fx = 0;
                         for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                             if(document.getElementsByName('total_amount[]')[i].value != "") {
                                 sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                                sub_total_fx += parseFloat(document.getElementsByName('total_amount_fx[]')[i].value);
                             }
                         }
 
                         app.form.sub_total = sub_total;
+                        app.form.sub_total_fx = sub_total_fx;
+                        var discount_fx = 0;
+                        if(!app.isMMK) {
+                            discount_fx = app.form.discount_fx == '' ? 0 : app.form.discount_fx;
+                        }
                         var discount = 0;
                         if(app.form.discount == '' || sub_total == 0 || sub_total == '') {
                             discount = 0;
                         } else {
                             discount = app.form.discount;
                         }
-                        if(app.form.payment_type == 'cash') {
-                            app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
-                        } else {
-                            if(app.form.pay_amount == '') {
+                        if(app.isMMK) {
+                           /*** if(app.form.payment_type == 'cash') {
+                                if(app.form.pay_amount==0) {
+                                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                                }
+                            } else {
+                                if(app.form.pay_amount == '') {
+                                    app.form.pay_amount = 0;
+                                }
+                            } **/
+
+                            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                                if(app.prev_pay_amount != 0) {
+                                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                                    if(currency_rate != 0) {
+                                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                    } else {
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        app.form.pay_amount_fx = 0;
+                                    }
+                                } else {
+                                    //app.form.pay_amount = app.prev_pay_amount;
+                                    //app.form.pay_amount_fx = 0;
+                                }
+                            } else {
                                 app.form.pay_amount = 0;
+                                app.form.pay_amount_fx = 0;
                             }
+
+                            app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+                        } else {
+
+                            /****if(app.form.payment_type == 'cash') {
+                                if(app.form.pay_amount == 0) {
+                                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                                }
+                                if(app.form.pay_amount_fx == 0) {
+                                    app.form.pay_amount_fx = parseFloat(app.form.sub_total_fx) - parseFloat(discount_fx);
+                                }
+                            } else {
+                                if(app.form.pay_amount == '') {
+                                    app.form.pay_amount = 0;
+                                }
+                                if(app.form.pay_amount_fx == '') {
+                                    app.form.pay_amount_fx = 0;
+                                }
+                            }***/
+
+                            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                                if(app.prev_pay_amount != 0) {
+                                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                                    if(currency_rate != 0) {
+                                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                    } else {
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        app.form.pay_amount_fx = 0;
+                                    }
+                                } else {
+                                    //app.form.pay_amount = app.prev_pay_amount;
+                                    //app.form.pay_amount_fx = 0;
+                                }
+                            } else {
+                                app.form.pay_amount = 0;
+                                app.form.pay_amount_fx = 0;
+                            }
+                            app.form.balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+
+                            app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
                         }
-                        app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
 
                         //app.form.sub_total = sub_total;
                         //app.form.balance_amount  = sub_total - parseInt(app.form.pay_amount);
@@ -810,21 +1268,75 @@ export default {
 
         },
 
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
+
         changePayment() {
             if(this.form.discount == '') {
                 var discount = 0;
             } else {
                 var discount = this.form.discount;
             }
-            if(this.form.payment_type == 'credit') {
-                this.required_val = true;
-                this.form.pay_amount = 0;
-                this.form.balance_amount = parseInt(this.form.sub_total) - (parseInt(this.form.pay_amount) + parseInt(discount));
+            var discount_fx = this.form.discount_fx == '' ? 0 : this.form.discount_fx;
+
+            if(this.prev_pay_amount != 0 || this.form.pay_amount != 0) {
+                if(this.prev_pay_amount != 0) {
+                    var currency_rate = this.form.currency_rate == "" ? 0 : this.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(this.prev_pay_amount)/parseFloat(currency_rate);
+                        this.form.pay_amount = this.prev_pay_amount;
+                        this.form.pay_amount_fx = this.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        this.form.pay_amount = this.prev_pay_amount;
+                        this.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    //this.form.pay_amount = this.prev_pay_amount;
+                    //this.form.pay_amount_fx = 0;
+                }
             } else {
-                this.required_val = false;
-                if(this.form.payment_type == 'cash') {
-                    this.form.pay_amount = parseInt(this.form.sub_total) - parseInt(discount);
+                this.form.pay_amount = 0;
+                this.form.pay_amount_fx = 0;
+            }
+
+            if(this.isMMK) 
+            {
+                if(this.form.payment_type == 'credit') {
+                    this.required_val = true;
+                    //this.form.pay_amount = 0;
                     this.form.balance_amount = parseInt(this.form.sub_total) - (parseInt(this.form.pay_amount) + parseInt(discount));
+                } else {
+                    this.required_val = false;
+                    if(this.form.payment_type == 'cash') {
+                        /**if(this.form.pay_amount == 0) {
+                            this.form.pay_amount = parseInt(this.form.sub_total) - parseInt(discount);
+                        }**/
+                        this.form.balance_amount = parseInt(this.form.sub_total) - (parseInt(this.form.pay_amount) + parseInt(discount));
+                    }
+                }
+            } else {
+                var currency_rate = this.form.currency_rate == '' ? 0 : this.form.currency_rate;
+                 if(this.form.payment_type == 'credit') {
+                    this.required_val = true;
+                    $("#pay_amount").attr('readonly', false);
+                    //this.form.pay_amount = 0;
+                    this.form.balance_amount_fx = parseFloat(this.form.sub_total_fx) - (parseFloat(this.form.pay_amount_fx) + parseFloat(discount_fx));
+                    this.form.balance_amount_fx = this.decimalFormat(this.form.balance_amount_fx);
+                    this.form.balance_amount = parseInt(parseFloat(this.form.balance_amount_fx) * parseFloat(currency_rate));
+
+                } else {
+                    this.required_val = false;
+                    if(this.form.payment_type == 'cash') {
+                        /***if(this.form.pay_amount_fx == 0) {
+                            this.form.pay_amount_fx = parseFloat(this.form.sub_total_fx) - parseFloat(discount_fx);
+                            this.form.pay_amount_fx = this.decimalFormat(this.form.pay_amount_fx);
+                            this.form.pay_amount = parseInt(parseFloat(this.form.pay_amount_fx) * parseFloat(current_rate));
+                        }***/
+                        this.form.balance_amount_fx = parseFloat(this.form.sub_total_fx) - (parseFloat(this.form.pay_amount_fx) + parseFloat(discount_fx));
+                    }
                 }
             }
         },
@@ -1082,7 +1594,9 @@ export default {
                 // console.log('Purchase price '+ purchase_price);
                 var row_id = $(this).closest('tr').attr('id');
                 $("#uom_"+row_id).attr('data-uom',uom);
-                $("#unit_price_"+row_id).val(purchase_price);
+                if(app.isMMK) {
+                    $("#unit_price_"+row_id).val(purchase_price);
+                }
                 //auto add new product row
                 /*if($(this).closest('tr').next().hasClass("total_row")) {
                     app.addProduct();
@@ -1182,38 +1696,97 @@ export default {
             /*var t6=document.createElement("input");
                 t6.name = "unit_price[]";
                 t6.style = "width:100px;";
-                t6.className ="form-control float_num";
+                t6.className ="form-control decimal_no";
                 $(t6).attr("required", true);
                 t6.addEventListener('blur', function(){ app.calTotalAmount(t6); });
                 cell6.appendChild(t6); */
-            var cell8=row.insertCell(3);
-            var t8=document.createElement("input");
-            t8.name = "unit_price[]";
-            t8.id = "unit_price_"+row_id;
-            t8.style = "width:91px;";
-            t8.className ="form-control decimal_no unit_price_select";
-            $(t8).attr("required", true);
-            cell8.appendChild(t8);
 
-            var cell9=row.insertCell(4);
-            var t9=document.createElement("input");
-            t9.name = "total_amount[]";
-            t9.id = "total_amount_"+row_id;
-            t9.style = "width:100px;";
-            t9.className ="form-control num_txt";
-            $(t9).attr("required", true);
-            $(t9).attr("readonly", true);
-            // t2.addEventListener('blur', function(){ app.checkQty(t2); });
-            cell9.appendChild(t9);
-            var cell10=row.insertCell(5);
-            cell10.className = "text-center";
-            var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>    ";
-            $(cell10).append(row_action);
+            if(app.isMMK) {
+                var cell8=row.insertCell(3);
+                var t8=document.createElement("input");
+                t8.name = "unit_price[]";
+                t8.id = "unit_price_"+row_id;
+                t8.style = "width:91px;";
+                t8.className ="form-control decimal_no unit_price_select";
+                $(t8).attr("required", true);
+                cell8.appendChild(t8);
+
+                var cell9=row.insertCell(4);
+                var t9=document.createElement("input");
+                t9.name = "total_amount[]";
+                t9.id = "total_amount_"+row_id;
+                t9.style = "width:100px;";
+                t9.className ="form-control num_txt";
+                $(t9).attr("required", true);
+                $(t9).attr("readonly", true);
+                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                cell9.appendChild(t9);
+                var cell10=row.insertCell(5);
+                cell10.className = "text-center";
+                var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>    ";
+                $(cell10).append(row_action);
+            } else {
+
+                var cell8fx=row.insertCell(3);
+                var t8fx=document.createElement("input");
+                t8fx.name = "unit_price_fx[]";
+                t8fx.id = "unit_price_fx_"+row_id;
+                t8fx.style = "width:91px;";
+                t8fx.className ="form-control decimal_no unit_price_fx_select";
+                $(t8fx).attr("required", true);
+                cell8fx.appendChild(t8fx);
+
+                var cell8=row.insertCell(4);
+                var t8=document.createElement("input");
+                t8.name = "unit_price[]";
+                t8.id = "unit_price_"+row_id;
+                t8.style = "width:91px;";
+                t8.className ="form-control decimal_no unit_price_select";
+                $(t8).attr("required", true);
+                $(t8).attr("readonly", true);
+                cell8.appendChild(t8);
+
+                var cell9fx=row.insertCell(5);
+                var t9fx=document.createElement("input");
+                t9fx.name = "total_amount_fx[]";
+                t9fx.id = "total_amount_fx_"+row_id;
+                t9fx.style = "width:100px;";
+                t9fx.className ="form-control decimal_no";
+                //$(t9fx).attr("required", true);
+                $(t9fx).attr("readonly", true);
+                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                cell9fx.appendChild(t9fx);
+
+                var cell9=row.insertCell(6);
+                var t9=document.createElement("input");
+                t9.name = "total_amount[]";
+                t9.id = "total_amount_"+row_id;
+                t9.style = "width:100px;";
+                t9.className ="form-control num_txt";
+                $(t9).attr("required", true);
+                $(t9).attr("readonly", true);
+                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                cell9.appendChild(t9);
+
+                var cell10=row.insertCell(7);
+                cell10.className = "text-center";
+                var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>    ";
+                $(cell10).append(row_action);
+            }
+
             $(".txt_qty").on("keyup", function(e) {
-                app.calTotalAmount($('#qty_'+row_id));
+                if(app.isMMK) {
+                    app.calTotalAmount($('#qty_'+row_id));
+                } else {
+                    app.calTotalAmountFx($('#qty_'+row_id));
+                }
             });
             $(".unit_price_select").on("keyup", function(e) {
                 app.calTotalAmount($('#unit_price_'+row_id));
+            });
+            $(".unit_price_fx_select").on("keyup", function(e) {
+                // var data = e.params.data;
+                app.calTotalAmountFx($(this));
             });
             // app.calTotalAmount($("#unit_price_"+row_id));
 
@@ -1251,7 +1824,7 @@ export default {
             axios.get("/purchase/" + id+'/edit')
                 .then(function(response) {
                     //prevent to Edit (save button permission)
-                    if(app.user_role == "admin" || app.user_role == "system") {
+                    if(app.user_role == "admin" || app.user_role == "system" || app.user_role == "office_user") {
                         app.isDisabled = false;
                         console.log(app.isDisabled);
                         // if(response.data.purchase.collections.length == 0 && response.data.purchase.deliveries.length == 0 && response.data.purchase.delivery_approve == 0) {
@@ -1262,7 +1835,11 @@ export default {
                     } else {
                         app.isDisabled = true;
                     }
-
+                    app.form.currency_id = response.data.purchase.currency_id;
+                    $("#currency_id").val(app.form.currency_id).trigger('change');
+                    app.sign = response.data.purchase.currency.sign;
+                    app.form.currency_rate = response.data.purchase.currency_rate;
+                    app.isMMK = app.form.currency_id == 1 ? true : false;
                     app.form.invoice_date = moment(response.data.purchase.invoice_date).format('YYYY-MM-DD');
                     app.ex_products = response.data.purchase.products;
                     app.form.invoice_no = response.data.purchase.invoice_no;
@@ -1278,6 +1855,7 @@ export default {
                         // console.log('b');
                         app.form.office_purchase_man = '';
                     }
+                    app.user_warehouse = response.data.purchase.warehouse.warehouse_name;
                     
                     // console.log(app);
 
@@ -1286,13 +1864,23 @@ export default {
                     } else {
                         app.required_val = false;
                     }
-                    $("#supplier_id").append('<option value="'+response.data.purchase.supplier_id+'" selected>'+response.data.purchase.supplier.name+'</option>');
+                    /**$("#supplier_id").append('<option value="'+response.data.purchase.supplier_id+'" selected>'+response.data.purchase.supplier.name+'</option>');**/
                     app.form.supplier_id = response.data.purchase.supplier_id;
-
+                    $('#supplier_id').val(app.form.supplier_id).trigger('change');
+                   
                     app.form.sub_total  = response.data.purchase.total_amount;
                     app.form.pay_amount = response.data.purchase.pay_amount;
                     app.form.discount = response.data.purchase.discount;
                     app.form.balance_amount = response.data.purchase.balance_amount;
+
+                    if(!app.isMMK) {
+                        app.total_colspan = 5;
+                        app.form.sub_total_fx  = response.data.purchase.total_amount_fx;
+                        app.form.pay_amount_fx = response.data.purchase.pay_amount_fx;
+                        app.form.discount_fx = response.data.purchase.discount_fx;
+                        app.form.balance_amount_fx = response.data.purchase.balance_amount_fx;
+                    }
+
                      if(response.data.purchase.collection_amount!=0  && app.form.payment_type=='credit'){
                         app.isDisabled=true;
                     }
@@ -1302,6 +1890,8 @@ export default {
                     //add products dynamically
                     var subTotal = 0;
                     var balAmount = 0;
+                    var subTotalFx = 0;
+                    var balAmountFx = 0;
                     var row_id = 0;
                     $.each(app.ex_products, function( key, product ) {
                         row_id = row_id+1;
@@ -1460,11 +2050,13 @@ export default {
                                 axios.get("/purchase/"+data.id+"/get_previous_balance/").then(({ data }) => (app.form.previous_balance = data.previous_balance));
                             });
                             // console.log(app.form.previous_balance);
-                            $(".unit_price_select").on("keyup", function(e) {
-                                app.calTotalAmount($(this));
-                            });
+                           
                             $(".txt_qty").on("keyup", function(e) {
-                                app.calTotalAmount($(this));
+                                if(app.isMMK) {
+                                    app.calTotalAmount($(this));
+                                } else {
+                                    app.calTotalAmountFx($(this));
+                                }
                             });
                             $(".txt_product").on("select2:select", function(e) {
                                 var data = e.params.data;
@@ -1619,88 +2211,115 @@ export default {
                             // t8.style = "min-width:91px;";
                             // $(t8).attr("required", true);
                             // cell8.appendChild(t8);
+                            if(app.isMMK) {
+                                var cell8=row.insertCell(3);
+                                var t8=document.createElement("input");
+                                t8.name = "unit_price[]";
+                                t8.id = "unit_price_"+row_id;
+                                t8.style = "width:91px;";
+                                t8.value=product.pivot.price;
+                                t8.className ="form-control decimal_no unit_price_select";
+                                t8.addEventListener('blur', function(){ app.calTotalAmount(t8); });
+                                $(t8).attr("required", true);
+                                cell8.appendChild(t8);
 
-                            var cell8=row.insertCell(3);
-                            var t8=document.createElement("input");
-                            t8.name = "unit_price[]";
-                            t8.id = "unit_price_"+row_id;
-                            t8.style = "width:91px;";
-                            t8.value=product.pivot.price;
-                            t8.className ="form-control decimal_no unit_price_select";
-                            $(t8).attr("required", true);
-                            cell8.appendChild(t8);
+                                var cell9=row.insertCell(4);
+                                var t9=document.createElement("input");
+                                t9.name = "total_amount[]";
+                                t9.id = "total_amount_"+row_id;
+                                t9.style = "width:100px;";
+                                if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
+                                    t9.value = product.pivot.total_amount;
+                                    subTotal += parseInt(product.pivot.total_amount);
+                                }
+                                t9.className ="form-control decimal_no";
+                                $(t9).attr("required", true);
+                                $(t9).attr("readonly", true);
+                                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                cell9.appendChild(t9);
 
-                            //t3.addEventListener('change', function(){ app.checkQty(t3); });
-                            // t8.append(option);
-
-                            // if($(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail1') != '') {
-                            //     var option = document.createElement("option");
-                            //     option.value = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail1');
-                            //
-                            //     option.text = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail1');
-                            //
-                            //     if(parseInt(product.pivot.price) == parseInt($(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail1'))) {
-                            //         option.selected = "selected";
-                            //     }
-                            //     t8.append(option);
-                            // }
-                            //
-                            // if($(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail2') != '') {
-                            //     var option = document.createElement("option");
-                            //     option.value = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail2');
-                            //
-                            //     option.text = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail2');
-                            //
-                            //     if(product.pivot.price == $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-retail2')) {
-                            //         option.selected = "selected";
-                            //     }
-                            //     t8.append(option);
-                            // }
-                            //
-                            // if($(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-wholesale') != '') {
-                            //     var option = document.createElement("option");
-                            //     option.value = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-wholesale');
-                            //
-                            //     option.text = $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-wholesale');
-                            //
-                            //     if(product.pivot.price == $(".txt_uom option[value="+product.pivot.uom_id+"]").attr('data-wholesale')) {
-                            //         option.selected = "selected";
-                            //     }
-                            //     t8.append(option);
-                            // }
-
-
-                            // $(".unit_price_select").select2(
-                            //
-                            // );
-
-
-
-                            var cell9=row.insertCell(4);
-                            var t9=document.createElement("input");
-                            t9.name = "total_amount[]";
-                            t9.id = "total_amount_"+row_id;
-                            t9.style = "width:100px;";
-                            if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
-                                t9.value = product.pivot.total_amount;
-                                subTotal += parseInt(product.pivot.total_amount);
-                            }
-                            t9.className ="form-control num_txt";
-                            $(t9).attr("required", true);
-                            $(t9).attr("readonly", true);
-                            // t2.addEventListener('blur', function(){ app.checkQty(t2); });
-                            cell9.appendChild(t9);
-
-                            var cell10=row.insertCell(5);
-                            cell10.className = "text-center";
-                            if((app.user_role == 'admin' || app.user_role == 'system') && !app.isDisabled)
-                            {
-                                var row_action = "<a class='remove-exrow red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                var cell10=row.insertCell(5);
+                                cell10.className = "text-center";
+                                if((app.user_role == 'admin' || app.user_role == 'system' || app.user_role == 'office_user') && !app.isDisabled)
+                                {
+                                    var row_action = "<a class='remove-exrow red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                } else {
+                                    var row_action = "<a class='remove-exrow red-icon' title='Remove' style='display:none;'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                }
+                                $(cell10).append(row_action);
                             } else {
-                                var row_action = "<a class='remove-exrow red-icon' title='Remove' style='display:none;'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+
+                                var cell8fx=row.insertCell(3);
+                                var t8fx=document.createElement("input");
+                                t8fx.name = "unit_price_fx[]";
+                                t8fx.id = "unit_price_fx_"+row_id;
+                                t8fx.style = "width:91px;";
+                                t8fx.value=product.pivot.price_fx;
+                                t8fx.className ="form-control decimal_no unit_price_fx_select";
+                                t8fx.addEventListener('blur', function(){ app.calTotalAmount(t8fx); });
+                                $(t8fx).attr("required", true);
+                                cell8fx.appendChild(t8fx);
+
+                                var cell8=row.insertCell(4);
+                                var t8=document.createElement("input");
+                                t8.name = "unit_price[]";
+                                t8.id = "unit_price_"+row_id;
+                                t8.style = "width:91px;";
+                                t8.value=product.pivot.price;
+                                t8.className ="form-control decimal_no unit_price_select";
+                                t8.addEventListener('blur', function(){ app.calTotalAmount(t8); });
+                                $(t8).attr("required", true);
+                                cell8.appendChild(t8);
+
+                                var cell9fx=row.insertCell(5);
+                                var t9fx=document.createElement("input");
+                                t9fx.name = "total_amount_fx[]";
+                                t9fx.id = "total_amount_fx_"+row_id;
+                                t9fx.style = "width:100px;";
+                                if(product.pivot.total_amount_fx != 0 && product.pivot.total_amount_fx != null) {
+                                    t9fx.value = product.pivot.total_amount_fx;
+                                    subTotalFx += parseFloat(product.pivot.total_amount_fx);
+                                }
+                                t9fx.className ="form-control decimal_no";
+                                $(t9fx).attr("required", true);
+                                $(t9fx).attr("readonly", true);
+                                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                cell9fx.appendChild(t9fx);
+
+                                var cell9=row.insertCell(6);
+                                var t9=document.createElement("input");
+                                t9.name = "total_amount[]";
+                                t9.id = "total_amount_"+row_id;
+                                t9.style = "width:100px;";
+                                if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
+                                    t9.value = product.pivot.total_amount;
+                                    subTotal += parseInt(product.pivot.total_amount);
+                                }
+                                t9.className ="form-control decimal_no";
+                                $(t9).attr("required", true);
+                                $(t9).attr("readonly", true);
+                                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                cell9.appendChild(t9);
+
+                                var cell10=row.insertCell(7);
+                                cell10.className = "text-center";
+                                if((app.user_role == 'admin' || app.user_role == 'system' || app.user_role == 'office_user') && !app.isDisabled)
+                                {
+                                    var row_action = "<a class='remove-exrow red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                } else {
+                                    var row_action = "<a class='remove-exrow red-icon' title='Remove' style='display:none;'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                }
+                                $(cell10).append(row_action);
                             }
-                            $(cell10).append(row_action);
                         }
+
+                        $(".unit_price_select").on("keyup", function(e) {
+                            app.calTotalAmount($(this));
+                        });
+                        $(".unit_price_fx_select").on("keyup", function(e) {
+                            // var data = e.params.data;
+                            app.calTotalAmountFx($(this));
+                        });
                         /** var disAmount = parseInt(response.data.sale.discount);
                          balAmount = parseInt(subTotal) - (parseInt(response.data.sale.pay_amount) + disAmount);
                          app.form.balance_amount = balAmount;
@@ -1751,6 +2370,7 @@ export default {
             // console.log(obj);
             let app = this;
             if(typeof obj.name !== 'undefined') {
+                alert('qty');
                 //For quantity box onBlur Event
                 var row_id = $(obj).closest('tr').attr('id');
 
@@ -1826,18 +2446,40 @@ export default {
                 } else {
                     var discount = app.form.discount;
                 }
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                    if(app.prev_pay_amount != 0) {
+                        var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                        if(currency_rate != 0) {
+                            var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                        } else {
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        //app.form.pay_amount = app.prev_pay_amount;
+                        //app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }
+                //alert(app.prev_pay_amount);
+                /***if(app.form.payment_type == 'cash') {
+                    if(app.form.pay_amount == 0) {
+                        app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                    }
                 } else {
                     if(app.form.pay_amount == '') {
                         app.form.pay_amount = 0;
                     }
-                }
+                }***/
                 app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
             } else {
 
                 //For UOM box select Event
-
+                alert('uom');
                 var product_qty = 0;
                 var uom_val = "";
                 var uom_name  = "";
@@ -1896,13 +2538,50 @@ export default {
                 } else {
                     var discount = app.form.discount;
                 }
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+
+                if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                    if(app.prev_pay_amount != 0) {
+                        var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                        if(currency_rate != 0) {
+                            var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                        } else {
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        //app.form.pay_amount = app.prev_pay_amount;
+                        //app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }
+
+                /***if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }***/
+                /***if(app.form.payment_type == 'cash') {
+                    if(app.form.pay_amount == 0) {
+                        app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                    }
                 } else {
                     if(app.form.pay_amount == '') {
                         app.form.pay_amount = 0;
                     }
-                }
+                }***/
                 app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
             }
         },
@@ -1928,7 +2607,7 @@ export default {
 
             /***if(product_price != '') {
                     var price_variant =  parseFloat(price) - parseFloat(product_price);
-                    price_variant = price_variant.toFixed(2);
+                    price_variant = price_variant.toFixed(3);
                     const wrapper = document.createElement('div');
                     if(price_variant < 0) {
                         wrapper.innerHTML = "Product Price Variant is <font color='red'>"+price_variant+"</font>";
@@ -1988,33 +2667,172 @@ export default {
             } else {
                 discount = app.form.discount;
             }
-            if(app.form.payment_type == 'cash') {
-                app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+            /***if(app.form.payment_type == 'cash') {
+                if(app.form.pay_amount == 0) {
+                    app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                }
             } else {
                 if(app.form.pay_amount == '') {
                     app.form.pay_amount = 0;
                 }
+            }***/
+
+            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    //app.form.pay_amount = app.prev_pay_amount;
+                    //app.form.pay_amount_fx = 0;
+                }
+            } else {
+                app.form.pay_amount = 0;
+                app.form.pay_amount_fx = 0;
             }
             app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
         },
+
+        calTotalAmountFx(obj) {
+            let app = this;
+            console.log(this);
+
+            var row_id = $(obj).closest('tr').attr('id');
+            $("#unit_price_"+row_id).attr('readonly',true);
+            var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            if(currency_rate == "") {
+                currency_rate = 0;
+                swal("Warning!", "Currency rate is empty, please check!", "warning");
+                $("#currency_rate").focus();
+                $("#unit_price_fx_"+row_id).val('');
+                return false;
+            } else {
+                currency_rate = parseFloat(app.form.currency_rate);
+            }            
+            var qty = $("#qty_"+row_id).val();            
+            var price_fx = $("#unit_price_fx_"+row_id).val() == '' ? 0 : $("#unit_price_fx_"+row_id).val();
+            var price = parseFloat(price_fx) * parseFloat(currency_rate);
+            $('#unit_price_'+row_id).val(Math.round(price));
+            var total=Math.round(parseInt(qty)* parseFloat(price));
+            var total_fx =parseInt(qty)* parseFloat(price_fx);
+            if(qty !=null && price !=null && price_fx != '') {
+                var total=Math.round(parseInt(qty)* parseFloat(price));
+                $('#total_amount_'+row_id).val(total);
+
+                var total_fx=parseInt(qty)* parseFloat(price_fx);
+                $('#total_amount_fx_'+row_id).val(app.decimalFormat(total_fx));
+            }else{
+                $('#total_amount_'+row_id).val('');
+                $('#total_amount_fx_'+row_id).val('');
+            }
+
+            //get all sub total amount
+            var sub_total = 0;
+            var sub_total_fx = 0;
+            console.log('Row count '+row_id);
+            for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                if(document.getElementsByName('total_amount[]')[i].value != "") {
+                    sub_total += parseInt(document.getElementsByName('total_amount[]')[i].value);
+                    sub_total_fx += parseFloat(document.getElementsByName('total_amount_fx[]')[i].value);
+                }
+            }
+
+            app.form.sub_total = sub_total;
+            app.form.sub_total_fx= sub_total_fx;
+            var discount = 0;
+            var discount_fx = 0;
+            if(app.form.discount_fx == '') {
+                discount = 0;
+                discount_fx = 0;
+            } else {
+                discount_fx = app.form.discount_fx;
+                discount = parseFloat(app.form.discount_fx) * parseFloat(app.form.currency_rate);
+            }
+           /*** if(app.form.payment_type == 'cash') {
+                if(app.form.pay_amount_fx == 0) {
+                    app.form.pay_amount_fx = parseFloat(app.form.sub_total_fx) - parseFloat(discount_fx);
+                    app.form.pay_amount = app.decimalFormat(parseFloat(app.form.pay_amount_fx) * parseFloat(app.form.currency_rate));
+                }
+            } else {
+                if(app.form.pay_amount_fx == '') {
+                    app.form.pay_amount_fx = 0;
+                    app.form.pay_amount = 0;
+                }
+            }***/
+
+            if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    //app.form.pay_amount = app.prev_pay_amount;
+                    //app.form.pay_amount_fx = 0;
+                }
+            } else {
+                app.form.pay_amount = 0;
+                app.form.pay_amount_fx = 0;
+            }
+
+            app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+            var balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+            app.form.balance_amount_fx = app.decimalFormat(balance_amount_fx);
+        },
+
         calBalance(obj) {
             let app = this;
             var pay_amount = 0;
             var discount = 0;
+            var pay_amount_fx = 0;
+            var discount_fx = 0;
+            if(!app.isMMK) {
+                var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            } 
             if(obj.value != "") {
-                var pay_amount = obj.value;
-            }
+                if(app.isMMK) {
+                    pay_amount = obj.value;
+                } else {                    
+                    pay_amount_fx = app.form.pay_amount_fx;
+                    pay_amount = app.decimalFormat(parseFloat(pay_amount_fx) * parseFloat(currency_rate));
 
-            if(pay_amount > app.form.sub_total) {
+                }
+            }
+            if(parseInt(pay_amount) > (parseInt(app.form.sub_total) - parseInt(app.form.discount))) {
                 swal("Warning!", "Pay amount is greater than sub total amount", "warning");
             } else {
-                app.form.pay_amount = obj.value;
-                if(app.form.discount == '') {
-                    discount = 0;
+                app.form.pay_amount = parseInt(pay_amount);
+                if(app.isMMK) {
+                    if(app.form.discount == '') {
+                        discount = 0;
+                    } else {
+                        discount = app.form.discount;
+                    }
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
                 } else {
-                    discount = app.form.discount;
+                    if(app.form.discount_fx == '') {
+                        discount = 0;
+                        discount_fx = 0;
+                        app.form.discount = 0;
+                    } else {                        
+                        discount_fx = app.form.discount_fx;
+                        discount = app.decimalFormat(parseFloat(app.form.discount_fx) * parseFloat(currency_rate));
+                        app.form.discount = parseInt(discount)
+                    }
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
+                    app.form.balance_amount_fx = parseFloat(app.form.sub_total_fx) - (parseFloat(pay_amount_fx)+parseFloat(discount_fx));
                 }
-                app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
             }
         },
         changeDiscount(obj) {
@@ -2025,9 +2843,26 @@ export default {
             if(obj.value != "") {
                 discount = obj.value;
             }
-            if(app.form.payment_type == 'cash') {
-                app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
-            }
+            /**if(app.form.payment_type == 'cash') {
+                if(app.form.pay_amount == 0) {
+                    app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
+                }
+            }**/
+
+            /***if(app.prev_pay_amount != 0) {
+                var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                if(currency_rate != 0) {
+                    var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                    app.form.pay_amount = app.prev_pay_amount;
+                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                } else {
+                    app.form.pay_amount = app.prev_pay_amount;
+                    app.form.pay_amount_fx = 0;
+                }
+            } else {
+                app.form.pay_amount = 0;
+                app.form.pay_amount_fx = 0;
+            }***/
 
             if(discount > app.form.sub_total) {
                 swal("Warning!", "Discount amount is greater than sub total amount", "warning");
@@ -2035,9 +2870,104 @@ export default {
                 app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
             }
         },
+
+        changeDiscountFx(obj) {
+            let app = this;
+            var discount = 0;
+            var balance  = 0;
+            var discount_fx = 0;
+            var balance_fx = 0;
+            if(app.isMMK) {
+                if(obj.value != "") {
+                    discount = obj.value;
+                }
+                /***if(app.form.payment_type == 'cash') {
+                    if(app.form.pay_amount == 0) {
+                        app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
+                    }
+                }***/
+
+               /*** if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }***/
+
+                if(discount > app.form.sub_total) {
+                    swal("Warning!", "Discount amount is greater than sub total amount", "warning");
+                } else {
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
+                }
+            } else {
+                var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+                if(obj.value != "") {
+                    discount_fx = obj.value;
+                    discount = parseFloat(discount_fx) * parseFloat(currency_rate);
+                    app.form.discount = parseInt(discount);
+                }
+                /***if(app.form.payment_type == 'cash') {
+                    if(app.form.pay_amount == 0) {
+                        app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
+                    }
+
+                    if(app.form.pay_amount_fx == 0) {
+                        app.form.pay_amount_fx = parseFloat(app.form.sub_total_fx) - parseFloat(discount_fx);
+                    }
+                }***/
+
+                /****if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }****/
+
+                if(discount > app.form.sub_total) {
+                    swal("Warning!", "Discount amount is greater than sub total amount", "warning");
+                } else {
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
+                    app.form.balance_amount_fx = parseFloat(app.form.sub_total_fx) - (parseFloat(app.form.pay_amount_fx)+parseFloat(discount_fx));
+                }
+            }
+        },
         onSubmit: function(event){
             let app = this;
-            $('#loading').show();
+           
+
+            //EP added
+            if(app.form.payment_type == 'cash') {
+                if(app.form.balance_amount > 0 ) {
+                    swal("Warning!", "Balance must be zero for cash payment!", "warning");
+                    return false;
+                }
+            }
+
+            if(app.form.discount > app.form.sub_total || app.form.balance_amount < 0 || app.form.pay_amount<0) {
+                swal("Warning!", "Invalid balance or Invalid discount or Invalid pay amount. Please check!", "warning");
+                $('#loading').hide();
+                return false;
+            }
+            //End EP
+
+             $('#loading').show();
+
                 app.form.reference_no = $("#reference_no").val();
             app.form.payment_type = $("#payment_type").val();
             if(app.form.payment_type == 'credit') {
@@ -2059,6 +2989,13 @@ export default {
                     // app.form.unit_price.push($('#unit_price_'+i).val());
 
                     app.form.total_amount.push(document.getElementsByName('total_amount[]')[i].value);
+
+                    if(!app.isMMK) {
+                        app.form.unit_price_fx.push(document.getElementsByName('unit_price_fx[]')[i].value);
+
+                        app.form.total_amount_fx.push(document.getElementsByName('total_amount_fx[]')[i].value);
+                    }
+
                     /****if(document.getElementsByName('chk_foc[]')[i].checked == true) {
                             app.form.is_foc.push('1');
                         } else {
@@ -2165,6 +3102,11 @@ export default {
 
                         app.form.product_pivot.push(document.getElementsByName('product[]')[i].options[document.getElementsByName('product[]')[i].options.selectedIndex].dataset.pivotid);
 
+                        if(!app.isMMK) {
+                            app.form.unit_price_fx.push(document.getElementsByName('unit_price_fx[]')[i].value);
+
+                            app.form.total_amount_fx.push(document.getElementsByName('total_amount_fx[]')[i].value);
+                        }
                         //for  price variant
                         /*var key = app.products.findIndex(x => x.product_id == document.getElementsByName('product[]')[i].value);
                         var product_price = app.products[key].product_price;*/
@@ -2301,6 +3243,13 @@ export default {
         //         app.calTotalAmount($("#unit_price_"+row_id));
         //     });
         // },
+
+        decimalFormat(num)
+        {
+           var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : num.toFixed(3);
+           return decimal_num;
+        },
+
         removeProduct(id) {
             let app = this;
             swal({
@@ -2326,13 +3275,36 @@ export default {
                     } else {
                         discount = app.form.discount;
                     }
-                    if(app.form.payment_type == 'cash') {
-                        app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                    /***if(app.form.payment_type == 'cash') {
+                        if(app.form.pay_amount == 0) {
+                            app.form.pay_amount = parseInt((app.form.sub_total) - parseInt(discount));
+                        }
                     } else {
                         if(app.form.pay_amount == '') {
                             app.form.pay_amount = 0;
                         }
+                    }***/
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
                     }
+
                     app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
                 } else {
                     //
@@ -2340,10 +3312,10 @@ export default {
             });
         },
         calAmt(e){
-            var qty=$('#qty_1').val();
+            /**var qty=$('#qty_1').val();
             var price=$('#unit_price_1').val();
             var total=parseInt(qty) * parseInt(price);
-            $('#total_amount_1').val(total);
+            $('#total_amount_1').val(total);**/
             // console.log(total);
         }
 

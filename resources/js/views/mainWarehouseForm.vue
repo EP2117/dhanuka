@@ -202,7 +202,7 @@
         },
         mounted() {
 
-            $("#loading").hide();
+            $("#loading").show();
             let app = this;
 
             app.initProducts();
@@ -272,9 +272,16 @@
         },
 
         methods: {
+
             initProducts() {
-              axios.get("/products").then(({ data }) => (this.products = data.data));
+             let app = this;
+             // axios.get("/products").then(({ data }) => (this.products = data.data));
+              axios.get("/products").then(function(response) {
+                app.products = response.data.data;
+                $('#loading').hide();
+              });
               $(".txt_product").select2();
+              
             },
 
             addProduct() {

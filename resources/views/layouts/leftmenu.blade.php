@@ -231,7 +231,17 @@
         @endif
         @endif
 
+        @if(Auth::user()->role->role_name == 'system')
 
+        <hr class="sidebar-divider">
+
+        <router-link  tag="li" to="/currency" class="nav-item">
+            <a class="nav-link" >
+                <i class="fas fa-money-bill-alt"></i>
+                <span>Currency</span>
+            </a>
+        </router-link>
+        @endif
 
         @endif
 
@@ -328,6 +338,16 @@
         <hr class="sidebar-divider">
 
         <!-- Van Sale == 2; Office Sale == 1; -->
+        <router-link  tag="li" to="/sale_advance/" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-coins"></i>
+                <span>Sale Advance</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+
+        <!-- Van Sale == 2; Office Sale == 1; -->
         <router-link  tag="li" to="/sale/<?php echo $role = Request::path() == 'van' ? '2' : '1'; ?>/" class="nav-item">
             <a class="nav-link" href="#">
                 <i class="fas fa-chart-line"></i>
@@ -337,7 +357,7 @@
 
         <!--if(Request::path() != 'van' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7) -->
         <!--for only system and admin role -->
-        @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+        @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
             <hr class="sidebar-divider">
             <router-link  tag="li" to="/collection" class="nav-item">
                 <a class="nav-link" href="#">
@@ -347,6 +367,30 @@
             </router-link>
          @endif
         @endif
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/sale_return" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-coins"></i>
+                <span>Sale Return</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/return_payment" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-coins"></i>
+                <span>Return Payment</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/customer_return" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-coins"></i>
+                <span>Customer Return</span>
+            </a>
+        </router-link>
         <!-- Divider -->
         <!--<hr class="sidebar-divider">
 
@@ -384,6 +428,16 @@
                 @if(Auth::user()->role->role_name != 'office_order_user' && Auth::user()->role->role_name != 'delivery' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7)
 
                 <!-- Van Sale == 2; Office Sale == 1; -->
+                <router-link  tag="li" to="/purchase_advance/" class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="fas fa-coins"></i>
+                        <span>Purchase Advance</span>
+                    </a>
+                </router-link>
+
+                <hr class="sidebar-divider">
+
+                <!-- Van Sale == 2; Office Sale == 1; -->
                     <router-link  tag="li" to="/purchase/<?php echo $role = Request::path() == 'van' ? '2' : '1'; ?>/" class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="fas fa-chart-line"></i>
@@ -394,7 +448,7 @@
                     <!--for only system and admin role -->
 
                 @endif
-                    @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2))
+                    @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2  || Auth::user()->role->role_name == 'office_user'))
                         <hr class="sidebar-divider">
                         <router-link  tag="li" to="/purchase_collection" class="nav-item">
                             <a class="nav-link" href="#">
@@ -414,6 +468,14 @@
                         <span>Collection</span>
                     </a>
                 </router-link>-->
+            <hr class="sidebar-divider">
+
+            <router-link  tag="li" to="/product_costing" class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-coins"></i>
+                    <span>Product Costing Entry</span>
+                </a>
+            </router-link>
 
             @endif
             @if(Request::path() == 'van' || Request::path() == 'account')
@@ -541,7 +603,7 @@
                 <router-link  tag="li" to="/report/credit_payment_report" class="nav-item">
                     <a class="nav-link" href="#">
                         <i class="fas fa-chart-bar"></i>
-                        <span>Credit Purchase PaymentReport</span>
+                        <span>Credit Payment Report</span>
                     </a>
                 </router-link>
                 <hr class="sidebar-divider">
@@ -644,6 +706,78 @@
                 <span>Pending Approval Report</span>
             </a>
         </router-link>-->
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/blacklist-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Black List Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/customer-wise-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Category Wise Contact Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/product-costing-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Product Costing Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/currency-gain-loss-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Purchase Currency Gain/Loss Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/sale-currency-gain-loss-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Sale Currency Gain/Loss Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/sale-return-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Sale Return Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/sale-return-product-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Sale Return Product Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/sale-return-payment-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Return Payment Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/return-os-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Return OS Report</span>
+            </a>
+        </router-link>
 
         @endif
 

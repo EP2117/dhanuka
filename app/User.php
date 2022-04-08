@@ -96,4 +96,8 @@ class User extends Authenticatable
       return $this->belongsToMany('App\User','countryhead_officesaleman','country_head_id','office_sale_man_id');
     }
 
+    public function customer_logs(){
+        return $this->hasMany('App\CustomerLog','added_by','id');
+    }
+
 }

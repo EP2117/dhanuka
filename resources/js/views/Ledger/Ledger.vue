@@ -113,12 +113,12 @@
                                     <!-- <template v-if="type=='other'"> -->
                                         <td colspan="4" class="text-right mm-txt"><strong>Opening Balance</strong></td>
                                         <td class="text-center" colspan="1" v-if="at.opening_balance >= 0 ">
-                                            {{at.opening_balance}}
+                                            {{decimalFormat(at.opening_balance)}}
                                         </td>
                                         <td class="text-center" colspan="1" v-if="at.opening_balance < 0 ">
                                         </td>
                                         <td class="text-center" colspan="1" v-if="at.opening_balance < 0 ">
-                                            {{at.opening_balance*(-1)}}
+                                            {{decimalFormat(at.opening_balance*(-1))}}
                                         </td>
                                         <td class="text-center" colspan="1" v-if="at.opening_balance >0 ">
                                         </td>
@@ -165,7 +165,10 @@
                                                By {{c.customer.cus_name }} For Inv {{c.vochur_no}} Invoice</td> 
                                             <td class="text-center" v-if=' type=="other" && c.payment_id!=null'>
                                                 {{c.description}}
-                                             </td>  
+                                             </td> 
+                                            <td class="text-center" v-if='type=="other" && (c.status =="opening payment" || c.status == "opening receipt")'>
+                                                {{c.description}}
+                                             </td>
                                              <td class="text-center" v-if=' type=="other" && c.receipt_id!=null'>
                                                 {{c.description}}
                                              </td>  
@@ -185,18 +188,18 @@
                                             By {{c.cus_name }} For Inv {{c.vochur_no}} Invoice</td>
                                         </template> -->
                                         <template v-if="type=='customer'">
-                                            <td class="text-center" >{{c.debit !='' ?c.credit: ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' ?c.debit: ''}} </td>
+                                            <td class="text-center" >{{c.debit != '' && c.credit != null  ? decimalFormat(c.credit) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' && c.debit != null  ? decimalFormat(c.debit) : ''}}</td>
                                         </template>
                                         <template v-if="type=='supplier'">
-                                            <td class="text-center">{{c.debit !='' ?c.credit: ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' ?c.debit: ''}} </td>
+                                            <td class="text-center">{{c.debit !='' &&  c.credit != null ? decimalFormat(c.credit) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' &&  c.debit != null ? decimalFormat(c.debit) : ''}} </td>
                                         </template>
                                          <template v-if="type=='other'">
-                                            <td class="text-center">{{c.debit !='' ?c.debit: ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' ?c.credit: ''}} </td>
+                                            <td class="text-center">{{c.debit !='' && c.debit != null ? decimalFormat(c.debit) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' && c.credit != null ? decimalFormat(c.credit) : ''}} </td>
                                         </template>
-                                        <!-- <td class="text-center">{{c.debit !='' ?c.debit: ''}} </td> -->
+                                        <!-- <td class="text-center">{{c.debit !='' && c.debit != null ?c.debit: ''}} </td> -->
                                         <!-- <td class="text-center" v-show="this.type=='customer'">{{c.credit !='' ?c.credit: ''}} </td> -->
                                         <!-- <td class="text-center">{{c.debit ?? ''}} </td> -->
                                         <!-- <td class="text-center">{{c.credit!=''? c.credit : ''}} </td> -->
@@ -214,40 +217,40 @@
                                     <template v-if="type=='customer'">
                                           <td colspan="4" class="text-right mm-txt"><strong>Total</strong></td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_credit}}
+                                            {{decimalFormat(at.total_credit)}}
                                         </td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_debit}}
+                                            {{decimalFormat(at.total_debit)}}
                                         </td>
                                     </template>
                                       <template v-if="type=='supplier'">
                                           <td colspan="4" class="text-right mm-txt"><strong>Total</strong></td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_credit}}
+                                            {{decimalFormat(at.total_credit)}}
                                         </td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_debit}}
+                                            {{decimalFormat(at.total_debit)}}
                                         </td>
                                     </template>
                                     <template v-if="type=='other'">
                                           <td colspan="4" class="text-right mm-txt"><strong>Total</strong></td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_debit}}
+                                            {{decimalFormat(at.total_debit)}}
                                         </td>
                                         <td class="text-center" colspan="1">
-                                            {{at.total_credit}}
+                                            {{decimalFormat(at.total_credit)}}
                                         </td>
                                     </template>
                                 </tr>
                                 <tr class="total_row" v-if="!at.hide">
                                          <td colspan="4" class="text-right mm-text"><strong>Closing Balance</strong></td>
                                         <td class="text-center " colspan="1" v-if="at.closing_balance>=0">
-                                            {{at.closing_balance}}
+                                            {{decimalFormat(at.closing_balance)}}
                                         </td>
                                         <td class="text-center " colspan="1" v-else-if="at.closing_balance<0">
                                         </td>
                                         <td class="text-center " colspan="1" v-if="at.closing_balance < 0">
-                                            {{at.closing_balance*(-1)}}
+                                            {{decimalFormat(at.closing_balance*(-1))}}
                                         </td>
                                         <td class="text-center " colspan="1" v-else-if="at.closing_balance > 0">
                                         </td>
@@ -308,7 +311,7 @@
                 <!-- pagination end -->
             </div>
         </div>
-
+        <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
     </div>
 </template>
 
@@ -484,6 +487,12 @@ export default {
             });
     },
     methods:{
+        decimalFormat(num)
+        {
+           var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(2);
+           return decimal_num;
+        },
+
         initSubAccount(){
             axios.get('/sub_account/get_all_sub_account').then(({data})=>(this.sub_account=data.sub_account));
             $("#sub_account_id").select2();
@@ -545,6 +554,7 @@ export default {
                 // let data=response.data.ledger;
                 // app.ledger=data;
                 // app.ledger_count=data.length;
+                $("#loading").hide();
              
             });
 

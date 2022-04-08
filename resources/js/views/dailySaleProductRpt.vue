@@ -154,11 +154,11 @@
                             <option value="DESC">Descending</option>
                         </select>
                     </div>
-                    <div class="text-right form-group mt-4" >
+                    <!--<div class="text-right form-group mt-4" >
                         <div class="text-right mb-2" v-if="sales.length > 0">
                             <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                         </div>
-                    </div>
+                    </div>-->
                 </div>
                 <!-- end sort by -->
                 <!--<div class="text-right mb-2" v-if="sales.length > 0">
@@ -166,7 +166,7 @@
                 </div>-->
 
                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table_no" id="dataTable" width="100%" cellspacing="0">  <!--kamlesh-->
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">  <!--kamlesh-->
                         <thead>
                             <tr>
                                 <th class="text-center">No.</th>

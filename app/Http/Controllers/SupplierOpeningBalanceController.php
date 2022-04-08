@@ -56,6 +56,21 @@ class SupplierOpeningBalanceController extends Controller
         $supplier_ob->created_by = Auth::user()->id;
         $supplier_ob->updated_by = Auth::user()->id;
         $supplier_ob->save();
+
+        AccountTransition::create([
+            'sub_account_id' => 5,
+            'transition_date' => $request->opening_date,
+            'purchase_id' => $supplier_ob->id,
+            'supplier_id'=>$request->supplier_id,
+            'is_cashbook' => 0,
+            'description'=>'Supplier Opening Balance',
+            'vochur_no'=>$invoice_no,
+            'debit' => $request->amount,
+            'status'=>'supplier_opening',
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
         return response()->json([
             'status'=>'success',
         ]);
@@ -86,6 +101,39 @@ class SupplierOpeningBalanceController extends Controller
         $supplier_ob->created_by = Auth::user()->id;
         $supplier_ob->updated_by = Auth::user()->id;
         $supplier_ob->save();
+
+        $at_result = AccountTransition::where([
+            ['purchase_id',$id],
+            ['is_cashbook',0],
+            ['status','supplier_opening']])->first();
+        if($at_result) {
+            AccountTransition::where([
+                ['purchase_id',$id],
+                ['is_cashbook',0],
+                ['status','supplier_opening']])->update([
+                'sub_account_id' => 5,
+                'transition_date' => $request->opening_date,
+                'vochur_no'=>$request->invoice_no,
+                'supplier_id'=>$request->supplier_id,
+                'is_cashbook' => 0,
+                'debit' => $request->amount,
+                'updated_by' => Auth::user()->id,
+            ]);
+        } else {
+            AccountTransition::create([
+                'sub_account_id' => 5,
+                'transition_date' => $request->opening_date,
+                'purchase_id' => $supplier_ob->id,
+                'supplier_id'=>$request->supplier_id,
+                'is_cashbook' => 0,
+                'description'=>'Supplier Opening Balance',
+                'vochur_no'=>$request->invoice_no,
+                'debit' => $request->amount,
+                'status'=>'supplier_opening',
+                'created_by' => Auth::user()->id,
+                'updated_by' => Auth::user()->id,
+            ]);  
+        }
         return response()->json([
             'status'=>'success',
         ]);
@@ -100,6 +148,10 @@ class SupplierOpeningBalanceController extends Controller
     public function destroy($id)
     {
         PurchaseInvoice::whereId($id)->delete();
+        AccountTransition::where([
+            ['purchase_id',$id],
+            ['is_cashbook',0],
+            ['status','supplier_opening']])->delete();
         return response(['message' => 'delete successful']);
 
 //            AccountTransition::where('purchase_id', $id)

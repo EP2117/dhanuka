@@ -46,6 +46,9 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/township_by_state/{id}', 'TownshipController@townshipBystate');
     Route::get('/product/selling_uom/{product_id}', 'ProductController@getSellingUomByProductId');
     Route::get('/products', 'ProductController@allProducts');
+    Route::post('/product/image/upload','ProductPhotoController@store');
+    Route::get('/product_photo/{id}','ProductPhotoController@show');
+    Route::delete('product_photo/{id}', 'ProductPhotoController@destroy');
     Route::resource('mainwarehouse_entry', 'MainwarehouseEntryController');
     Route::get('/transfer/maxid/', 'TransferController@getMaxId');
     Route::resource('transfer', 'TransferController');
@@ -53,6 +56,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::post('/transfer_receive/{id}', 'TransferController@receiveTransfer');
     Route::get('/warehouses', 'WarehouseController@allWarehouses');
     Route::get('/customers', 'CustomerController@allCustomers');
+    Route::post('/customer/image/upload','CustomerController@addPhoto');
+    Route::post('/customer/image/delete/{name}/{id}','CustomerController@deletePhoto');
     Route::get('/productsByUserWarehouse', 'ProductTransitionController@getProductsByUserWarehouse');
     Route::get('/productsByUserWarehouse/{action}/{id}', 'ProductTransitionController@getProductsForSaleInvoice');
     Route::get('/get_product_for_purchase/{action}/{id}', 'ProductTransitionController@getProductsForPurchaseInvoice');
@@ -74,11 +79,13 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/customer_previous_balance/{cus_id}', 'SaleController@getCustomerPreviousBalance');
     Route::get('/sale_order_approval/{id}', 'OrderApprovalController@getApproval');
     Route::get('/customer_credit_sale/{cus_id}', 'SaleController@getCreditSaleByCustomer');
+    Route::get('/customer_all_sale/{cus_id}', 'SaleController@getAllSaleByCustomer');
     Route::post('/product/search','ProductController@search');
     Route::get('/ara_brand', 'AraProductController@allBrands');
     Route::get('/ara_category', 'AraProductController@allCategories');
     Route::get('/report_brands', 'BrandController@filterBrands');
     Route::get('/sale_man', 'UserController@getSaleMan');
+    Route::get('/all_users', 'UserController@getAllUsers');
     Route::get('/office_sale_man', 'UserController@getOfficeSaleMan');
     Route::get('/sale_delivery_approval/{sale_id}/{status}', 'SaleController@deliveryApproval');
     Route::get('/check_warehouse_uom/{product_id}', 'ProductTransitionController@checkWarehouseUom');
@@ -100,6 +107,11 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/branches_byuser', 'BranchController@getBranchByUser');
     Route::get('/warehouses_bybranch/{id}', 'WarehouseController@warehouseByBranch');
     Route::resource('sale_man', 'SaleManController');
+
+    Route::resource('sale_return', 'SaleReturnController');
+    Route::resource('customer_return', 'CustomerReturnController');
+    Route::resource('return_payment', 'ReturnPaymentController');
+    Route::get('/customer_sale_return/{cus_id}', 'SaleReturnController@getSaleReturnByCustomer');
     // Route::get('get_sale_man',['SaleManController','getSaleMan']);
     Route::get('/saleman_status/{id}/{status}', 'SaleManController@updateStatus');
     Route::get('/sale_men', 'SaleManController@allSaleMen');
@@ -120,8 +132,37 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/pending_approval_report/', 'OrderApprovalController@getPendingApprovalReport');
     Route::get('/pending_approval_export/', 'OrderApprovalController@exportPendingApprovalReport');
 
+    Route::get('/blacklist_report/', 'CustomerLogController@getBlackListReport');
+    Route::get('/blacklist_export/', 'CustomerLogController@exportBlackListReport');
+
+    Route::get('/customer_wise_report/', 'CustomerController@getCustomerWiseReport');
+    Route::get('/customer_wise_export/', 'CustomerController@exportCustomerWiseReport');
+
+    Route::get('/product_costing_report/', 'LandedCostingController@getProductCostingReport');
+    Route::get('/product_costing_export/', 'LandedCostingController@exportProductCostingReport');
+
+    Route::get('/currency_gain_loss_report/', 'PurchaseCollectionController@getCurrencyGainLossReport');
+    Route::get('/currency_gain_loss_export/', 'PurchaseCollectionController@exportCurrencyGainLossReport');
+
+    Route::get('/sale_currency_gain_loss_report/', 'CollectionController@getCurrencyGainLossReport');
+    Route::get('/sale_currency_gain_loss_export/', 'CollectionController@exportCurrencyGainLossReport');    
+    Route::get('/sale_return_report/', 'SaleReturnController@getSaleReturnReport');
+    Route::get('/sale_return_export/', 'SaleReturnController@exportSaleReturnReport');
+
+    Route::get('/sale_return_product_report/', 'SaleReturnController@getSaleReturnProductReport');
+    Route::get('/sale_return_product_export/', 'SaleReturnController@exportSaleReturnProductReport');
+
+    Route::get('/sale_return_payment_report/', 'ReturnPaymentController@getSaleReturnPaymentReport');
+    Route::get('/sale_return_payment_export/', 'ReturnPaymentController@exportSaleReturnPaymentReport');
+
+    Route::get('/sale_return_os_report/', 'SaleReturnController@getSaleReturnOSReport');
+    Route::get('/sale_return_os_export/', 'SaleReturnController@exportSaleReturnOSReport');
+
     Route::get('/product_export/', 'ProductController@exportProduct');
     Route::get('/customer_export/', 'CustomerController@exportCustomer');
+
+    Route::resource('sale_advance', 'SaleAdvanceController');
+    Route::resource('purchase_advance', 'PurchaseAdvanceController');
     //Route for Import (Migration)
     Route::post('/import/uom','UomController@import');
     Route::post('/import/brand','BrandController@import');
@@ -202,11 +243,16 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('get_all_ledger','AccountTransitionController@getAllLedger');
         Route::get('/daily_purchase_product_report/', ['App\Http\Controllers\PurchaseInvoiceController','getDailyPurchaseProductReport']);
         Route::get('get_credit_payment_report',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport']);
+        Route::get('credit_payment_export',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport'])->name('credit_payment_export');
         Route::get('get_purchase_outstanding',['App\Http\Controllers\PurchaseCollectionController','getPurchaseOutStanding']);
+        Route::get('purchase_outstanding_export',['App\Http\Controllers\PurchaseCollectionController','getPurchaseOutStanding'])->name('purchase_outstanding_export');
         Route::get('get_sale_outstanding',['App\Http\Controllers\CollectionController','getSaleOutstanding']);
+        Route::get('sale_outstanding_export',['App\Http\Controllers\CollectionController','getSaleOutstanding'])->name('sale_outstanding_export');
         Route::get('get_credit_collection',['App\Http\Controllers\CollectionController','getCreditCollectionReport']);
+        Route::get('credit_collection_export',['App\Http\Controllers\CollectionController','getCreditCollectionReport'])->name('credit_collection_export');
         Route::get('get_valuation',['App\Http\Controllers\ProductTransitionController','getValuationReport']);
         Route::get('profit_and_loss',['App\Http\Controllers\AccountTransitionController','getProfitAndLossReport']);
+        Route::get('export_p_and_l_pdf',['App\Http\Controllers\AccountTransitionController','getProfitAndLossReport'])->name('export_p_and_l_pdf');
     });
     Route::group(['prefix' => 'supplier_ob'], function () {
         Route::get('',['\App\Http\Controllers\SupplierOpeningBalanceController','index']);
@@ -223,5 +269,10 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::delete('{id}/destroy',['\App\Http\Controllers\CustomerOpeningBalanceController','destroy']);
     });
     Route::resource('inventory_adjustment','InventoryAdjustmentController');
+    Route::post('landed_costing/create','LandedCostingController@store');
+    Route::resource('landed_costing','LandedCostingController');
 
+    Route::resource('currency', 'CurrencyController');
+    Route::get('/currency_status/{id}/{status}', 'CurrencyController@updateStatus');
+    Route::get('/all_currency', 'CurrencyController@allCurrency');
 });

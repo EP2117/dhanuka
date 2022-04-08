@@ -10,6 +10,7 @@ use App\User;
 use App\Order;
 use App\Product;
 use App\Customer;
+use App\SaleAdvance;
 use Carbon\Carbon;
 use App\AccountTransition;
 use App\ProductTransition;
@@ -77,6 +78,10 @@ class SaleController extends Controller
             $limit = $request->limit;
         }
 
+        $now = Carbon::now()->format('Y-m-d');
+
+        $yesterday = Carbon::yesterday()->format('Y-m-d');
+
         if(Auth::user()->role->role_name == "office_order_user") {
             //get order user's order id
             $orders = DB::table('orders')
@@ -86,7 +91,8 @@ class SaleController extends Controller
             $data = Sale::with('order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','branch')
                         ->where('warehouse_id',Auth::user()->warehouse_id)
                         ->where('sale_type', $request->sale_type)->where('is_opening',0);
-            $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            //$data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            $data->whereBetween('invoice_date', array($yesterday, $now));
             $data->whereIn('order_id',$orders);
 
             if($request->invoice_no != "") {
@@ -151,6 +157,10 @@ class SaleController extends Controller
         } else {
             $data = Sale::with('order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','branch')
                     ->where('sale_type', $request->sale_type)->where('is_opening',0);
+
+            if($request->invoice_no == "" && $request->invoice_type == "" && $request->delivery_approve == "" && $request->from_date == "" && $request->to_date == "" && $request->customer_id  == "" && $request->warehouse_id  == "" && $request->office_sale_man_id == "" && $request->ref_no == ""  && $request->sale_man_id == "") {
+                $data->whereBetween('invoice_date', array($yesterday, $now));
+            }
             if($request->sale_man_id != "") {
                 $data->where('office_sale_man_id', $request->sale_man_id);
             }
@@ -173,7 +183,10 @@ class SaleController extends Controller
 
             }else if($request->to_date != '') {
                 $data->whereDate('invoice_date', '<=', $request->to_date);
-            } else {}
+            } else {
+                //$data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+                //$data->whereBetween('invoice_date', array($yesterday, $now));
+            }
 
             if($request->customer_id != "") {
                 $data->where('customer_id', $request->customer_id);
@@ -248,7 +261,7 @@ class SaleController extends Controller
             }
 
 
-            $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            //$data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
 
             //for Country Head and Admin roles (can access multiple branch)
             if(Auth::user()->role->id == 6 || Auth::user()->role->id == 2) {
@@ -298,10 +311,11 @@ class SaleController extends Controller
             }
             $invoice_no = "SI".str_pad($max_id,5,"0",STR_PAD_LEFT);
             $sale->invoice_no = $invoice_no;
+            $sale->invoice_type = $request->invoice_type;
             $sale->branch_id = Auth::user()->branch_id;
-            //$sale->reference_no = $request->reference_no;
+            $sale->reference_no = $request->reference_no;
             $sale->invoice_date = $request->invoice_date;
-            //$sale->warehouse_id = Auth::user()->warehouse_id;
+            $sale->warehouse_id = Auth::user()->warehouse_id;
             $sale->customer_id = $request->customer_id;
             //$sale->delivery_approve = 0;
             $sale->office_sale_man_id = $request->office_sale_man_id;
@@ -336,6 +350,27 @@ class SaleController extends Controller
                 $amount=$request->pay_amount;
                 $sale->payment_type = 'cash';
             }
+
+            $sale->currency_id = $request->currency_id;
+            if($request->currency_id != 1) {
+                $sale->currency_rate = $request->currency_rate;
+                $sale->pay_amount_fx = $request->pay_amount_fx == '' ? 0 : $request->pay_amount_fx ;
+                $sale->total_amount_fx = $request->sub_total_fx == '' ? 0 : $request->sub_total_fx ;
+                $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx ;
+                $sale->net_total_fx = $request->net_total_fx == '' ? 0 : $request->net_total_fx ;
+                $sale->tax_fx = $request->tax_fx == '' ? 0 : $request->tax_fx ;
+                $sale->tax_amount_fx = $request->tax_amount_fx == '' ? 0 : $request->tax_amount_fx ;
+                $sale->balance_amount_fx = $request->balance_amount_fx  == '' ? 0 : $request->balance_amount_fx ;;
+            } else {
+                $sale->currency_rate = 0;
+                $sale->pay_amount_fx = 0;
+                $sale->total_amount_fx = 0;
+                $sale->cash_discount_fx = 0;
+                $sale->net_total_fx = 0;
+                $sale->tax_fx = 0;
+                $sale->tax_amount_fx = 0;
+                $sale->balance_amount_fx = 0;
+            }
             $sale->created_by = Auth::user()->id;
             $sale->updated_by = Auth::user()->id;
             $sale->save();
@@ -343,25 +378,173 @@ class SaleController extends Controller
             $description=$sale->invoice_no.", Date ".$sale->invoice_date." by " .$sale->customer->cus_name;
             /* Cash Book  for sale*/
             if($sale) {
-                // cashbook
-                if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
-                    AccountTransition::create([
-                        'sub_account_id' => $sub_account_id,
-                        'transition_date' => $sale->invoice_date,
-                        'sale_id' => $sale->id,
-                        'vochur_no'=>$invoice_no,
-                        'description'=>$description,
-                        'is_cashbook' => 1,
-                        'debit' => $amount,
-                        'created_by' => Auth::user()->id,
-                        'updated_by' => Auth::user()->id,
-                    ]);
-                }
-                // end cashbook 
+                //get customer's sale advance
+                $customer_advance = 0;
+                $advance = DB::table("sale_advances")
 
-                // for ledger 
-               $this->storeSaleInLedger($sale);
-                // end ledger
+                            ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                            ->where('customer_id','=',$request->customer_id)
+                            ->first();
+                if(!empty($advance)) {
+                    $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                    $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                    $customer_advance = $in - $out;
+                }
+
+                if($customer_advance == 0 || ($customer_advance > 0 && $request->pay_amount == 0)) {
+                    // cashbook
+                    if($request->customer_advance == 0) {
+                        if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
+                            AccountTransition::create([
+                                'sub_account_id' => $sub_account_id,
+                                'transition_date' => $sale->invoice_date,
+                                'customer_id' => $sale->customer_id,
+                                'sale_id' => $sale->id,
+                                'status'=>'sale',
+                                'vochur_no'=>$invoice_no,
+                                'description'=>$description,
+                                'is_cashbook' => 1,
+                                'debit' => $amount,
+                                'created_by' => Auth::user()->id,
+                                'updated_by' => Auth::user()->id,
+                            ]);
+                        }
+                        // end cashbook 
+
+                        // for ledger 
+                       $this->storeSaleInLedger($sale);
+                        // end ledger
+                    } else {
+
+                        AccountTransition::create([
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side 
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                    }
+                }
+                else if(($customer_advance > $request->pay_amount) || $customer_advance == $request->pay_amount) {
+                    AccountTransition::create([
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side 
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        $obj = new SaleAdvance;
+                        $max_id = SaleAdvance::where('advance_type','out')->max('advance_no');
+                        if($max_id) {
+                            $max_id = $max_id + 1;
+                        }else {
+                            $max_id = 1;
+                        }
+                        $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                        $obj->advance_no = $advance_no;
+                        $obj->advance_date = $request->invoice_date;
+                        $obj->customer_id = $request->customer_id;
+                        $obj->sale_id = $sale->id;
+                        $obj->amount = $request->pay_amount;
+                        $obj->advance_type = 'out';
+                        $obj->created_by = Auth::user()->id;
+                        $obj->save();
+                    
+                }
+                else if($customer_advance < $request->pay_amount) {
+                    $paid_amt = $request->pay_amount - $customer_advance;
+                    // add in cashbook
+                        
+                        AccountTransition::create([
+                            'sub_account_id' => $sub_account_id,
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'status'=>'sale',
+                            'vochur_no'=>$invoice_no,
+                            'description'=>$description,
+                            'is_cashbook' => 1,
+                            'debit' => $paid_amt,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        //add  in ledger
+
+                        AccountTransition::create([
+                            'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            // 'debit' => $sale->net_total,
+                            // change for account side 
+                            //'credit' => $paid_amt,
+                            'debit' => $paid_amt,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        AccountTransition::create([
+                            //'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                    $obj = new SaleAdvance;
+                    $max_id = SaleAdvance::where('advance_type','out')->max('advance_no');
+                    if($max_id) {
+                        $max_id = $max_id + 1;
+                    }else {
+                        $max_id = 1;
+                    }
+                    $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                    $obj->advance_no = $advance_no;
+                    $obj->advance_date = $request->invoice_date;
+                    $obj->customer_id = $request->customer_id;
+                    $obj->sale_id = $sale->id;
+                    $obj->amount = $customer_advance;
+                    $obj->advance_type = 'out';
+                    $obj->created_by = Auth::user()->id;
+                    $obj->save();
+                    
+                } else {
+
+                }
             }
             $sale_id = $sale->id;
             for($i=0; $i<count($request->product); $i++) {
@@ -370,10 +553,25 @@ class SaleController extends Controller
                 $main_uom_id = $product_result->uom_id;
                 //add product into pivot table
                 /**$pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'price' => $request->unit_price[$i], 'price_variant' => $request->price_variants[$i], 'total_amount' => $request->total_amount[$i]]);**/
-                if($request->sale_order == true) {
-                    $pivot = $sale->products()->attach($request->product[$i],['order_product_pivot_id' => $request->order_product_id[$i],'uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'actual_rate' => $request->actual_rate[$i], 'discount' => $request->discount[$i], 'other_discount' => $request->other_discount[$i], 'total_amount' => $request->total_amount[$i], 'is_foc' => $request->is_foc[$i]]); 
+
+                if($request->currency_id != 1) {
+                    $rate_fx = $request->rate_fx[$i] == '' ? 0 :  $request->rate_fx[$i];
+                    $actual_rate_fx = $request->actual_rate_fx[$i] == '' ? 0 :  $request->actual_rate_fx[$i];
+                    $discount_fx = $request->discount_fx[$i] == '' ? 0 :  $request->discount_fx[$i];
+                    $other_discount_fx = $request->other_discount_fx[$i] == '' ? 0 :  $request->other_discount_fx[$i];
+                    $total_amount_fx = $request->total_amount_fx[$i] == '' ? 0 :  $request->total_amount_fx[$i];
                 } else {
-                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'actual_rate' => $request->actual_rate[$i], 'discount' => $request->discount[$i], 'other_discount' => $request->other_discount[$i], 'total_amount' => $request->total_amount[$i], 'is_foc' => $request->is_foc[$i]]);
+                    $rate_fx = 0;
+                    $actual_rate_fx = 0;
+                    $discount_fx = 0;
+                    $other_discount_fx = 0;
+                    $total_amount_fx = 0;
+                }
+
+                if($request->sale_order == true) {
+                    $pivot = $sale->products()->attach($request->product[$i],['order_product_pivot_id' => $request->order_product_id[$i],'uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
+                } else {
+                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
                 }
 
                 //get last pivot insert id
@@ -432,6 +630,7 @@ class SaleController extends Controller
                 // $pp=DB::table('product_purchase')->where('product_id',$request->product[$i])->get();
             // $q=$m=0;
              $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+            // dd($cost_price);
              $store_cost_price=Product::find($request->product[$i]);
              if($cost_price==0){
                  $cost_price=$store_cost_price->purchase_price;
@@ -495,9 +694,10 @@ class SaleController extends Controller
                $old_discount_allowed_account_id= config('global.discount_allowed');
             }
             $sale->invoice_no = $request->invoice_no;
+            $sale->invoice_type = $request->invoice_type;
             $sale->customer_id = $request->customer_id;
             $sale->branch_id = Auth::user()->branch_id;
-            //$sale->reference_no = $request->reference_no;
+            $sale->reference_no = $request->reference_no;
             $sale->invoice_date = $request->invoice_date;
             //$sale->warehouse_id = Auth::user()->warehouse_id;
             $sale->customer_id = $request->customer_id;
@@ -532,17 +732,212 @@ class SaleController extends Controller
                 $amount=$request->pay_amount;
                 $sale->payment_type = 'cash';
             }
+
+            $sale->currency_id = $request->currency_id;
+            if($request->currency_id != 1) {
+                $sale->currency_rate = $request->currency_rate;
+                $sale->pay_amount_fx = $request->pay_amount_fx == '' ? 0 : $request->pay_amount_fx ;
+                $sale->total_amount_fx = $request->sub_total_fx == '' ? 0 : $request->sub_total_fx ;
+                $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx ;
+                $sale->net_total_fx = $request->net_total_fx == '' ? 0 : $request->net_total_fx ;
+                $sale->tax_fx = $request->tax_fx == '' ? 0 : $request->tax_fx ;
+                $sale->tax_amount_fx = $request->tax_amount_fx == '' ? 0 : $request->tax_amount_fx ;
+                $sale->balance_amount_fx = $request->balance_amount_fx  == '' ? 0 : $request->balance_amount_fx ;;
+            } else {
+                $sale->currency_rate = 0;
+                $sale->pay_amount_fx = 0;
+                $sale->total_amount_fx = 0;
+                $sale->cash_discount_fx = 0;
+                $sale->net_total_fx = 0;
+                $sale->tax_fx = 0;
+                $sale->tax_amount_fx = 0;
+                $sale->balance_amount_fx = 0;
+            }
+
             $sale->updated_at = time();
             $sale->updated_by = Auth::user()->id;
             $sale->save();
+
+            $warehouse_id = $sale->warehouse_id;
+
             $cus=Customer::find($request->customer_id);
             $description=$sale->invoice_no.", Date ".$sale->invoice_date." by " .$cus->cus_name;
             if($sale){
-                if($request->payment_type =='cash' || ($request->payment_type=='credit' && $request->pay_amount!=0)) {
+
+                AccountTransition::where('sale_id',$id)
+                                    ->where('status','sale')
+                                    ->delete();
+
+                SaleAdvance::where('sale_id',$id)
+                            ->where('advance_type','out')
+                            ->delete();
+                //get customer's sale advance
+                $customer_advance = 0;
+                $advance = DB::table("sale_advances")
+
+                            ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                            ->where('customer_id','=',$request->customer_id)
+                            ->first();
+                if(!empty($advance)) {
+                    $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                    $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                    $customer_advance = $in - $out;
+                }
+
+                if($customer_advance == 0 || ($customer_advance > 0 && $request->pay_amount == 0)) {
+                    // cashbook
+                    if($request->customer_advance == 0) {
+                        if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
+                            AccountTransition::create([
+                                'sub_account_id' => $sub_account_id,
+                                'transition_date' => $sale->invoice_date,
+                                'sale_id' => $sale->id,
+                                'status'=>'sale',
+                                'vochur_no'=>$request->invoice_no,
+                                'description'=>$description,
+                                'is_cashbook' => 1,
+                                'debit' => $amount,
+                                'created_by' => Auth::user()->id,
+                                'updated_by' => Auth::user()->id,
+                            ]);
+                        }
+                        // end cashbook 
+
+                        // for ledger 
+                       $this->storeSaleInLedger($sale);
+                        // end ledger
+                    } else {
+
+                        AccountTransition::create([
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side 
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                    }
+                }
+                else if(($customer_advance > $request->pay_amount) || $customer_advance == $request->pay_amount) {
+                    AccountTransition::create([
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side 
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        $obj = new SaleAdvance;
+                        $max_id = SaleAdvance::where('advance_type','out')->max('advance_no');
+                        if($max_id) {
+                            $max_id = $max_id + 1;
+                        }else {
+                            $max_id = 1;
+                        }
+                        $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                        $obj->advance_no = $advance_no;
+                        $obj->advance_date = $request->invoice_date;
+                        $obj->customer_id = $request->customer_id;
+                        $obj->sale_id = $sale->id;
+                        $obj->amount = $request->pay_amount;
+                        $obj->advance_type = 'out';
+                        $obj->created_by = Auth::user()->id;
+                        $obj->save();
+                    
+                }
+                else if($customer_advance < $request->pay_amount) {
+                    $paid_amt = $request->pay_amount - $customer_advance;
+                    // add in cashbook
+                        
+                        AccountTransition::create([
+                            'sub_account_id' => $sub_account_id,
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'status'=>'sale',
+                            'vochur_no'=>$sale->invoice_no,
+                            'description'=>$description,
+                            'is_cashbook' => 1,
+                            'debit' => $paid_amt,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        //add  in ledger
+
+                        AccountTransition::create([
+                            'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            // 'debit' => $sale->net_total,
+                            // change for account side 
+                            //'credit' => $paid_amt,
+                            'debit' => $paid_amt,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                        AccountTransition::create([
+                            'sub_account_id' => config('global.sale'),
+                            'transition_date' => $sale->invoice_date,
+                            'sale_id' => $sale->id,
+                            'customer_id' => $sale->customer_id,
+                            'vochur_no' => $sale->invoice_no,
+                            'description' => '',
+                            'is_cashbook' => 0,
+                            'status' => 'sale',
+                            //'debit' => $sale->net_total,
+                            'credit' => $sale->net_total + $sale->tax_amount,
+                            // change for account side
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                    $obj = new SaleAdvance;
+                    $max_id = SaleAdvance::where('advance_type','out')->max('advance_no');
+                    if($max_id) {
+                        $max_id = $max_id + 1;
+                    }else {
+                        $max_id = 1;
+                    }
+                    $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                    $obj->advance_no = $advance_no;
+                    $obj->advance_date = $request->invoice_date;
+                    $obj->customer_id = $request->customer_id;
+                    $obj->sale_id = $sale->id;
+                    $obj->amount = $customer_advance;
+                    $obj->advance_type = 'out';
+                    $obj->created_by = Auth::user()->id;
+                    $obj->save();
+                    
+                } else {
+
+                }
+                /***if($request->payment_type =='cash' || ($request->payment_type=='credit' && $request->pay_amount!=0)) {
                     $update_cashbook=AccountTransition::where('sale_id',$id)->where('sub_account_id',$old_sub_account_id)->where('is_cashbook',1)->delete();
-                    // dd($update_cashbook);
-                    // AccountTransition::where('sale_id',$id)->where('sub_account_id',$old_cash_sale_account_id)->delete();
-                    // AccountTransition::where('sale_id',$id)->where('sub_account_id',$old_discount_allowed_account_id)->delete();
+
                        AccountTransition::create([
                             'sub_account_id' => $sub_account_id,
                             'transition_date' => $sale->invoice_date,
@@ -561,7 +956,8 @@ class SaleController extends Controller
                     AccountTransition::where('sale_id',$id)
                     ->where('sub_account_id',$old_sub_account_id)
                     ->delete();
-                }
+                    $this->updateSaleInLedger($sale);
+                }****/
             }
             $ex_pivot_arr = $request->ex_product_pivot;
 
@@ -580,12 +976,27 @@ class SaleController extends Controller
             }
             //update in product pivot table
             for($i=0; $i<count($request->product); $i++) {
+
+                if($request->currency_id != 1) {
+                    $rate_fx = $request->rate_fx[$i] == '' ? 0 :  $request->rate_fx[$i];
+                    $actual_rate_fx = $request->actual_rate_fx[$i] == '' ? 0 :  $request->actual_rate_fx[$i];
+                    $discount_fx = $request->discount_fx[$i] == '' ? 0 :  $request->discount_fx[$i];
+                    $other_discount_fx = $request->other_discount_fx[$i] == '' ? 0 :  $request->other_discount_fx[$i];
+                    $total_amount_fx = $request->total_amount_fx[$i] == '' ? 0 :  $request->total_amount_fx[$i];
+                } else {
+                    $rate_fx = 0;
+                    $actual_rate_fx = 0;
+                    $discount_fx = 0;
+                    $other_discount_fx = 0;
+                    $total_amount_fx = 0;
+                }
+
                 //check product already exist or not
                 if($request->product_pivot[$i] != '0' && in_array($request->product_pivot[$i], $ex_pivot_arr)) {
                     //update existing product in pivot and transition tables
                     DB::table('product_sale')
                         ->where('id', $request->product_pivot[$i])
-                        ->update(array('uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'actual_rate' => $request->actual_rate[$i], 'discount' => $request->discount[$i], 'other_discount' => $request->other_discount[$i], 'total_amount' => $request->total_amount[$i], 'is_foc' => $request->is_foc[$i]));
+                        ->update(array('uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]));
 
                     //get product pre-defined UOM
                     $product_result = Product::select('uom_id')->find($request->product[$i]);
@@ -608,7 +1019,7 @@ class SaleController extends Controller
                     DB::table('product_transitions')
                         ->where('transition_product_pivot_id', $request->product_pivot[$i])
                         ->where('transition_sale_id', $id)
-                        ->update(array('cost_price'=>$cost_price *$request->qty[$i],'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));
+                        ->update(array('cost_price'=>$cost_price *$request->qty[$i]* $relation_val,'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_date' => $request->invoice_date, 'transition_product_quantity' => $request->qty[$i],'warehouse_id' => $warehouse_id));
                 } else {
                     //add product into pivot table if not exist
                     
@@ -618,7 +1029,7 @@ class SaleController extends Controller
                     //add product into pivot table
                     /*$pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'price' => $request->unit_price[$i], 'price_variant' => $request->price_variants[$i], 'total_amount' => $request->total_amount[$i]]);*/
 
-                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'actual_rate' => $request->actual_rate[$i], 'discount' => $request->discount[$i], 'other_discount' => $request->other_discount[$i], 'total_amount' => $request->total_amount[$i], 'is_foc' => $request->is_foc[$i]]);
+                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]);
 
                     //get last pivot insert id
                     $last_row=DB::table('product_sale')->orderBy('id', 'DESC')->first();
@@ -638,8 +1049,17 @@ class SaleController extends Controller
                         $relation_val = 1;
                     }
                     // $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
-                    $store_cost_price=Product::find($request->product[$i]);
-                    $cost_price=$store_cost_price->cost_price;
+                   /* $store_cost_price=Product::find($request->product[$i]);
+                    $cost_price=$store_cost_price->cost_price;*/
+                    $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+                     $store_cost_price=Product::find($request->product[$i]);
+                     //$store_cost_price->cost_price=$cost_price;
+                     //$store_cost_price->save();
+                     if($cost_price==0){
+                         $cost_price=$store_cost_price->purchase_price;
+                     }
+                     $store_cost_price->cost_price=$cost_price;
+                     $store_cost_price->save();
                     //add products in transition table=> transfer_type = out (for sold out)
                     $obj = new ProductTransition;
                     $obj->product_id            = $request->product[$i];
@@ -647,10 +1067,10 @@ class SaleController extends Controller
                     $obj->transition_sale_id   = $id;
                     $obj->transition_product_pivot_id   = $pivot_id;
                     $obj->branch_id  = Auth::user()->branch_id;
-                    $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
+                    $obj->warehouse_id          = $warehouse_id; 
                     $obj->transition_date       = $request->invoice_date;
                     $obj->transition_product_uom_id = $request->uom[$i];
-                    $obj->cost_price            = $cost_price * $request->qty[$i];
+                    $obj->cost_price            = $cost_price * $request->qty[$i]* $relation_val;
                     $obj->transition_product_quantity  = $request->qty[$i];
                     $obj->product_uom_id        = $main_uom_id;
                     $obj->product_quantity      = $request->qty[$i] * $relation_val;
@@ -659,13 +1079,13 @@ class SaleController extends Controller
                     $obj->save();
                 }
             }
-
+            
             $status = "success";
             DB::commit();
             return compact('status');
         } catch (\Throwable $e) {
             DB::rollback();
-            $status = "fail";
+            $status = $e->getMessage();
             return compact('status');
             throw $e;
         }
@@ -682,7 +1102,7 @@ class SaleController extends Controller
     public function show($id)
     {
         $access_brands = array();
-        $sale = Sale::with('products','collections','deliveries','warehouse','customer','products.brand','products.category','products.uom','products.selling_uoms','order','sale_man','branch')->find($id);
+        $sale = Sale::with('currency','products','collections','deliveries','warehouse','customer','products.brand','products.category','products.uom','products.selling_uoms','order','sale_man','branch')->find($id);
         if(Auth::user()->role->id == 6) {
             //for Country Head User
             foreach(Auth::user()->brands as $brand) {
@@ -693,32 +1113,126 @@ class SaleController extends Controller
         $customer_id = $sale->customer_id;
 
         $previous_balance = 0;
-        $chk_balance = DB::table("sales")
+        $return_amount = 0;
+        /**$chk_balance = DB::table("sales")
 
-            ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as previous_balance"))
+            ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount ELSE 0 END)  as previous_balance"))
             ->where('customer_id','=',$customer_id)
             ->where('id', '!=', $id)
             ->groupBy('customer_id')
             ->first();
         if($chk_balance) {
-            $previous_balance = $chk_balance->previous_balance;
+            $previous_balance  = $chk_balance->previous_balance;
+        }*/
+        $previous_balance = 0;
+        $chk_balance = DB::table("sales")
+
+                    ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
+                    ->where('customer_id','=',$customer_id)
+                    ->where('id', '!=', $id)
+                    ->where('payment_type', '=', 'credit')
+                    ->groupBy('customer_id')
+                    ->first();
+        if($chk_balance) {
+            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+        }       
+
+        $chk_return = DB::table("sale_returns")
+
+            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+            ->where('sale_returns.customer_id','=',$customer_id)
+            ->where('sales.payment_type','!=','cash')
+            ->where('sales.id','!=',$id)
+            ->groupBy('sale_returns.customer_id')
+            ->first();
+        if($chk_return) {
+            $return_amount = $chk_return->return_payment;
         }
+
+        $cus_return_amount = 0;
+        $chk_cus_return = DB::table("return_invoices")
+
+            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+            ->where('customer_returns.customer_id','=',$customer_id)
+            ->where('return_invoices.sale_id','!=',$id)
+            ->groupBy('customer_returns.customer_id')
+            ->first();
+        if($chk_cus_return) {
+            $cus_return_amount = $chk_cus_return->cus_return_amount;
+        }
+
+        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
         return compact('sale', 'access_brands', 'previous_balance');
     }
 
     public function getCustomerPreviousBalance($id)
     {
+
         $previous_balance = 0;
+        $return_amount = 0;
+        /**$chk_balance = DB::table("sales")
+
+            ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount ELSE 0 END)  as previous_balance"))
+            ->where('customer_id','=',$id)
+            ->groupBy('customer_id')
+            ->first();
+        if($chk_balance) {
+            $previous_balance  = $chk_balance->previous_balance;
+        }**/
         $chk_balance = DB::table("sales")
 
-                    ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as previous_balance"))
+                    ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
                     ->where('customer_id','=',$id)
+                    ->where('payment_type', '=', 'credit')
                     ->groupBy('customer_id')
                     ->first();
         if($chk_balance) {
-             $previous_balance = $chk_balance->previous_balance;
+            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
         }
-        return compact('previous_balance');
+
+        $chk_return = DB::table("sale_returns")
+            ->select(DB::raw("SUM(sale_returns.total_payment_amount) as return_payment"))
+            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+            ->where('sale_returns.customer_id','=',$id)
+            ->where('sales.payment_type','!=','cash')
+            ->groupBy('sale_returns.customer_id')
+            ->first();
+
+        if($chk_return) {
+            $return_amount = $chk_return->return_payment;
+        }
+
+        $cus_return_amount = 0;
+        $chk_cus_return = DB::table("return_invoices")
+
+            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+            ->where('customer_returns.customer_id','=',$id)
+            ->groupBy('customer_returns.customer_id')
+            ->first();
+        if($chk_cus_return) {
+            $cus_return_amount = $chk_cus_return->cus_return_amount;
+        }
+
+        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+
+        //get customer's sale advance
+        $customer_advance = 0;
+        $advance = DB::table("sale_advances")
+
+                    ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                    ->where('customer_id','=',$id)
+                    ->first();
+        if(!empty($advance)) {
+            $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+            $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+            $customer_advance = $in - $out;
+        }
+        return compact('previous_balance','customer_advance');
 
     }
 
@@ -1355,14 +1869,17 @@ class SaleController extends Controller
         if($request->sort_by != "") {
             if($request->sort_by == "invoice_no") {
                 $sales->orderBy('sales.invoice_no', $order);
+                $sales->orderBy('sales.id','DESC');
             }
             else {}
         } else {
-            $sales->orderBy('sales.invoice_date', 'DESC');
+            $sales->orderBy('sales.id', 'DESC');
         }
 
        // $data    =  $sales->orderBy('invoice_date', 'DESC')->get();
         $data = $sales->get();
+        $sale_arr = $data->pluck('sale_id')->toArray();
+        //$r_count = count(array_keys($sale_arr, (int)394)); dd($r_count);
 
         /*$access_brands = array();
 
@@ -1380,7 +1897,7 @@ class SaleController extends Controller
         $total = 0;
         $i = 1;
         $html = '';
-        foreach($data as $sale) {
+        /***foreach($data as $sale) {
                 $html .= '<tr><td class="text-right"></td><td>'.$sale->invoice_no.'</td><td>'.$sale->invoice_date.'</td>';
                 $html .= '<td class="mm-txt">'.$sale->branch_name.'</td>';
                 $html .= '<td class="mm-txt">'.$sale->cus_name.'</td>';
@@ -1414,7 +1931,58 @@ class SaleController extends Controller
 
         }
 
-        $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right">'.number_format($total).'</td></tr>';
+        $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right">'.number_format($total).'</td></tr>'; ***/
+        $n=0;
+        $sp_total = 0;
+        foreach($data as $k=>$sale) {                
+                $html .= '<tr>';
+                if($k==0 || $sale->sale_id != $data[$k-1]->sale_id)
+                {
+                    $sp_total = 0;
+                    $n=$n+1;
+                    $r_count = count(array_keys($sale_arr, (int)$sale->sale_id));
+                    $html .= '<td class="text-right" rowspan="'.$r_count.'" style="vertical-align:middle">'.$n.'</td><td rowspan="'.$r_count.'" style="vertical-align:middle">'.$sale->invoice_no.'</td><td rowspan="'.$r_count.'" style="vertical-align:middle">'.$sale->invoice_date.'</td>';
+                    $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="min-width:150px;vertical-align:middle;text-align:center;">'.$sale->branch_name.'</td>';
+                    $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="min-width:150px;vertical-align:middle; text-align:center;">'.$sale->cus_name.'</td>';
+                    $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="min-width:150px;border-right:solid 1px #ccc !important;vertical-align:middle;text-align:center;">'.$sale->sale_man.'</td>';
+                } 
+                //$html .= '<td class="mm-txt">'.$sale->office_sale_man.'</td>';
+                $html .= '<td>'.$sale->product_code.'</td>';
+                $html .= '<td style="text-align:center;min-width:150px">'.$sale->product_name.'</td>';
+                $html .= '<td>'.$sale->product_quantity.'</td>';
+                $html .= '<td>'.$sale->uom_name.'</td>';
+                if($sale->is_foc == 0) {
+                    if(!empty($sale->other_discount)) {
+                        $other_discount = ($sale->other_discount/100) * $sale->actual_rate;
+                    } else {
+                        $other_discount = 0;
+                    }
+                    $price = $sale->actual_rate - $other_discount;
+                    $html .= '<td class="text-right">'.$price.'</td>';
+                }
+                else {
+                    $html .= '<td class="text-right">FOC</td>';
+                }
+
+                $html .='<td class="text-right">'.$sale->total_amount.'</td>';
+                $html .= '</tr>';
+
+                if($sale->is_foc == 0){
+                    $total = $total + $sale->total_amount;
+                    $sp_total = $sp_total + $sale->total_amount;
+                }
+
+                $i++;
+
+                if(count($data) == 1 || $k == count($data) - 1 || (isset($data[$k+1]) && $sale->sale_id != $data[$k+1]->sale_id))
+                {
+                    $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right">'.number_format($sp_total).'</td></tr>';
+                } 
+
+        }        
+        
+
+        $html .= '<tr><td colspan ="11" style="text-align: right;">Sub-Total</td><td class="text-right">'.number_format($total).'</td></tr>'; 
 
         return response(compact('html'), 200);
     }
@@ -1436,17 +2004,73 @@ class SaleController extends Controller
         $sale = Sale::with('products','sale_man','warehouse','customer','products.uom','products.selling_uoms')->find($sale_id);
 
         //get customer previous balance
-        $previous_balance = 0;
+        /**$previous_balance = 0;
         $chk_balance = DB::table("sales")
 
-                    ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as previous_balance"))
+                    ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount - return_amount ELSE 0 END)  as previous_balance"))
                     ->where('customer_id','=',$sale->customer_id)
                     ->where('id','!=',$sale_id)
                     ->groupBy('customer_id')
                     ->first();
         if($chk_balance) {
              $previous_balance = $chk_balance->previous_balance;
+        }**/
+
+        $previous_balance = 0;
+        $return_amount = 0;
+        /**$chk_balance = DB::table("sales")
+
+            ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount ELSE 0 END)  as previous_balance"))
+            ->where('customer_id','=',$sale->customer_id)
+            ->where('id', '!=', $sale_id)
+            ->groupBy('customer_id')
+            ->first();
+        if($chk_balance) {
+            $previous_balance  = $chk_balance->previous_balance;
+        }**/
+        $chk_balance = DB::table("sales")
+
+                    ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
+                    ->where('customer_id','=',$sale->customer_id)
+                    ->where('id', '!=', $sale_id)
+                    ->where('payment_type', '=', 'credit')
+                    ->groupBy('customer_id')
+                    ->first();
+        if($chk_balance) {
+            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
         }
+
+        $chk_return = DB::table("sale_returns")
+
+            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+            ->where('sale_returns.customer_id','=',$sale->customer_id)
+            ->where('sales.payment_type','!=','cash')
+            ->where('sales.id','!=', $sale_id)
+            ->groupBy('sale_returns.customer_id')
+            ->first();
+        if($chk_return) {
+            $return_amount = $chk_return->return_payment;
+        }
+
+        $cus_return_amount = 0;
+        $chk_cus_return = DB::table("return_invoices")
+
+            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+            ->where('customer_returns.customer_id','=',$sale->customer_id)
+            ->where('return_invoices.sale_id','!=',$sale_id)
+            ->groupBy('customer_returns.customer_id')
+            ->first();
+        if($chk_cus_return) {
+            $cus_return_amount = $chk_cus_return->cus_return_amount;
+        }
+
+        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+
+       // $previous_balance = $previous_balance - $return_amount;
+
         return view('exports.invoice_print', compact('sale','previous_balance'));
 
         $pdf = PDF::loadView('exports.invoice_print', compact('sale','previous_balance'));
@@ -1465,16 +2089,160 @@ class SaleController extends Controller
 
     public function getCreditSaleByCustomer($cus_id, Request $request)
     {
-        if($request->branch_id && $request->branch_id != '') {
+       /** if($request->branch_id && $request->branch_id != '') {
             $data = Sale::orderBy('invoice_date', 'ASC')
                     ->where('customer_id',$cus_id)
                     ->where('payment_type', 'credit')
                     ->where('branch_id', $request->branch_id)
                     ->whereRaw('(total_amount-(pay_amount + collection_amount)) > 0')
                     ->get();
-        } else { $data = ''; }
+        } else { $data = ''; }**/
+        if(isset($request->currency_id) && $request->currency_id != "") {
+            if($request->currency_id == 1) {
+                $data = Sale::with('collections')->orderBy('invoice_date', 'ASC')
+                        ->select('*', DB::raw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) as sale_balance, IFNULL(tax_amount,0) as tax_amt,IFNULL(tax_amount,0) as tax_amt_mmk'))
+                        ->where('customer_id',$cus_id)
+                        ->where('currency_id',$request->currency_id)
+                        ->where('payment_type', 'credit')
+                        ->where('branch_id', $request->branch_id)
+                        ->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
+                        ->get();
+                        foreach($data as $key=>$val) {
+                            $gain_amt = 0;
+                            $loss_amt = 0;
+                            if(!empty($val->collections)) {
+                                foreach($val->collections as $c){
+                                    $gain_amt += $c->pivot->gain_amount;
+                                    $loss_amt += abs($c->pivot->loss_amount); 
+                                }
+                            }
+
+                            $data[$key]->gain_amount = $gain_amt;
+                            $data[$key]->loss_amount = $loss_amt;
+                        }
+            } else {
+                $data = Sale::with('collections')->orderBy('invoice_date', 'ASC')
+                    ->select('*', DB::raw('((total_amount_fx + tax_amount_fx)-(IFNULL(cash_discount_fx,0) + pay_amount_fx + collection_amount_fx)) as sale_balance, IFNULL(tax_amount_fx,0) as tax_amt,IFNULL(tax_amount,0) as tax_amt_mmk'))
+                    ->where('customer_id',$cus_id)
+                    ->where('currency_id',$request->currency_id)
+                    ->where('payment_type', 'credit')
+                    ->where('branch_id', $request->branch_id)
+                    ->whereRaw('((total_amount_fx + tax_amount_fx)-(IFNULL(cash_discount_fx,0) + pay_amount_fx + collection_amount_fx)) > 0')
+                    ->get();
+                foreach($data as $key=>$val) {
+                    $gain_amt = 0;
+                    $loss_amt = 0;
+                    if(!empty($val->collections)) {
+                        foreach($val->collections as $c){
+                            $gain_amt += $c->pivot->gain_amount;
+                            $loss_amt += abs($c->pivot->loss_amount); 
+                        }
+                    }
+
+                    $data[$key]->gain_amount = $gain_amt;
+                    $data[$key]->loss_amount = $loss_amt;
+                }
+            }
+        }
+        else if(isset($request->sale_return)) {
+            $data = Sale::orderBy('invoice_date', 'ASC')
+                    ->select('*', DB::raw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) as sale_balance, IFNULL(tax_amount,0) as tax_amt'))
+                    ->where('customer_id',$cus_id);
+            if(isset($request->branch_id) && $request->branch_id != '') {
+                $data->where('branch_id',$request->branch_id);
+            }
+            $data = $data->where('currency_id',1)
+                       ->where('payment_type', 'credit')
+                       ->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
+                      ->get();
+        }
+        else { 
+             $data = Sale::orderBy('invoice_date', 'ASC')
+                    ->select('*', DB::raw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) as sale_balance, IFNULL(tax_amount,0) as tax_amt,IFNULL(tax_amount,0) as tax_amt_mmk'))
+                    ->where('customer_id',$cus_id);
+            if(isset($request->branch_id) && $request->branch_id != '') {
+                $data->where('branch_id',$request->branch_id);
+            }
+            $data = $data->where('payment_type', 'credit')
+                         ->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
+                         ->get();
+        }
         // dd($data);
         return response(compact('data'), 200);
+    }
+
+    public function getAllSaleByCustomer($cus_id, Request $request)
+    {
+        $data = Sale::orderBy('invoice_date', 'DESC')
+                ->where('is_opening','!=',1)
+                ->where('customer_id',$cus_id)
+                ->where('currency_id',1)
+                ->get();
+        // dd($data);
+
+        /**$previous_balance = 0;
+        $chk_balance = DB::table("sales")
+
+                    ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount - return_amount ELSE 0 END)  as previous_balance"))
+                    ->where('customer_id','=',$cus_id)
+                    ->groupBy('customer_id')
+                    ->first();
+        if($chk_balance) {
+             $previous_balance = $chk_balance->previous_balance;
+        }***/
+
+        $previous_balance = 0;
+        $return_amount = 0;
+        /**$chk_balance = DB::table("sales")
+
+            ->select(DB::raw("SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount ELSE 0 END)  as previous_balance"))
+            ->where('customer_id','=',$cus_id)
+            ->groupBy('customer_id')
+            ->first();
+        if($chk_balance) {
+            $previous_balance  = $chk_balance->previous_balance;
+        }**/
+        $previous_balance = 0;
+        $chk_balance = DB::table("sales")
+
+                    ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
+                    ->where('customer_id','=',$cus_id)
+                    ->where('payment_type', '=', 'credit')
+                    ->groupBy('customer_id')
+                    ->first();
+        if($chk_balance) {
+            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+        }
+
+        $chk_return = DB::table("sale_returns")
+
+            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+            ->where('sale_returns.customer_id','=',$cus_id)
+            ->where('sales.payment_type','!=','cash')
+            ->groupBy('sale_returns.customer_id')
+            ->first();
+        if($chk_return) {
+            $return_amount = $chk_return->return_payment;
+        }
+
+
+        $cus_return_amount = 0;
+        $chk_cus_return = DB::table("return_invoices")
+
+            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+            ->where('customer_returns.customer_id','=',$cus_id)
+            ->groupBy('customer_returns.customer_id')
+            ->first();
+        if($chk_cus_return) {
+            $cus_return_amount = $chk_cus_return->cus_return_amount;
+        }
+
+        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+
+        return response(compact('data','previous_balance'), 200);
     }
 
     /**
@@ -1536,6 +2304,9 @@ class SaleController extends Controller
         AccountTransition::where('sale_id',$id)
             ->where('status','sale')
             ->delete();
+        DB::table('sale_advances')
+                ->where('sale_id', $id)
+                ->delete();
         return response(['message' => 'delete successful']);
     }
     //update delivery approval in sales table

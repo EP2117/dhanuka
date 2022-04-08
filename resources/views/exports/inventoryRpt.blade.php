@@ -116,11 +116,15 @@
 
                     <td>{{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $saleOrder + $reviseSaleQty + $transferQty)}}</td>
                     
-                    <td>
+                    <!--<td>
                         {{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $approvalQty + $reviseSaleQty + $transferQty)}}
+                    </td>-->
+
+                    <td>
+                        <!--{{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $approvalQty + $reviseSaleQty + $transferQty)}}-->
+
+                         {{($opening + $inQty + $receiveQty)-$product->out_qty}}
                     </td>
-
-
 
                     <!--<td>
                     <?php
@@ -160,8 +164,10 @@
                     <td>{{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $saleOrder + $reviseSaleQty + $transferQty)}}</td>
                     
                     <td>
-                        {{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $approvalQty + $reviseSaleQty + $transferQty)}}
-                    </td>
+                        <!--{{($opening + $inQty + $receiveQty + $reviseQty) - ($saleQty + $approvalQty + $reviseSaleQty + $transferQty)}}-->
+
+                         {{($opening + $inQty + $receiveQty)-$product->out_qty}}
+                    </td>                
                 </tr>
             @endif
 

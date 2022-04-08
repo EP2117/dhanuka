@@ -165,7 +165,7 @@
                              </div>
                          </div>
                          @endif
-
+                         
                         @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'office_user' || Auth::user()->role->role_name == 'office_order_user' || Auth::user()->role->id == 6 || Auth::user()->role->id == 7 || Auth::user()->role->id == 8)
                         <div class="col-lg-4 col-md-4">
                         <div class="card-3 carhover">
@@ -250,7 +250,7 @@
                         </div>
                         @endif
 
-                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin')
+                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin'  || Auth::user()->role->role_name == 'office_user')
                                  <div class="col-lg-4 col-md-4">
                                      <div class="card-5 carhover">
                                          <a href="{{url('/purchase_office')}}">

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Hash;
 use App\User;
 use Validator,Redirect,Response;
 use Session;
+use Closure;
+use Config;
+use DB;
 
 class LoginController extends Controller
 {
@@ -43,8 +46,28 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
+    /***public function showLoginForm()
+    {       
+       $financial_years = DB::table('financial_years')->get();
+       return view('auth.login',compact('financial_years'));
+    }***/
+
     public function login(Request $request)
     {
+
+       /** $year = $request->year;
+        if($year == '2021') {
+            Config::set('database.connections.mysql.database', 'dhanukaapp_db');
+            DB::purge('mysql');
+            DB::reconnect('mysql');
+        } else if($year == '2020') {
+            Config::set('database.connections.mysql.database', 'dhanuka_2021_June'); 
+            DB::purge('mysql');
+            DB::reconnect('mysql');   
+        } else {
+
+        } **/
+
         request()->validate([
         'email' => 'required',
         'password' => 'required',

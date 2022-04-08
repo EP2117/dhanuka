@@ -101,6 +101,7 @@
                                 <th class="text-center">Product Code</th>
                                 <th class="text-center">Product Name</th>
                                 <th class="text-center">Warehouse UOM</th>
+                                <!--<th class="text-center">Photo</th>-->
                                 <th class="text-center">Opening</th>
                                 <th class="text-center">In</th>
                                 <th class="text-center">Stock <br />Receive</th>
@@ -129,6 +130,14 @@
                                     <td>{{product.product_code}}</td>
                                     <td>{{product.product_name}}</td>
                                     <td>{{product.uom_name}}</td>
+
+                                    <!--<td v-if="product.photo_ids != null && product.photo_ids != ''">
+                                            <template v-for="p,i in product.photo_ids.split(',')">
+                                                <a href="#" @click="showPhoto(p)">Photo{{i+1}}</a><span v-if="i != product.photo_ids.split(',').length-1">, </span>
+                                            </template>
+                                    </td>
+                                    <td v-else></td>-->
+
                                     <td>{{product.product_opening = getOpening(product.product_id)}}</td>
                                     <td>{{ product.inQty=product.in_qty==null? 0 :parseInt(product.in_qty)}}</td>
 <!--                                    <td>{{// product.inQty = product.in_qty == null ? '0' : product.in_qty}}</td>-->
@@ -142,8 +151,12 @@
                                     <td>{{product.saleQty = product.sale_qty == null ? '0' : product.sale_qty}}</td>
 <!--                                    <td>{{(parseFloat(product.product_opening) + parseFloat(product.inQty)+parseInt(product.in_purchase_qty)+parseFloat(product.product_opening) + parseFloat(product.receiveQty) ) - (parseFloat(product.saleQty)  + parseFloat(product.transferQty))}}</td>-->
                                     <td>
-                                        <!-- {{(parseFloat(product.product_opening) + p_add_qty+ parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty)+p_out_qty)}} -->
-                                        {{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty))}}
+                                        <!-- 1{{(parseFloat(product.product_opening) + p_add_qty+ parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty)+p_out_qty)}} 
+                                        2{{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty))}}-->
+
+                                        <!-- ep code -->
+                                        {{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-parseFloat(product.out_qty)}}
+
                                     </td>
                                 </tr>
                                 </template>
@@ -161,6 +174,14 @@
                                     <td>{{product.product_code}}</td>
                                     <td>{{product.product_name}}</td>
                                     <td>{{product.uom_name}}</td>
+
+                                     <!--<td v-if="product.photo_ids != null && product.photo_ids != ''">
+                                            <template v-for="p,i in product.photo_ids.split(',')">
+                                                <a href="#" @click="showPhoto(p)">Photo{{i+1}}</a><span v-if="i != product.photo_ids.split(',').length-1">, </span>
+                                            </template>
+                                    </td>
+                                    <td v-else></td>-->
+
                                     <td>{{product.product_opening = getOpening(product.product_id)}}</td>
                                 <td>{{ product.inQty=product.in_qty==null? 0 :parseInt(product.in_qty)}}</td>
 
@@ -176,8 +197,11 @@
 <!--                                    <td>{{(parseFloat(product.product_opening) + parseFloat(product.inQty) + parseFloat(product.receiveQty) + parseFloat(product.reviseQty)) - (parseFloat(product.saleQty) + parseFloat(product.saleOrder) + parseFloat(product.reviseSaleQty) + parseFloat(product.transferQty))}}</td>-->
 
                                     <td>
-                                        {{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty))}}
-                                        <!-- {{(parseFloat(product.product_opening) + parseFloat(product.in_qty) + parseFloat(product.receiveQty))-(parseFloat(product.saleQty)+ parseFloat(product.transferQty)+parseInt(product.out_qty))}} -->
+                                        <!--2{{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-(parseFloat(product.saleQty) + parseFloat(product.transferQty))}}
+                                        1{{(parseFloat(product.product_opening) + parseFloat(product.in_qty) + parseFloat(product.receiveQty))-(parseFloat(product.saleQty)+ parseFloat(product.transferQty)+parseInt(product.out_qty))}} -->
+
+                                        <!-- ep code -->
+                                        {{(parseFloat(product.product_opening) + parseFloat(product.inQty)+ parseFloat(product.receiveQty) )-parseFloat(product.out_qty)}}
                                     </td>
                             </tr>
                             </template>
@@ -346,6 +370,20 @@
         },
 
         methods: {
+
+            showPhoto(p) {
+
+                let app = this;
+                $("#loading").show();
+                axios.get("/product_photo/"+p).then(function (response){
+                    $("#loading").hide();
+                    var photo = response.data.photo;
+                    var wi = window.open();
+                    var html = "<div style='text-align:center'><img style='max-width:500px' src='"+photo+"' /></div>";
+                    $(wi.document.body).html(html);
+                });
+            },
+
             initBranches() {
             let app = this;
               axios.get("/branches_byuser").then(

@@ -123,7 +123,9 @@ class TransferController extends Controller
     			//for pre-defined product uom
     			$relation_val = 1;
     		}
-
+            //added by ep
+            $cost_price = $product->pivot->cost_price;
+            //added by ep
             //add products in transition table=> transfer_type = in (for received warehouse)
             $obj = new ProductTransition;
             $obj->product_id            = $product->pivot->product_id;
@@ -135,6 +137,7 @@ class TransferController extends Controller
             $obj->transition_date       = $received_date;
             $obj->transition_product_uom_id        = $product->pivot->uom_id;
             $obj->transition_product_quantity      = $product->pivot->product_quantity;
+            $obj->cost_price            = $cost_price * $product->pivot->product_quantity * $relation_val;//added by ep
             $obj->product_uom_id        = $product->uom_id;
             $obj->product_quantity      = $product->pivot->product_quantity * $relation_val;
             $obj->created_by = Auth::user()->id;
@@ -186,12 +189,24 @@ class TransferController extends Controller
         
         for($i=0; $i<count($request->product); $i++) {
 
+            //added by EP
+             $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+            // dd($cost_price);
+             $store_cost_price=Product::find($request->product[$i]);
+             if($cost_price==0){
+                 $cost_price=$store_cost_price->purchase_price;
+             }
+             $store_cost_price->cost_price=$cost_price;
+             $store_cost_price->save();
+             //dd($cost_price);
+            //added by EP
+
         	//get product pre-defined UOM
         	$product_result = Product::select('uom_id')->find($request->product[$i]);
         	$main_uom_id = $product_result->uom_id;
 
             //add product into pivot table
-            $pivot = $transfer->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i]]);  
+            $pivot = $transfer->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'cost_price' => $cost_price]);//cost_price is added by EP  
 
             //get last pivot insert id
             $last_row=DB::table('product_transfer')->orderBy('id', 'DESC')->first();
@@ -210,11 +225,13 @@ class TransferController extends Controller
     			//for pre-defined product uom
     			$relation_val = 1;
     		}
-            $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+            /**$cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
             $store_cost_price=Product::find($request->product[$i]);
             if($cost_price==0){
                 $cost_price=$store_cost_price->purchase_price;
-            }
+            }**/
+
+
             //add products in transition table=> transfer_type = out (for transfer warehouse)
             $obj = new ProductTransition;
             $obj->product_id            = $request->product[$i];
@@ -226,7 +243,8 @@ class TransferController extends Controller
             $obj->transition_date       = $request->transfer_date;
             $obj->transition_product_uom_id        = $request->uom[$i];
             $obj->transition_product_quantity      = $request->qty[$i];
-            $obj->cost_price            = $cost_price * $request->qty[$i];
+           // $obj->cost_price            = $cost_price * $request->qty[$i]; K
+            $obj->cost_price            = $cost_price * $request->qty[$i] * $relation_val;//EP
             $obj->product_uom_id        = $main_uom_id;
             $obj->product_quantity      = $request->qty[$i] * $relation_val;
             $obj->created_by = Auth::user()->id;
@@ -261,7 +279,7 @@ class TransferController extends Controller
         $transfer->from_warehouse_id = Auth::user()->warehouse_id;
         $transfer->to_warehouse_id = $request->to_warehouse;
         //$transfer->created_by = Auth::user()->id;
-        $transfer->updated_by = Auth::user()->id;        
+        $transfer->updated_by = Auth::user()->id;      
         $transfer->save();
         $ex_pivot_arr = $request->ex_product_pivot;
         //remove id in pivot that are removed in Transfer Form
@@ -280,13 +298,22 @@ class TransferController extends Controller
 
         //update in product pivot table
         for($i=0; $i<count($request->product); $i++) {
-
+            //added by EP
+             $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+            // dd($cost_price);
+             $store_cost_price=Product::find($request->product[$i]);
+             if($cost_price==0){
+                 $cost_price=$store_cost_price->purchase_price;
+             }
+             $store_cost_price->cost_price=$cost_price;
+             $store_cost_price->save();
+            //added by EP
             //check product already exist or not
             if($request->product_pivot[$i] != '0' && in_array($request->product_pivot[$i], $ex_pivot_arr)) {
                 //update existing product in pivot and transition tables
                 DB::table('product_transfer')
                     ->where('id', $request->product_pivot[$i])
-                    ->update(array('uom_id' => $request->uom[$i],'product_quantity' => $request->qty[$i]));
+                    ->update(array('uom_id' => $request->uom[$i],'product_quantity' => $request->qty[$i],'cost_price' => $cost_price));
 
                 //get product pre-defined UOM
 	        	$product_result = Product::select('uom_id')->find($request->product[$i]);
@@ -305,12 +332,21 @@ class TransferController extends Controller
 	    			$relation_val = 1;
 	    		}
 	    		$product_qty = $request->qty[$i] * $relation_val;
+
                 $p=Product::find($request->product[$i]);
-                $cost_price=$p->cost_price;
-                DB::table('product_transitions')
+               /** $cost_price=$p->cost_price; comment by EP at 2Sept2021**/
+
+               /** DB::table('product_transitions')
                     ->where('transition_product_pivot_id', $request->product_pivot[$i])
                     ->where('transition_transfer_id', $id)
-                    ->update(array('cost_price'=>$cost_price *$request->qty[$i],'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));
+                    ->update(array('cost_price'=>$cost_price *$request->qty[$i],'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_date' => $request->transfer_date, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));**/
+                //added by ep
+                    $transition_cost_price            = $cost_price * $request->qty[$i] * $relation_val;
+                //added by ep
+                 DB::table('product_transitions')
+                    ->where('transition_product_pivot_id', $request->product_pivot[$i])
+                    ->where('transition_transfer_id', $id)
+                    ->update(array('product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_date' => $request->transfer_date, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i],'cost_price' => $transition_cost_price));
             } else {
                 //add product into pivot table if not exist
                 //get product pre-defined UOM
@@ -318,7 +354,7 @@ class TransferController extends Controller
 	        	$main_uom_id = $product_result->uom_id;
 
 	            //add product into pivot table
-	            $pivot = $transfer->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i]]);  
+	            $pivot = $transfer->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'cost_price' => $cost_price]);  
 
 	            //get last pivot insert id
 	            $last_row=DB::table('product_transfer')->orderBy('id', 'DESC')->first();
@@ -336,7 +372,7 @@ class TransferController extends Controller
 	    			$relation_val = 1;
                 }
                 $store_cost_price=Product::find($request->product[$i]);
-                $cost_price=$store_cost_price->cost_price;
+                /**$cost_price=$store_cost_price->cost_price; comment by ep at 2Sept2021**/
 
 	    		//add products in transition table=> transfer_type = out (for transfer warehouse)
 	            $obj = new ProductTransition;
@@ -349,8 +385,8 @@ class TransferController extends Controller
 	            $obj->transition_date       = $request->transfer_date;
 	            $obj->transition_product_uom_id        = $request->uom[$i];
                 $obj->transition_product_quantity      = $request->qty[$i];
-                $obj->cost_price            = $cost_price * $request->qty[$i];
-
+                //$obj->cost_price            = $cost_price * $request->qty[$i];
+                $obj->cost_price            = $cost_price * $request->qty[$i] * $relation_val;
 	            $obj->product_uom_id        = $main_uom_id;
 	            $obj->product_quantity      = $request->qty[$i] * $relation_val;
 	           // $obj->created_by = Auth::user()->id;

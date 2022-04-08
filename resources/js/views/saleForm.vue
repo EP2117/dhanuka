@@ -65,14 +65,29 @@
                                     name="customer_id" v-model="form.customer_id" style="width:100%" required :disabled="SOEdit"
                                 >
                                     <option value="">Select One</option>
-                                    <option v-for="cus in customers" :value="cus.id"  >{{cus.cus_name}}</option>
+                                    <option v-for="cus in customers" :data-lock="cus.is_lock" :value="cus.id"  >{{cus.cus_name}}</option>
+                                </select>
+                            </div>                            
+
+                        </div>
+
+                        <div class="row">
+                            <div class="form-group col-md-4">
+                                <label for="invoice_type">Invoice Type</label>
+                                <select id="invoice_type" class="form-control"
+                                    name="invoice_type" v-model="form.invoice_type" required 
+                                >
+                                    <option value="">Select One</option>
+                                    <option value="marketing">Marketing</option>
+                                    <option value="office">Office</option>
                                 </select>
                             </div>
-                            <!--<div class="form-group col-md-4">
+
+                            <div class="form-group col-md-4">
                                 <label for="vehicle_warehouse">Vehicle Warehouse</label>
                                  <input type="text" class="form-control" id="vehicle_warehouse" name="vehicle_warehouse"
                                 v-model="user_warehouse" readonly>
-                            </div>-->
+                            </div>
 
                         </div>
 
@@ -104,6 +119,21 @@
                                 <label for="credit_day">Credit Days</label>
                                  <input type="text" class="form-control num_txt" id="credit_day" name="credit_day"
                                 v-model="form.credit_day" @blur="calcDueDate()" :readonly="SOEdit">
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="form-group col-md-4">
+                                <label for="currency_id">Currency</label>
+                                <select class="form-control"
+                                        name="currency_id" id="currency_id" style="min-width:100px;" v-model="form.currency_id"
+                                >
+                                    <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>&nbsp;</label>
+                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate"> ) MMK</span></div>
                             </div>
                         </div>
 
@@ -153,12 +183,17 @@
                                             <th scope="col" >Product Name</th>
                                             <th scope="col" >Quantity</th>
                                             <th scope="col" >UOM</th>
-                                            <th scope="col" >Rate</th>
-                                            <th scope="col" >Discount (%)</th>
-                                            <th scope="col" >Actual Rate</th>
+                                            <th scope="col" v-if="!isMMK">Rate(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Rate(MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Discount(<label class="sign">% {{sign}}</label>)</th>
+                                            <th scope="col" >Discount(% MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Actual Rate(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Actual Rate(MMK)</th>
                                             <th scope="col" >FOC</th>
-                                            <th scope="col">Other Discount (%)</th>
-                                            <th scope="col" >Amount</th>
+                                            <th scope="col" v-if="!isMMK">Other Discount(<label class="sign">% {{sign}}</label>)</th>
+                                            <th scope="col">Other Discount (% MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Amount(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Amount(MMK)</th>
                                             <th scope="col" class="text-center"></th>
                                         </tr>
                                     </thead>
@@ -190,11 +225,20 @@
                                                     <option value="">Select One</option>
                                                 </select>
                                             </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" style="min-width:100px;" class="form-control" name="rate_fx[]" id="rate_fx_1" @blur="calTotalAmount($event.target)" :required="!isMMK"  />
+                                            </td>
                                             <td>
                                                 <input type="text" style="min-width:100px;" class="form-control" name="rate[]" id="rate_1" @blur="calTotalAmount($event.target)" required />
                                             </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" style="min-width:70px;" class="form-control decimal_no" name="discount_fx[]" id="discount_fx_1" @blur="calTotalAmount($event.target)" />
+                                            </td>
                                             <td>
-                                                <input type="text" style="min-width:70px;" class="form-control num_txt" name="discount[]" id="discount_1" @blur="calTotalAmount($event.target)" />
+                                                <input type="text" style="min-width:70px;" class="form-control num_txt" name="discount[]" id="discount_1" :readonly ="!isMMK" @blur="calTotalAmount($event.target)" />
+                                            </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" style="min-width:100px;" class="form-control decimal_no" name="actual_rate_fx[]" id="actual_rate_fx_1" readonly :required="!isMMK"  />
                                             </td>
                                             <td>
                                                 <input type="text" style="min-width:100px;" class="form-control" name="actual_rate[]" id="actual_rate_1" readonly required />
@@ -206,8 +250,14 @@
                                                     @change="checkFoc($event.target)"
                                                 >
                                             </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" style="width:70px;" class="form-control decimal_no" name="other_discount_fx[]" id="other_discount_fx_1" @blur="calTotalAmount($event.target)" />
+                                            </td>
                                             <td>
-                                                <input type="text" style="width:70px;" class="form-control num_txt" name="other_discount[]" id="other_discount_1" @blur="calTotalAmount($event.target)" />
+                                                <input type="text" style="width:70px;" class="form-control num_txt" name="other_discount[]" id="other_discount_1" :readonly="!isMMK" @blur="calTotalAmount($event.target)" />
+                                            </td>
+                                            <td v-if="!isMMK">
+                                                <input type="text" class="form-control decimal_no" readonly style="width:100px;" name="total_amount_fx[]" id="total_amount_fx_1" :required="!isMMK"  />
                                             </td>
                                             <td>
                                                 <input type="text" class="form-control num_txt" readonly style="width:100px;" name="total_amount[]" id="total_amount_1" required />
@@ -218,50 +268,187 @@
                                         </tr>
                                         </template>
                                         
-                                        <tr class="total_row">
-                                            <td colspan="7" class="text-right">Total Amount</td>
-                                            <td>&nbsp;</td>
-                                            <td colspan="2" class="text-right">
-                                                <input type="text" v-model="form.sub_total" class="form-control num_txt" readonly style="width:150px;" required />
+                                        <tr class="total_row total_row_first">
+                                            <td :colspan="total_colspan" class="text-right">Total Amount</td>                                            
+
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.sub_total_fx" class="form-control decimal_no" readonly style="width:100px;display:inline-block;" />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.sub_total" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
                                             </td>
                                         </tr>
                                         <tr class="total_row">
-                                            <td colspan="7" class="text-right">Cash Discount</td>
-                                            <td></td>
-                                            <td colspan="2">
+                                            <td :colspan="total_colspan" class="text-right">Cash Discount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.cash_discount_fx" class="form-control decimal_no" style="width:100px;display:inline-block;"  @blur="changeCashDiscount()" />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.cash_discount" class="form-control num_txt" style="width:100px;display:inline-block;" @blur="changeCashDiscount()" :readonly="!isMMK" />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
                                                 <input type="text" v-model="form.cash_discount" class="form-control num_txt" style="width:150px;" @blur="changeCashDiscount()" />
-                                            </td>
+                                            </td>-->
                                         </tr> 
                                         <tr class="total_row">
-                                            <td colspan="7" class="text-right">Net Total</td>
-                                            <td></td>
-                                            <td colspan="2">
+                                            <td :colspan="total_colspan" class="text-right">Net Total</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.net_total_fx" class="form-control decimal_no" readonly  style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.net_total" class="form-control num_txt" readonly style="width:100px;display:inline-block;" readonly />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
                                                 <input type="text" v-model="form.net_total" class="form-control num_txt" readonly style="width:150px;" required />
-                                            </td>
+                                            </td>-->
                                         </tr> 
-                                        <tr class="total_row">
-                                            <td colspan="7" class="text-right">Tax</td>
+                                        <tr class="total_row" v-if="!isMMK">
+                                            <td colspan="10" class="text-right">Tax</td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input   type="text" v-model="form.tax_fx" class="form-control decimal_no" placeholder='%' style="width:50px;display:inline-block;" @blur="changeTax()" />
+                                                </div>
+                                            </td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input   type="text" v-model="form.tax" class="form-control num_txt" placeholder='%' style="width:50px;display:inline-block;" readonly />
+                                                </div>
+                                            </td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.tax_amount_fx" class="form-control decimal_no" readonly style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td><input type="text" v-model="form.tax" class="form-control num_txt" style="width:70px;" placeholder='%' @blur="changeTax()"/></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:150px;" />
+                                            </td>-->
+                                        </tr>
+                                        <tr class="total_row" v-else>
+                                            <td :colspan="total_colspan" class="text-right">Tax</td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax" class="form-control num_txt" placeholder='%' style="width:50px;display:inline-block;" @blur="changeTax()" :readonly="!isMMK" />
+                                                </div>
+                                            </td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td :colspan="total_colspan" class="text-right">Tax</td>
                                             <td><input type="text" v-model="form.tax" class="form-control num_txt" style="width:70px;" placeholder='%' @blur="changeTax()"/></td>
                                             <td colspan="2">
                                                 <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:150px;" />
-                                            </td>
+                                            </td>-->
                                         </tr>
                                         <tr class="total_row">
-                                            <td colspan="7" class="text-right">Paid Amount</td>
-                                            <td></td>
-                                            <td colspan="2">
-                                                <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt" readonly="readonly" style="width:150px;" @blur="changePaidAmount()" required />
+                                            <td :colspan="total_colspan" class="text-right">Paid Amount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" id="pay_amount_fx" v-model="form.pay_amount_fx" class="form-control decimal_no" @blur="changePaidAmount()" style="width:100px;display:inline-block;" />
+                                                </div>
                                             </td>
+                                            <td v-else>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt" @blur="changePaidAmount()" style="width:100px;display:inline-block;" :readonly="!isMMK"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
+                                                <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt"  style="width:150px;" @blur="changePaidAmount()" required />
+                                            </td>-->
                                         </tr>
-                                        <tr class="total_row">
-                                            <td colspan="4" class="text-right">Previous Balance :</td>
+                                        <tr class="total_row" v-if="!isMMK">
+                                            <td colspan="9" class="text-right">Previous Balance :</td>
                                             <td>{{form.previous_balance}}</td>
+
                                             <td colspan="2" class="text-right">Balance Amount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.balance_amount_fx" class="form-control decimal_no" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="4" class="text-right">Balance Amount</td>
                                             <td></td>
                                             <td colspan="2">
                                                 <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
+                                            </td>-->
+                                        </tr> 
+                                        <tr class="total_row" v-else>
+                                            <td colspan="4" class="text-right">Previous Balance :</td>
+                                            <td>{{form.previous_balance}}</td>
+
+                                            <td colspan="2" class="text-right">Balance Amount</td>
+                                            <td>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.balance_amount" class="form-control decimal_no" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
                                             </td>
-                                        </tr>                                    
+
+                                            <!--<td colspan="4" class="text-right">Balance Amount</td>
+                                            <td></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
+                                            </td>-->
+                                        </tr>                                   
                                     </tbody>
                                 </table>
                             </div>                         
@@ -292,17 +479,204 @@
                                             <th scope="col" >SO QTY</th>
                                             <th scope="col" >Accept QTY</th>
                                             <th scope="col" >UOM</th>
-                                            <th scope="col" >Rate</th>
-                                            <th scope="col" >Discount (%)</th>
-                                            <th scope="col" >Actual Rate</th>
+                                            <th scope="col" v-if="!isMMK">Rate(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Rate(MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Discount(<label class="sign">% {{sign}}</label>)</th>
+                                            <th scope="col" >Discount(% MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Actual Rate(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Actual Rate(MMK)</th>
                                             <th scope="col" >FOC</th>
-                                            <th scope="col">Other Discount (%)</th>
-                                            <th scope="col" >Amount</th>
+                                            <th scope="col" v-if="!isMMK">Other Discount(<label class="sign">% {{sign}}</label>)</th>
+                                            <th scope="col">Other Discount (% MMK)</th>
+                                            <th scope="col" v-if="!isMMK">Amount(<label class="sign">{{sign}}</label>)</th>
+                                            <th scope="col" >Amount(MMK)</th>
                                             <th scope="col" class="text-center"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <tr class="total_row total_row_first">
+                                            <td :colspan="order_colspan" class="text-right">Total Amount</td>                                            
+
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.sub_total_fx" class="form-control decimal_no" readonly style="width:70px;display:inline-block;" />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.sub_total" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+                                        </tr>
                                         <tr class="total_row">
+                                            <td :colspan="order_colspan" class="text-right">Cash Discount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.cash_discount_fx" class="form-control decimal_no" style="width:70px;display:inline-block;"  @blur="changeCashDiscount()" />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.cash_discount" class="form-control num_txt" style="width:100px;display:inline-block;" @blur="changeCashDiscount()" :readonly="!isMMK" />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
+                                                <input type="text" v-model="form.cash_discount" class="form-control num_txt" style="width:150px;" @blur="changeCashDiscount()" />
+                                            </td>-->
+                                        </tr> 
+                                        <tr class="total_row">
+                                            <td :colspan="order_colspan" class="text-right">Net Total</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.net_total_fx" class="form-control decimal_no" readonly  style="width:70px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input  type="text" v-model="form.net_total" class="form-control num_txt" readonly style="width:100px;display:inline-block;" readonly />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
+                                                <input type="text" v-model="form.net_total" class="form-control num_txt" readonly style="width:150px;" required />
+                                            </td>-->
+                                        </tr> 
+                                        <tr class="total_row" v-if="!isMMK">
+                                            <td colspan="11" class="text-right">Tax</td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input   type="text" v-model="form.tax_fx" class="form-control decimal_no" placeholder='%' style="width:40px;display:inline-block;" @blur="changeTax()" />
+                                                </div>
+                                            </td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input   type="text" v-model="form.tax" class="form-control num_txt" placeholder='%' style="width:40px;display:inline-block;" readonly />
+                                                </div>
+                                            </td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.tax_amount_fx" class="form-control decimal_no" readonly style="width:70px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td><input type="text" v-model="form.tax" class="form-control num_txt" style="width:70px;" placeholder='%' @blur="changeTax()"/></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:150px;" />
+                                            </td>-->
+                                        </tr>
+                                        <tr class="total_row" v-else>
+                                            <td :colspan="order_colspan" class="text-right">Tax</td>
+
+                                            <td class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax" class="form-control num_txt" placeholder='%' style="width:50px;display:inline-block;" @blur="changeTax()" :readonly="!isMMK" />
+                                                </div>
+                                            </td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td :colspan="total_colspan" class="text-right">Tax</td>
+                                            <td><input type="text" v-model="form.tax" class="form-control num_txt" style="width:70px;" placeholder='%' @blur="changeTax()"/></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.tax_amount" class="form-control num_txt" readonly style="width:150px;" />
+                                            </td>-->
+                                        </tr>
+                                        <tr class="total_row">
+                                            <td :colspan="order_colspan" class="text-right">Paid Amount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" id="pay_amount_fx" v-model="form.pay_amount_fx" class="form-control decimal_no" @blur="changePaidAmount()" style="width:70px;display:inline-block;" />
+                                                </div>
+                                            </td>
+                                            <td v-else>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt" @blur="changePaidAmount()" style="width:100px;display:inline-block;" :readonly="!isMMK"  />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="2">
+                                                <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt"  style="width:150px;" @blur="changePaidAmount()" required />
+                                            </td>-->
+                                        </tr>
+                                        <tr class="total_row" v-if="!isMMK">
+                                            <td colspan="10" class="text-right">Previous Balance :</td>
+                                            <td>{{form.previous_balance}}</td>
+
+                                            <td colspan="2" class="text-right">Balance Amount</td>
+                                            <td v-if="!isMMK" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.balance_amount_fx" class="form-control decimal_no" readonly style="width:70px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">MMK</label>
+                                                    <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="4" class="text-right">Balance Amount</td>
+                                            <td></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
+                                            </td>-->
+                                        </tr> 
+                                        <tr class="total_row" v-else>
+                                            <td colspan="5" class="text-right">Previous Balance :</td>
+                                            <td>{{form.previous_balance}}</td>
+
+                                            <td colspan="2" class="text-right">Balance Amount</td>
+                                            <td>&nbsp;</td>
+                                            <td colspan="2" class="p-0 m-0 pt-2">
+                                                <div style="display:inline-block;">
+                                                    <label style="display:inline-block;">{{sign}}</label>
+                                                    <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
+                                                </div>
+                                            </td>
+
+                                            <!--<td colspan="4" class="text-right">Balance Amount</td>
+                                            <td></td>
+                                            <td colspan="2">
+                                                <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
+                                            </td>-->
+                                        </tr>
+
+                                        <!--<tr class="total_row">
                                             <td colspan="8" class="text-right">Total Amount</td>
                                             <td>&nbsp;</td>
                                             <td colspan="2" class="text-right">
@@ -334,7 +708,7 @@
                                             <td colspan="8" class="text-right">Paid Amount</td>
                                             <td></td>
                                             <td colspan="2">
-                                                <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt" readonly="readonly" style="width:150px;" @blur="changePaidAmount()" />
+                                                <input type="text" id="pay_amount" v-model="form.pay_amount" class="form-control num_txt" style="width:150px;" @blur="changePaidAmount()" />
                                             </td>
                                         </tr>
                                         <tr class="total_row">
@@ -345,7 +719,8 @@
                                             <td colspan="2">
                                                 <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
                                             </td>
-                                        </tr>
+                                        </tr>-->
+
                                     </tbody>
                                 </table>
                             </div>
@@ -381,6 +756,7 @@
               form: new Form({
                 invoice_date: "",
                 invoice_no: "",
+                invoice_type: "",
                 vehicle_warehouse: "",
                 customer_id: "",
                 office_sale_man: "",
@@ -390,13 +766,21 @@
                 qty: [],
                 unit_price: [],
                 rate: [],
+                rate_fx: [],
                 actual_rate: [],
+                actual_rate_fx: [],
                 discount: [],
+                discount_fx: [],
                 other_discount: [],
+                other_discount_fx: [],
                 total_amount: [],
+                total_amount_fx: [],
                 sub_total: 0,
+                sub_total_fx: 0,
                 pay_amount: 0,
+                pay_amount_fx: 0,
                 balance_amount:0,
+                balance_amount_fx:0,
                 ex_product_pivot: [],
                 product_pivot: [],
                 is_foc: [],
@@ -414,16 +798,25 @@
                 revise_order: false,
                 duplicate_ref_no: false,
                 discount: '',
+                discount_fx: '',
                 previous_balance: '',
                 cash_discount: '',
+                cash_discount_fx: '',
                 net_total: '',
+                net_total_fx: '',
                 tax: '',
-                tax_amount: '',    
-                order_product_id: [],            
+                tax_fx: '',
+                tax_amount: '',
+                tax_amount_fx: '',    
+                order_product_id: [],  
+                currency_id: 1,
+                currency_rate: '',         
 
               }),              
               isEdit: false,
               brands: [],
+              isMMK: true,
+              currency: [],
               categories: [],
               products: [],
               uoms: [],
@@ -446,6 +839,10 @@
               SOEdit: false,
               user_branch: '',
               sale_men: [],
+              sign: 'MMK',
+              total_colspan : 7,
+              order_colspan : 8,
+              prev_pay_amount: 0,
             };
         },
 
@@ -490,7 +887,7 @@
                 this.initProducts();
             };
 
-            this.form.invoice_date = moment().format("YYYY-MM-DD");
+            //this.form.invoice_date = moment().format("YYYY-MM-DD");
         },
         mounted() {
 
@@ -502,6 +899,110 @@
             app.initCustomers();
 
             app.initSaleMen();
+
+            app.initCurrency();
+
+            $("#currency_id").select2();
+
+            $("#currency_id").on("select2:select", function(e) {            
+                var data = e.params.data;
+                app.form.currency_id = data.id;
+                var sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+                app.sign = sign;
+                if(app.form.sale_order == true) {                   
+                    $("#order_product_table .total_row_first").prevAll().remove();
+                } else {
+                    $("#product_table .total_row_first").prevAll().remove();
+                }                
+
+                if(data.id != 1) {
+                    app.isMMK = false;
+                    app.total_colspan = 12;
+                    app.order_colspan = 13;
+                    if(app.form.sale_order == false) { 
+                     app.addProduct();
+                    }
+                } else{
+                    app.isMMK = true;
+                    app.total_colspan = 7;
+                    app.order_colspan = 8;
+                    if(app.form.sale_order == false) { 
+                     app.addProduct();
+                    }
+                }
+
+                if(app.form.sale_order == true) {  
+                    app.form.sub_total = 0;
+                    app.form.sub_total_fx = 0;
+                    //app.form.pay_amount = 0;
+                    //app.form.pay_amount_fx = 0;
+                    app.form.balance_amount = 0;
+                    app.form.balance_amount_fx = 0;
+                    app.form.discount = '';
+                    app.form.discount_fx = '';
+                    app.form.previous_balance = '';
+                    app.form.cash_discount = '';
+                    app.form.cash_discount_fx = '';
+                    app.form.net_total = '';
+                    app.form.net_total_fx = '';
+                    app.form.tax = '';
+                    app.form.tax_fx = '';
+                    app.form.tax_amount = '';
+                    app.form.tax_amount_fx = '';
+                } else {
+
+                }
+
+                /**$("#product_table .total_row_first").prevAll().remove();               
+                
+               
+                if(app.prev_pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(currency_rate != 0) {
+                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                        //alert(prev_pay_amt_fx);
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                    } else {
+                        app.form.pay_amount = app.prev_pay_amount;
+                        app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    app.form.pay_amount_fx = 0;
+                }
+                var discount = 0;
+                var discount_fx = 0;
+                if(app.isMMK) {
+                    if(app.form.discount == '') {
+                        discount = 0;
+                    } else {
+                        discount = app.form.discount;
+                    }
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(pay_amount)+parseInt(discount));
+                } else {
+                    if(app.form.discount_fx == '') {
+                        discount = 0;
+                        discount_fx = 0;
+                        app.form.discount = 0;
+                    } else {                        
+                        discount_fx = app.form.discount_fx;
+                        discount = app.decimalFormat(parseFloat(app.form.discount_fx) * parseFloat(currency_rate));
+                        app.form.discount = parseInt(discount)
+                    }
+                    app.form.balance_amount = parseInt(app.form.sub_total) - (parseInt(app.form.pay_amount)+parseInt(discount));
+                    app.form.balance_amount_fx = parseFloat(app.form.sub_total_fx) - (parseFloat(app.form.pay_amount_fx)+parseFloat(discount_fx));
+                }***/
+
+                /***app.form.balance_amount  = sub_total - (parseInt(app.form.pay_amount) + parseInt(discount));
+                var balance_amount_fx  = sub_total_fx - (parseFloat(app.form.pay_amount_fx) + parseFloat(discount_fx));
+                app.form.balance_amount_fx = app.decimalFormat(balance_amount_fx);***/
+                /**$(".sign").html(sign);
+                for (let i = 0; i < document.getElementsByClassName("sign").length; i++) {
+                  document.getElementsByClassName("sign")[i].innerHTML = sign;
+                }**/
+                
+            });
 
             $("#sale_man").select2();
 
@@ -521,9 +1022,50 @@
 
                 var data = e.params.data;
                 app.form.customer_id = data.id;
-
+                //alert(e.target.options[e.target.options.selectedIndex].dataset.lock);
+                var cus_lock = e.target.options[e.target.options.selectedIndex].dataset.lock;
+                if(cus_lock == 1) {
+                    swal("Warning!", "Customer is Locked!", "warning");
+                    $('#customer_id').val('').trigger('change');
+                    app.form.customer_id = '';
+                    return false;
+                }
                 //get customer's previous balance
-                axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance));
+                /***axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance)); ***/
+
+                axios.get("/customer_previous_balance/"+data.id).then(function(response) {
+                    app.form.previous_balance = response.data.previous_balance;
+                    app.prev_pay_amount = response.data.customer_advance;
+                    app.form.pay_amount = response.data.customer_advance;
+
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
+                    }
+
+                    for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                        if(document.getElementsByName('total_amount[]')[i].value != "") {
+                           app.calTotalAmount(document.getElementsByName('product[]')[i]);
+                        }
+                    }
+                });
 
                 axios.get("/customer_sale_orders/"+data.id).then(({ data }) => (app.sale_orders = data.data));
                     $("#sale_order").select2();
@@ -540,8 +1082,16 @@
                     app.form.tax = '';
                     app.form.tax_amount = ''; 
                     app.form.sub_total = '';
-                    app.form.pay_amount = '';
+                    //app.form.pay_amount = '';
                     app.form.balance_amount = '';
+
+                    app.form.cash_discount_fx = '';
+                    app.form.net_total_fx = '';
+                    app.form.tax_fx = '';
+                    app.form.tax_amount_fx = ''; 
+                    app.form.sub_total_fx = '';
+                    //app.form.pay_amount = '';
+                    app.form.balance_amount_fx = '';
                     app.form.office_sale_man_id = '';
                     $('#sale_man').val('').trigger('change');
                 }
@@ -571,7 +1121,7 @@
                     app.form.tax = '';
                     app.form.tax_amount = ''; 
                     app.form.sub_total = '';
-                    app.form.pay_amount = '';
+                    //app.form.pay_amount = '';
                     app.form.balance_amount = '';
                 }
             });
@@ -635,9 +1185,17 @@
 
                //add Warehouse UOM Selling Price
                // $(this).closest('td').next().next().next().next().next().find('input').val(price);
+
                $("#rate_"+row_id).val(price);
                $("#actual_rate_"+row_id).val(price);
 
+               if(!app.isMMK) {
+                    if(app.form.currency_rate != '' && app.form.currency_rate != 0) {
+                        var price_fx = app.decimalFormat(parseFloat(price)/parseFloat(app.form.currency_rate));
+                        $("#rate_fx_"+row_id).val(price_fx);
+                        $("#actual_rate_fx_"+row_id).val(price_fx);
+                    }
+               }
                 //var selectbox_id = $(this).closest('td').next().next().find('.txt_uom');
                 var selectbox_id = $("#uom_"+row_id);
 
@@ -672,6 +1230,14 @@
                     minDate: app.user_year+"-01-01",
                     maxDate: app.user_year+"-12-31",
                 })
+                .on("dp.show", function(e) {
+                    var y = new Date().getFullYear();
+                    if(app.user_year < y) { 
+                      if(app.form.invoice_date == app.user_year+"-12-31" ||  app.form.invoice_date == '') {
+                         app.form.invoice_date = app.user_year+"-12-31";
+                      }
+                    }
+                })
                 .on("dp.change", function(e) {
                     var formatedValue = e.date.format("YYYY-MM-DD");
                     //console.log(formatedValue);
@@ -696,7 +1262,7 @@
                         close: "fa fa-remove"
                     },
                     format:"YYYY-MM-DD",
-                    minDate: app.form.invoice_date,
+                    //minDate: app.form.invoice_date,
                 })
                 .on("dp.change", function(e) {
                     var formatedValue = e.date.format("YYYY-MM-DD");
@@ -717,7 +1283,15 @@
 
             /*$(document).on('click','.add-new',function(evt){
                 app.addProduct();
-            });*/                
+            });*/ 
+
+        $(document).on('keyup','#currency_rate',function(e) {        
+            for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                if(document.getElementsByName('total_amount[]')[i].value != "") {
+                   app.calTotalAmount(document.getElementsByName('product[]')[i]);
+                }
+            }
+        });               
 
 
             $(document).on('click','.remove-row',function(evt) {
@@ -725,12 +1299,19 @@
                     swal("Warning!", "At least one product must be added!", "warning")
                 } else {
                     $(this).parents("tr").remove();
-                    var sub_total = 0;
+
+                    for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                        if(document.getElementsByName('total_amount[]')[i].value != "") {
+                           app.calTotalAmount(document.getElementsByName('product[]')[i]);
+                        }
+                    }
+                    /****var sub_total = 0;
                    for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                         if(document.getElementsByName('total_amount[]')[i].value != "") {
                             sub_total += parseFloat(document.getElementsByName('total_amount[]')[i].value);
                         }
                    }
+
                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
                    app.form.sub_total = Math.round(sub_total);
@@ -739,16 +1320,21 @@
 
                     var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
                     var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                    app.form.tax_amount = tax_amount;
+                    app.form.tax_amount = Math.round(tax_amount);
                     var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
                         if(app.form.payment_type == 'cash') {
-                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                            app.form.balance_amount = 0;
+
+                            if(pay_amount == 0) {
+                                app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                                app.form.balance_amount = 0;
+                            } else {
+                                app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
+                            }
                         } else {
                             app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
-                        }                    
+                        }   ***/                
        
-                    }
+                    } 
             });
 
             $(document).on('click','.remove-exrow',function(evt) {
@@ -764,7 +1350,13 @@
                             swal("Warning!", "At least one product must be added!", "warning")
                         } else {
                             $(this).parents("tr").remove();
-                            var sub_total = 0;
+
+                            for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                                if(document.getElementsByName('total_amount[]')[i].value != "") {
+                                   app.calTotalAmount(document.getElementsByName('product[]')[i]);
+                                }
+                            }
+                           /**** var sub_total = 0;
                            for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                                 if(document.getElementsByName('total_amount[]')[i].value != "") {
                                     sub_total += parseFloat(document.getElementsByName('total_amount[]')[i].value);
@@ -778,14 +1370,20 @@
 
                             var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
                             var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                            app.form.tax_amount = tax_amount;
+                            app.form.tax_amount = Math.round(tax_amount);
                             var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
                             if(app.form.payment_type == 'cash') {
-                                app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                                app.form.balance_amount = 0;
+
+                                if(pay_amount == 0) {
+                                   app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                                    app.form.balance_amount = 0;
+                                } else {
+
+                                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
+                                }
                             } else {
                                 app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
-                            } 
+                            } ***/
                         }   
                     } else {
                       //
@@ -796,6 +1394,12 @@
         },
 
         methods: {
+
+            decimalFormat(num)
+            {
+               var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(3);
+               return decimal_num;
+            },
 
             initSaleMen() {
               axios.get("/sale_men").then(({ data }) => (this.sale_men = data.data));
@@ -993,7 +1597,12 @@
                                 app.form.customer_id = data.id;
 
                                 //get customer's previous balance
-                                axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance));
+                                /***axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance));***/
+
+                                axios.get("/customer_previous_balance/"+data.id).then(function(response) {
+                                    app.form.previous_balance = response.data.previous_balance;
+                                    app.form.pay_amount = response.data.customer_advance;
+                                });
                             });                            
 
                             var cell5=row.insertCell(7);
@@ -1073,6 +1682,14 @@
                                $("#rate_"+row_id).val(price);
                                $("#actual_rate_"+row_id).val(price);
 
+                               if(!app.isMMK) {
+                                    if(app.form.currency_rate != '' && app.form.currency_rate != 0) {
+                                        var price_fx = app.decimalFormat(parseFloat(price)/parseFloat(app.form.currency_rate));
+                                        $("#rate_fx_"+row_id).val(price_fx);
+                                        $("#actual_rate_fx_"+row_id).val(price_fx);
+                                    }
+                               }
+
                                 //var selectbox_id = $(this).closest('td').next().next().find('.txt_uom');
                                 var selectbox_id = $("#uom_"+row_id);
 
@@ -1099,10 +1716,16 @@
                     app.form.tax           = response.data.order.tax;
                     app.form.tax_amount    = response.data.order.tax_amount;
                     if(app.form.payment_type == 'cash') {
-                        app.form.pay_amount = response.data.order.balance_amount;
-                        app.form.balance_amount = 0;
+                        if(app.form.pay_amount == 0) {
+                            app.form.pay_amount = response.data.order.balance_amount;
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount= parseInt(response.data.order.balance_amount) - parseInt(app.form.pay_amount);
+                        }
                     } else {
-                        app.form.balance_amount= response.data.order.balance_amount;
+                       // app.form.balance_amount= response.data.order.balance_amount;
+
+                       app.form.balance_amount= parseInt(response.data.order.balance_amount) - parseInt(app.form.pay_amount);
                     } 
                     
                     //app.form.pay_amount = response.data.order.pay_amount;
@@ -1126,6 +1749,12 @@
               $(".brands").select2({ width: 'resolve' });
             },
 
+            initCurrency() {
+                axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+                $("#currency_id").select2();
+
+            },
+
             initCategories() {
               axios.get("/categories").then(({ data }) => (this.categories = data.data));
               $(".categories").select2();
@@ -1143,11 +1772,31 @@
 
             checkSO(obj) {
                 let app = this;
-                var is_so = $(obj).prop("checked");
+                var is_so = $(obj).prop("checked");                
                 if(is_so){
-                    app.form.sale_order = true;
-                    $("#so_list").show();
+                    app.form.sale_order = true;   
+
+                    app.form.sub_total = 0;
+                    app.form.sub_total_fx = 0;
+                    //app.form.pay_amount = 0;
+                    //app.form.pay_amount_fx = 0;
+                    app.form.balance_amount = 0;
+                    app.form.balance_amount_fx = 0;
+                    app.form.discount = '';
+                    app.form.discount_fx = '';
+                    app.form.previous_balance = '';
+                    app.form.cash_discount = '';
+                    app.form.cash_discount_fx = '';
+                    app.form.net_total = '';
+                    app.form.net_total_fx = '';
+                    app.form.tax = '';
+                    app.form.tax_fx = '';
+                    app.form.tax_amount = '';
+                    app.form.tax_amount_fx = '';                 
+                    $("#so_list").show();                    
                     $("#sale_order").attr("required", true);
+                    $(".total_row_first").prevAll().remove();
+
                 } else {
                     location.reload();
                 }
@@ -1156,12 +1805,12 @@
             changePayment() {
                 if(this.form.payment_type == 'credit') {
                     $("#pay_amount").attr('readonly',false);
-                    this.form.pay_amount = 0;
+                    //this.form.pay_amount = 0;
                     
                 } else {
-                    $("#pay_amount").attr('readonly',true);     
+                    $("#pay_amount").attr('readonly',false);     
                 }
-                this.changePaidAmount();
+                //this.changePaidAmount();
             },
 
             calcDueDate() { 
@@ -1281,11 +1930,15 @@
 
             addProduct() {           
 
-                var max = 0;
-                $('#product_table tbody tr').each(function(){
-                    max = $(this).attr('id') > max ? $(this).attr('id') : max;
-                });
+               var max = 0;
+                // $('#product_table tbody tr').each(function(){
+                //     max = $(this).attr('id') > max ? $(this).attr('id') : max;
+                // });
 
+                 $('#product_table tbody tr').each(function(){
+                    max = parseInt($(this).attr('id')) > max ? parseInt($(this).attr('id')) : max;
+                });
+                    
                 //var max = $('#product_table tbody tr').sort(function(a, b) { return +a.id < +b.id })[0].id;
                 var row_id = parseInt(max) +1;
 
@@ -1351,36 +2004,191 @@
 
                  cell3.appendChild(t3);
 
+                if(app.isMMK)
+                {
+                    var cell4=row.insertCell(3);
+                    var rate=document.createElement("input");
+                        rate.name = "rate[]";
+                        rate.id = "rate_"+row_id;
+                        rate.style = "width:100px;";
+                        rate.className ="form-control num_txt";
+                        $(rate).attr("required", true);
+                        rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
+                        cell4.appendChild(rate);
 
-                var cell4=row.insertCell(3);
-                var rate=document.createElement("input");
-                    rate.name = "rate[]";
-                    rate.id = "rate_"+row_id;
-                    rate.style = "width:100px;";
-                    rate.className ="form-control num_txt";
-                    $(rate).attr("required", true);
-                    rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
-                    cell4.appendChild(rate);
+                    var cell_discount=row.insertCell(4);
+                    var discount=document.createElement("input");
+                        discount.name = "discount[]";
+                        discount.id = "discount_"+row_id;
+                        discount.style = "width:70px;";
+                        discount.className ="form-control num_txt";
+                        discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
+                        cell_discount.appendChild(discount);
 
-                var cell_discount=row.insertCell(4);
-                var discount=document.createElement("input");
-                    discount.name = "discount[]";
-                    discount.id = "discount_"+row_id;
-                    discount.style = "width:70px;";
-                    discount.className ="form-control num_txt";
-                    discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
-                    cell_discount.appendChild(discount);
+                    var cell_actual=row.insertCell(5);
+                    var actual_rate=document.createElement("input");
+                        actual_rate.name = "actual_rate[]";
+                        actual_rate.id = "actual_rate_"+row_id;
+                        actual_rate.style = "width:100px;";
+                        actual_rate.className ="form-control num_txt";
+                        $(actual_rate).attr("required", true);
+                        $(actual_rate).attr("readonly", true);
+                        actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
+                        cell_actual.appendChild(actual_rate);
 
-                var cell_actual=row.insertCell(5);
-                var actual_rate=document.createElement("input");
-                    actual_rate.name = "actual_rate[]";
-                    actual_rate.id = "actual_rate_"+row_id;
-                    actual_rate.style = "width:100px;";
-                    actual_rate.className ="form-control num_txt";
-                    $(actual_rate).attr("required", true);
-                    $(actual_rate).attr("readonly", true);
-                    actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
-                    cell_actual.appendChild(actual_rate);
+                    var cell5=row.insertCell(6);
+                        cell5.className = "text-center";
+                    var t5=document.createElement("input");
+                        t5.type = "checkbox";
+                        t5.name = "chk_foc[]";
+                        t5.id = "foc_"+row_id;
+                        t5.addEventListener('change', function(){ app.checkFoc(t5); });
+                        cell5.appendChild(t5);
+
+                    var cell_other_disc=row.insertCell(7);
+                    var other_discount=document.createElement("input");
+                        other_discount.name = "other_discount[]";
+                        other_discount.id = "other_discount_"+row_id;
+                        other_discount.style = "width:70px;";
+                        other_discount.className ="form-control num_txt";
+                        other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
+                        cell_other_disc.appendChild(other_discount);
+
+                    var cell7=row.insertCell(8);
+                    var t7=document.createElement("input");
+                        t7.name = "total_amount[]";
+                        t7.id = "total_amount_"+row_id;
+                        t7.style = "width:100px;";
+                        t7.className ="form-control num_txt";
+                        $(t7).attr("required", true);
+                        $(t7).attr("readonly", true);
+                       // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                        cell7.appendChild(t7);
+
+                    var cell8=row.insertCell(9);
+                    cell8.className = "text-center";
+                    var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                    $(cell8).append(row_action);
+                } else {
+
+                    var cell4_fx=row.insertCell(3);
+                    var rate_fx=document.createElement("input");
+                        rate_fx.name = "rate_fx[]";
+                        rate_fx.id = "rate_fx_"+row_id;
+                        rate_fx.style = "width:100px;";
+                        rate_fx.className ="form-control decimal_no";
+                        $(rate_fx).attr("required", true);
+                        rate_fx.addEventListener('blur', function(){ app.calTotalAmount(rate_fx); });
+                        cell4_fx.appendChild(rate_fx);
+
+                    var cell4=row.insertCell(4);
+                    var rate=document.createElement("input");
+                        rate.name = "rate[]";
+                        rate.id = "rate_"+row_id;
+                        rate.style = "width:100px;";
+                        rate.className ="form-control num_txt";
+                        $(rate).attr("required", true);
+                        $(rate).attr("readonly", true);
+                        rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
+                        cell4.appendChild(rate);
+
+                    var cell_discount_fx=row.insertCell(5);
+                    var discount_fx=document.createElement("input");
+                        discount_fx.name = "discount_fx[]";
+                        discount_fx.id = "discount_fx_"+row_id;
+                        discount_fx.style = "width:70px;";
+                        discount_fx.className ="form-control decimal_no";
+                        discount_fx.addEventListener('blur', function(){ app.calTotalAmount(discount_fx); });
+                        cell_discount_fx.appendChild(discount_fx);
+
+                    var cell_discount=row.insertCell(6);
+                    var discount=document.createElement("input");
+                        discount.name = "discount[]";
+                        discount.id = "discount_"+row_id;
+                        discount.style = "width:70px;";
+                        discount.className ="form-control num_txt";
+                        $(discount).attr("readonly", true);
+                        discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
+                        cell_discount.appendChild(discount);
+
+                    var cell_actual_fx=row.insertCell(7);
+                    var actual_rate_fx=document.createElement("input");
+                        actual_rate_fx.name = "actual_rate_fx[]";
+                        actual_rate_fx.id = "actual_rate_fx_"+row_id;
+                        actual_rate_fx.style = "width:100px;";
+                        actual_rate_fx.className ="form-control decimal_no";
+                        $(actual_rate_fx).attr("required", true);
+                        $(actual_rate_fx).attr("readonly", true);
+                        actual_rate_fx.addEventListener('blur', function(){ app.calTotalAmount(actual_rate_fx); });
+                        cell_actual_fx.appendChild(actual_rate_fx);
+
+                    var cell_actual=row.insertCell(8);
+                    var actual_rate=document.createElement("input");
+                        actual_rate.name = "actual_rate[]";
+                        actual_rate.id = "actual_rate_"+row_id;
+                        actual_rate.style = "width:100px;";
+                        actual_rate.className ="form-control num_txt";
+                        $(actual_rate).attr("required", true);
+                        $(actual_rate).attr("readonly", true);
+                        actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
+                        cell_actual.appendChild(actual_rate);
+
+                    var cell5=row.insertCell(9);
+                        cell5.className = "text-center";
+                    var t5=document.createElement("input");
+                        t5.type = "checkbox";
+                        t5.name = "chk_foc[]";
+                        t5.id = "foc_"+row_id;
+                        t5.addEventListener('change', function(){ app.checkFoc(t5); });
+                        cell5.appendChild(t5);
+
+                    var cell_other_disc_fx=row.insertCell(10);
+                    var other_discount_fx=document.createElement("input");
+                        other_discount_fx.name = "other_discount_fx[]";
+                        other_discount_fx.id = "other_discount_fx_"+row_id;
+                        other_discount_fx.style = "width:70px;";
+                        other_discount_fx.className ="form-control decimal_no";
+                        other_discount_fx.addEventListener('blur', function(){ app.calTotalAmount(other_discount_fx); });
+                        //$(other_discount_fx).attr("readonly", true);
+                        cell_other_disc_fx.appendChild(other_discount_fx);
+
+                    var cell_other_disc=row.insertCell(11);
+                    var other_discount=document.createElement("input");
+                        other_discount.name = "other_discount[]";
+                        other_discount.id = "other_discount_"+row_id;
+                        other_discount.style = "width:70px;";
+                        other_discount.className ="form-control num_txt";
+                        other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
+                        $(other_discount).attr("readonly", true);
+                        cell_other_disc.appendChild(other_discount);
+
+                    var cell7_fx=row.insertCell(12);
+                    var t7_fx=document.createElement("input");
+                        t7_fx.name = "total_amount_fx[]";
+                        t7_fx.id = "total_amount_fx_"+row_id;
+                        t7_fx.style = "width:100px;";
+                        t7_fx.className ="form-control decimal_no";
+                        $(t7_fx).attr("required", true);
+                        $(t7_fx).attr("readonly", true);
+                       // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                        cell7_fx.appendChild(t7_fx);
+
+                    var cell7=row.insertCell(13);
+                    var t7=document.createElement("input");
+                        t7.name = "total_amount[]";
+                        t7.id = "total_amount_"+row_id;
+                        t7.style = "width:100px;";
+                        t7.className ="form-control num_txt";
+                        $(t7).attr("required", true);
+                        $(t7).attr("readonly", true);
+                       // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                        cell7.appendChild(t7);
+
+                    var cell8=row.insertCell(14);
+                    cell8.className = "text-center";
+                    var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                    $(cell8).append(row_action);
+                }
                 
 
                 $(".txt_product").select2();
@@ -1394,39 +2202,7 @@
                     app.form.customer_id = data.id;
                 });
 
-                var cell5=row.insertCell(6);
-                    cell5.className = "text-center";
-                var t5=document.createElement("input");
-                    t5.type = "checkbox";
-                    t5.name = "chk_foc[]";
-                    t5.id = "foc_"+row_id;
-                    t5.addEventListener('change', function(){ app.checkFoc(t5); });
-                    cell5.appendChild(t5);
-
-                var cell_other_disc=row.insertCell(7);
-                var other_discount=document.createElement("input");
-                    other_discount.name = "other_discount[]";
-                    other_discount.id = "other_discount_"+row_id;
-                    other_discount.style = "width:70px;";
-                    other_discount.className ="form-control num_txt";
-                    other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
-                    cell_other_disc.appendChild(other_discount);
-
-                var cell7=row.insertCell(8);
-                var t7=document.createElement("input");
-                    t7.name = "total_amount[]";
-                    t7.id = "total_amount_"+row_id;
-                    t7.style = "width:100px;";
-                    t7.className ="form-control num_txt";
-                    $(t7).attr("required", true);
-                    $(t7).attr("readonly", true);
-                   // t2.addEventListener('blur', function(){ app.checkQty(t2); });
-                    cell7.appendChild(t7);
-
-                var cell8=row.insertCell(9);
-                cell8.className = "text-center";
-                var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
-                $(cell8).append(row_action);
+                
 
                 $(".txt_product").on("select2:select", function(e) {
 
@@ -1453,6 +2229,14 @@
                    $("#rate_"+row_id).val(price);
                    $("#actual_rate_"+row_id).val(price);
 
+                   if(!app.isMMK) {
+                        if(app.form.currency_rate != '' && app.form.currency_rate != 0) {
+                            var price_fx = app.decimalFormat(parseFloat(price)/parseFloat(app.form.currency_rate));
+                            $("#rate_fx_"+row_id).val(price_fx);
+                            $("#actual_rate_fx_"+row_id).val(price_fx);
+                        }
+                   }
+
                     //var selectbox_id = $(this).closest('td').next().next().find('.txt_uom');
                     var selectbox_id = $("#uom_"+row_id);
 
@@ -1477,8 +2261,8 @@
                 .get("/sale/" + id)
                 .then(function(response) {
                     //prevent to Edit (save button permission)
-                    if(app.user_role == "admin" || app.user_role == "system") {
-                        if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0) {
+                    if(app.user_role == "admin" || app.user_role == "system" || app.user_role == "office_user") {
+                        if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0 && response.data.sale.return_amount==0 && response.data.sale.cash_return_amount==0) {
                             app.isDisabled = false;
                         } else {
                             app.isDisabled = true;
@@ -1486,17 +2270,27 @@
                     } else {
                         app.isDisabled = true;
                     }
+
+                    app.form.currency_id = response.data.sale.currency_id;
+                    $("#currency_id").val(app.form.currency_id).trigger('change');
+                    app.sign = response.data.sale.currency.sign;
+                    app.form.currency_rate = response.data.sale.currency_rate;
+                    app.isMMK = app.form.currency_id == 1 ? true : false;
+
                     app.form.invoice_date = moment(response.data.sale.invoice_date).format('YYYY-MM-DD');
                     app.ex_products = response.data.sale.products;
                     console.log(response.data.sale.products);
                     app.form.invoice_no = response.data.sale.invoice_no;
-                    //app.form.reference_no = response.data.sale.reference_no;
+                    app.form.invoice_type = response.data.sale.invoice_type;
+                    app.form.reference_no = response.data.sale.reference_no;
                     app.form.payment_type = response.data.sale.payment_type;
+
+                    app.user_warehouse = response.data.sale.warehouse.warehouse_name;
 
                     if(response.data.sale.payment_type == 'credit') {
                         $("#pay_amount").attr('readonly',false);
                     } else {
-                        $("#pay_amount").attr('readonly',true);     
+                        $("#pay_amount").attr('readonly',false);     
                     }
                    // app.form.previous_balance = response.data.previous_balance;
                     app.form.due_date = response.data.sale.due_date;
@@ -1535,7 +2329,9 @@
 
                     //add products dynamically
                     var subTotal = 0;
+                    var subTotal_fx = 0;
                     var balAmount = 0;
+                    var balAmount_fx = 0;
                     var row_id = 0;
                     $.each(app.ex_products, function( key, product ) {                       
                         row_id = row_id+1;                      
@@ -1569,7 +2365,7 @@
                             var t2=document.createElement("input");
                                 t2.name = "qty[]";
                                 t2.id = "qty_"+row_id;
-                                t2.value = product.pivot.product_quantity;
+                                t2.value = app.decimalFormat(product.pivot.product_quantity);
                                 t2.style = "width:100px;";
                                 t2.className ="form-control num_txt";
                                 $(t2).attr("required", true);
@@ -1636,62 +2432,48 @@
                                     t3.append(option);
                                 });
                              cell3.appendChild(t3);
-                            var cell4=row.insertCell(3);
-                            var rate=document.createElement("input");
-                                rate.name = "rate[]";
-                                rate.id = "rate_"+row_id;
-                                rate.style = "width:100px;";
-                                rate.value = product.pivot.rate;
-                                rate.className ="form-control num_txt";
-                                $(rate).attr("required", true);
-                                if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
-                                    $(rate).attr("readonly", true);
-                                }
-                                rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
-                                cell4.appendChild(rate);
 
-                            var cell_discount=row.insertCell(4);
-                            var discount=document.createElement("input");
-                                discount.name = "discount[]";
-                                discount.id = "discount_"+row_id;
-                                discount.value = product.pivot.discount == null ? '' : product.pivot.discount;
-                                discount.style = "width:70px;";
-                                discount.className ="form-control num_txt";
-                                if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
-                                    $(discount).attr("readonly", true);
-                                }
-                                discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
-                                cell_discount.appendChild(discount);
+                            if(app.isMMK) {
+                                var cell4=row.insertCell(3);
+                                var rate=document.createElement("input");
+                                    rate.name = "rate[]";
+                                    rate.id = "rate_"+row_id;
+                                    rate.style = "width:100px;";
+                                    rate.value = product.pivot.rate;
+                                    rate.className ="form-control num_txt";
+                                    $(rate).attr("required", true);
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(rate).attr("readonly", true);
+                                    }
+                                    rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
+                                    cell4.appendChild(rate);
 
-                            var cell_actual=row.insertCell(5);
-                            var actual_rate=document.createElement("input");
-                                actual_rate.name = "actual_rate[]";
-                                actual_rate.id = "actual_rate_"+row_id;
-                                actual_rate.value = product.pivot.actual_rate;
-                                actual_rate.style = "width:100px;";
-                                actual_rate.className ="form-control num_txt";
-                                $(actual_rate).attr("required", true);
-                                $(actual_rate).attr("readonly", true);
-                                actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
-                                cell_actual.appendChild(actual_rate);
+                                var cell_discount=row.insertCell(4);
+                                var discount=document.createElement("input");
+                                    discount.name = "discount[]";
+                                    discount.id = "discount_"+row_id;
+                                    discount.value = product.pivot.discount == null ? '' : product.pivot.discount;
+                                    discount.style = "width:70px;";
+                                    discount.className ="form-control num_txt";
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(discount).attr("readonly", true);
+                                    }
+                                    discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
+                                    cell_discount.appendChild(discount);
 
-                            
+                                var cell_actual=row.insertCell(5);
+                                var actual_rate=document.createElement("input");
+                                    actual_rate.name = "actual_rate[]";
+                                    actual_rate.id = "actual_rate_"+row_id;
+                                    actual_rate.value = product.pivot.actual_rate;
+                                    actual_rate.style = "width:100px;";
+                                    actual_rate.className ="form-control num_txt";
+                                    $(actual_rate).attr("required", true);
+                                    $(actual_rate).attr("readonly", true);
+                                    actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
+                                    cell_actual.appendChild(actual_rate);
 
-                            $(".txt_product").select2();
-
-                            $(".txt_uom").select2();
-
-                            $("#customer_id").select2();
-                            $("#customer_id").on("select2:select", function(e) {
-
-                                var data = e.params.data;
-                                app.form.customer_id = data.id;
-
-                                //get customer's previous balance
-                                axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance));
-                            });                            
-
-                            var cell5=row.insertCell(6);
+                                var cell5=row.insertCell(6);
                                 cell5.className = "text-center";
                             var t5=document.createElement("input");
                                 t5.type = "checkbox";
@@ -1707,41 +2489,222 @@
                                 t5.addEventListener('change', function(){ app.checkFoc(t5); });
                                 cell5.appendChild(t5);
 
-                            var cell_other_disc=row.insertCell(7);
-                            var other_discount=document.createElement("input");
-                                other_discount.name = "other_discount[]";
-                                other_discount.id = "other_discount_"+row_id;
-                                other_discount.style = "width:70px;";
-                                other_discount.value = product.pivot.other_discount == null ? '' : product.pivot.other_discount;
-                                if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                var cell_other_disc=row.insertCell(7);
+                                var other_discount=document.createElement("input");
+                                    other_discount.name = "other_discount[]";
+                                    other_discount.id = "other_discount_"+row_id;
+                                    other_discount.style = "width:70px;";
+                                    other_discount.value = product.pivot.other_discount == null ? '' : product.pivot.other_discount;
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(other_discount).attr("readonly", true);
+                                    }
+                                    other_discount.className ="form-control num_txt";
+                                    other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
+                                    cell_other_disc.appendChild(other_discount);
+
+                                var cell7=row.insertCell(8);
+                                var t7=document.createElement("input");
+                                    t7.name = "total_amount[]";
+                                    t7.id = "total_amount_"+row_id;
+                                    t7.style = "width:100px;";
+                                    if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
+                                        t7.value = product.pivot.total_amount;
+                                        subTotal += parseInt(product.pivot.total_amount);
+                                    }
+                                    t7.className ="form-control num_txt";
+                                    $(t7).attr("required", true);
+                                    $(t7).attr("readonly", true);
+                                   // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                    cell7.appendChild(t7);
+
+                                var cell8=row.insertCell(9);
+                                cell8.className = "text-center";
+                                if(app.user_role != 'admin' && response.data.sale.order_id == null)
+                                {
+                                    var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                }
+                                $(cell8).append(row_action);
+                            } else {
+                                var cell4_fx=row.insertCell(3);
+                                var rate_fx=document.createElement("input");
+                                    rate_fx.name = "rate_fx[]";
+                                    rate_fx.id = "rate_fx_"+row_id;
+                                    rate_fx.style = "width:100px;";
+                                    rate_fx.value = app.decimalFormat(product.pivot.rate_fx);
+                                    rate_fx.className ="form-control decimal_no";
+                                    $(rate_fx).attr("required", true);
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(rate_fx).attr("readonly", true);
+                                    }
+                                    rate_fx.addEventListener('blur', function(){ app.calTotalAmount(rate_fx); });
+                                    cell4_fx.appendChild(rate_fx);
+
+                                var cell4=row.insertCell(4);
+                                var rate=document.createElement("input");
+                                    rate.name = "rate[]";
+                                    rate.id = "rate_"+row_id;
+                                    rate.style = "width:100px;";
+                                    rate.value = product.pivot.rate;
+                                    rate.className ="form-control num_txt";
+                                    $(rate).attr("required", true);
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(rate).attr("readonly", true);
+                                    }
+                                    $(rate).attr("readonly", true);
+                                    rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
+                                    cell4.appendChild(rate);
+
+                                var cell_discount_fx=row.insertCell(5);
+                                var discount_fx=document.createElement("input");
+                                    discount_fx.name = "discount_fx[]";
+                                    discount_fx.id = "discount_fx_"+row_id;
+                                    discount_fx.value = product.pivot.discount_fx == 0 ? '' : app.decimalFormat(product.pivot.discount_fx);
+                                    discount_fx.style = "width:70px;";
+                                    discount_fx.className ="form-control decimal_no";
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(discount_fx).attr("readonly", true);
+                                    }
+                                    discount_fx.addEventListener('blur', function(){ app.calTotalAmount(discount_fx); });
+                                    cell_discount_fx.appendChild(discount_fx);
+
+                                var cell_discount=row.insertCell(6);
+                                var discount=document.createElement("input");
+                                    discount.name = "discount[]";
+                                    discount.id = "discount_"+row_id;
+                                    discount.value = product.pivot.discount == null ? '' : product.pivot.discount;
+                                    discount.style = "width:70px;";
+                                    discount.className ="form-control num_txt";
+                                    $(discount).attr("readonly", true);
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(discount).attr("readonly", true);
+                                    }
+                                    discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
+                                    cell_discount.appendChild(discount);
+
+                                var cell_actual_fx=row.insertCell(7);
+                                var actual_rate_fx=document.createElement("input");
+                                    actual_rate_fx.name = "actual_rate_fx[]";
+                                    actual_rate_fx.id = "actual_rate_fx_"+row_id;
+                                    actual_rate_fx.value = app.decimalFormat(product.pivot.actual_rate_fx);
+                                    actual_rate_fx.style = "width:100px;";
+                                    actual_rate_fx.className ="form-control decimal_no";
+                                    $(actual_rate_fx).attr("required", true);
+                                    $(actual_rate_fx).attr("readonly", true);
+                                    actual_rate_fx.addEventListener('blur', function(){ app.calTotalAmount(actual_rate_fx); });
+                                    cell_actual_fx.appendChild(actual_rate_fx);
+
+                                var cell_actual=row.insertCell(8);
+                                var actual_rate=document.createElement("input");
+                                    actual_rate.name = "actual_rate[]";
+                                    actual_rate.id = "actual_rate_"+row_id;
+                                    actual_rate.value = product.pivot.actual_rate;
+                                    actual_rate.style = "width:100px;";
+                                    actual_rate.className ="form-control num_txt";
+                                    $(actual_rate).attr("required", true);
+                                    $(actual_rate).attr("readonly", true);
+                                    actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
+                                    cell_actual.appendChild(actual_rate);
+
+                                var cell5=row.insertCell(9);
+                                cell5.className = "text-center";
+                            var t5=document.createElement("input");
+                                t5.type = "checkbox";
+                                t5.name = "chk_foc[]";
+                                t5.id = "foc_"+row_id;
+                                if(product.pivot.is_foc == '1') {
+                                    $(t5). prop("checked", true);
+                                }
+
+                                if(response.data.sale.order_id != null) {
+                                    $(t5).attr('disabled','disabled');
+                                }
+                                t5.addEventListener('change', function(){ app.checkFoc(t5); });
+                                cell5.appendChild(t5);
+
+                                var cell_other_disc_fx=row.insertCell(10);
+                                var other_discount_fx=document.createElement("input");
+                                    other_discount_fx.name = "other_discount_fx[]";
+                                    other_discount_fx.id = "other_discount_fx_"+row_id;
+                                    other_discount_fx.style = "width:70px;";
+                                    other_discount_fx.value = product.pivot.other_discount_fx == 0 ? '' : app.decimalFormat(product.pivot.other_discount_fx);
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(other_discount_fx).attr("readonly", true);
+                                    }
+                                    other_discount_fx.className ="form-control decimal_no";
+                                    other_discount_fx.addEventListener('blur', function(){ app.calTotalAmount(other_discount_fx); });
+                                    cell_other_disc_fx.appendChild(other_discount_fx);
+
+                                var cell_other_disc=row.insertCell(11);
+                                var other_discount=document.createElement("input");
+                                    other_discount.name = "other_discount[]";
+                                    other_discount.id = "other_discount_"+row_id;
+                                    other_discount.style = "width:70px;";
+                                    other_discount.value = product.pivot.other_discount == null ? '' : product.pivot.other_discount;
+                                    if(product.pivot.is_foc == 1 || response.data.sale.order_id != null) {
+                                        $(other_discount).attr("readonly", true);
+                                    }
                                     $(other_discount).attr("readonly", true);
-                                }
-                                other_discount.className ="form-control num_txt";
-                                other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
-                                cell_other_disc.appendChild(other_discount);
+                                    other_discount.className ="form-control num_txt";
+                                    other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
+                                    cell_other_disc.appendChild(other_discount);
 
-                            var cell7=row.insertCell(8);
-                            var t7=document.createElement("input");
-                                t7.name = "total_amount[]";
-                                t7.id = "total_amount_"+row_id;
-                                t7.style = "width:100px;";
-                                if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
-                                    t7.value = product.pivot.total_amount;
-                                    subTotal += parseInt(product.pivot.total_amount);
-                                }
-                                t7.className ="form-control num_txt";
-                                $(t7).attr("required", true);
-                                $(t7).attr("readonly", true);
-                               // t2.addEventListener('blur', function(){ app.checkQty(t2); });
-                                cell7.appendChild(t7);
+                                var cell7_fx=row.insertCell(12);
+                                var t7_fx=document.createElement("input");
+                                    t7_fx.name = "total_amount_fx[]";
+                                    t7_fx.id = "total_amount_fx_"+row_id;
+                                    t7_fx.style = "width:100px;";
+                                    if(product.pivot.total_amount_fx != 0 && product.pivot.total_amount_fx != null) {
+                                        t7_fx.value = app.decimalFormat(product.pivot.total_amount_fx);
+                                        subTotal_fx += parseFloat(product.pivot.total_amount_fx);
+                                    }
+                                    t7_fx.className ="form-control decimal_no";
+                                    $(t7_fx).attr("required", true);
+                                    $(t7_fx).attr("readonly", true);
+                                   // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                    cell7_fx.appendChild(t7_fx);
 
-                            var cell8=row.insertCell(9);
-                            cell8.className = "text-center";
-                            if(app.user_role != 'admin' && response.data.sale.order_id == null)
-                            {
-                                var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                var cell7=row.insertCell(13);
+                                var t7=document.createElement("input");
+                                    t7.name = "total_amount[]";
+                                    t7.id = "total_amount_"+row_id;
+                                    t7.style = "width:100px;";
+                                    if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
+                                        t7.value = product.pivot.total_amount;
+                                        subTotal += parseInt(product.pivot.total_amount);
+                                    }
+                                    t7.className ="form-control num_txt";
+                                    $(t7).attr("required", true);
+                                    $(t7).attr("readonly", true);
+                                   // t2.addEventListener('blur', function(){ app.checkQty(t2); });
+                                    cell7.appendChild(t7);
+
+                                var cell8=row.insertCell(14);
+                                cell8.className = "text-center";
+                                if(app.user_role != 'admin' && response.data.sale.order_id == null)
+                                {
+                                    var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
+                                }
+                                $(cell8).append(row_action);
                             }
-                            $(cell8).append(row_action);
+
+                            $(".txt_product").select2();
+
+                            $(".txt_uom").select2();
+
+                            $("#customer_id").select2();
+                            $("#customer_id").on("select2:select", function(e) {
+
+                                var data = e.params.data;
+                                app.form.customer_id = data.id;
+
+                                //get customer's previous balance
+                                /***axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance));***/
+
+                                 axios.get("/customer_previous_balance/"+data.id).then(function(response) {
+                                    app.form.previous_balance = response.data.previous_balance;
+                                    app.form.pay_amount = response.data.customer_advance;
+                                });
+                            });
 
                             $(".txt_product").on("select2:select", function(e) {
 
@@ -1768,6 +2731,14 @@
                                $("#rate_"+row_id).val(price);
                                $("#actual_rate_"+row_id).val(price);
 
+                               if(!app.isMMK) {
+                                    if(app.form.currency_rate != '' && app.form.currency_rate != 0) {
+                                        var price_fx = app.decimalFormat(parseFloat(price)/parseFloat(app.form.currency_rate));
+                                        $("#rate_fx_"+row_id).val(price_fx);
+                                        $("#actual_rate_fx_"+row_id).val(price_fx);
+                                    }
+                               }
+
                                 //var selectbox_id = $(this).closest('td').next().next().find('.txt_uom');
                                 var selectbox_id = $("#uom_"+row_id);
 
@@ -1793,6 +2764,23 @@
                     app.form.pay_amount= response.data.sale.pay_amount;
                     app.form.balance_amount= response.data.sale.balance_amount;
                     app.form.previous_balance = response.data.previous_balance;
+
+
+                    if(!app.isMMK) {
+                        app.total_colspan = 12;
+                        app.order_colspan = 13;
+                        app.form.sub_total_fx  = app.decimalFormat(response.data.sale.total_amount_fx);
+                        app.form.cash_discount_fx  = app.decimalFormat(response.data.sale.cash_discount_fx);
+                        app.form.net_total_fx     = app.decimalFormat(response.data.sale.net_total_fx);
+                        app.form.tax_fx           = app.decimalFormat(response.data.sale.tax_fx);
+                        app.form.tax_amount_fx    = app.decimalFormat(response.data.sale.tax_amount_fx);
+                        app.form.pay_amount_fx= app.decimalFormat(response.data.sale.pay_amount_fx);
+                        app.form.balance_amount_fx= app.decimalFormat(response.data.sale.balance_amount_fx);
+                    } else {
+                        app.total_colspan = 7;
+                        app.order_colspan = 8;
+                    }
+
                     $("#loading").hide();
 
 
@@ -1835,8 +2823,13 @@
                    $("#actual_rate_"+row_id).val($("#rate_"+row_id).val());
                    $("#actual_rate_"+row_id).attr('required',true);
                    $("#total_amount_"+row_id).val('');
-                   $("#other_discount_"+row_id).val('');
-                   $("#other_discount_"+row_id).attr('readonly',false);
+                   if(app.isMMK) {
+                        $("#other_discount_"+row_id).val('');
+                        $("#other_discount_"+row_id).attr('readonly',false);
+                   } else {
+                        $("#other_discount_"+row_id).val('');
+                        $("#other_discount_"+row_id).attr('readonly',true);
+                   }                   
                    $("#total_amount_"+row_id).attr('required',true);
                 }
 
@@ -1977,30 +2970,107 @@
                 else {
                     var qty = $("#qty_"+row_id).val() == "" ? 0 : $("#qty_"+row_id).val();
                 }
-               var rate = $("#rate_"+row_id).val();
-               var discount = $("#discount_"+row_id).val();
-               var actual_discount = 0;
-               var actual_rate = '';
-               if(discount != '') {
-                    actual_discount = parseInt(discount)/100 * parseInt(rate);
-                    actual_rate = parseInt(rate) - actual_discount;
-               } else {
-                    actual_rate = $("#rate_"+row_id).val() == "" ? 0 : $("#rate_"+row_id).val();
-               }
-               $("#actual_rate_"+row_id).val(actual_rate);
-               var other_discount = $("#other_discount_"+row_id).val();
-               var amount = parseInt(qty) * parseInt(actual_rate);
-               var discount_amount = 0;
-                if(other_discount != "") {
-                    discount_amount = parseInt(other_discount)/100 * amount;
-                }
-                    
-               amount = parseInt(amount) - parseInt(discount_amount);
+                if(app.isMMK) {
+                   var rate = $("#rate_"+row_id).val();  
+                   var discount = $("#discount_"+row_id).val();
+                   var actual_discount = 0;
+                   var actual_rate = '';
+                   if(discount != '') {
+                        actual_discount = parseInt(discount)/100 * parseInt(rate);
+                        actual_rate = parseInt(rate) - actual_discount;
+                   } else {
+                        actual_rate = $("#rate_"+row_id).val() == "" ? 0 : $("#rate_"+row_id).val();
+                   }
+                   $("#actual_rate_"+row_id).val(actual_rate);
+                   var other_discount = $("#other_discount_"+row_id).val();
+                   var amount = parseInt(qty) * parseInt(actual_rate);
+                   var discount_amount = 0;
+                    if(other_discount != "") {
+                        discount_amount = parseInt(other_discount)/100 * amount;
+                    }
+                        
+                   amount = parseInt(amount) - parseInt(discount_amount);
 
-                if($("#foc_"+row_id).prop("checked")) {
-                    $("#total_amount_"+row_id).val('0');
+                    if($("#foc_"+row_id).prop("checked")) {
+                        $("#total_amount_"+row_id).val('0');
+                    } else {
+                        $("#total_amount_"+row_id).val(Math.round(amount));
+                    }
                 } else {
-                    $("#total_amount_"+row_id).val(Math.round(amount));
+
+                   var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+                   var rate_fx = $("#rate_fx_"+row_id).val() == '' ? 0 : $("#rate_fx_"+row_id).val();
+                   var rate = $("#rate_"+row_id).val() == '' ? 0 : $("#rate_"+row_id).val();
+
+                    if(app.form.currency_rate != '' && app.form.currency_rate != 0) {
+                        if(rate != 0 && rate_fx == 0) {
+                            var rate_fx = app.decimalFormat(parseFloat(rate)/parseFloat(app.form.currency_rate));
+                            $("#rate_fx_"+row_id).val(rate_fx);
+                            //$("#actual_rate_fx_"+row_id).val(rate_fx);
+                        } else {
+                            var rate = Math.round(parseFloat(rate_fx) * parseFloat(currency_rate));
+                            $("#rate_"+row_id).val(rate);
+                        }
+                    }                  
+                   
+
+                   var discount_fx = $("#discount_fx_"+row_id).val() == '' ? 0 : $("#discount_fx_"+row_id).val();
+                   var discount = Math.round(parseFloat(discount_fx) * parseFloat(currency_rate));
+                   $("#discount_"+row_id).val(discount);
+
+                   var actual_discount = 0;
+                   var actual_rate = '';
+                   var actual_discount_fx = 0;
+                   var actual_rate_fx = '';
+
+                   /**if(discount != '') {
+                        alert(discount);
+                        actual_discount = Math.round(parseInt(discount)/100 * parseInt(rate));
+                        actual_rate = parseInt(rate) - actual_discount;
+                        alert(actual_rate);
+                   } else {
+                        actual_rate = $("#rate_"+row_id).val() == "" ? 0 : $("#rate_"+row_id).val();
+                   }***/
+
+                   if(discount_fx != '') {
+                        actual_discount_fx = app.decimalFormat(parseFloat(discount_fx)/100 * parseFloat(rate_fx));
+                        actual_rate_fx = parseFloat(rate_fx) - parseFloat(actual_discount_fx);
+                   } else {
+                        actual_rate_fx = $("#rate_fx_"+row_id).val() == "" ? 0 : $("#rate_fx_"+row_id).val();
+                   }
+
+                   actual_rate = Math.round(parseFloat(actual_rate_fx) * parseFloat(currency_rate));
+
+                   $("#actual_rate_"+row_id).val(actual_rate);
+                   $("#actual_rate_fx_"+row_id).val(app.decimalFormat(actual_rate_fx));
+
+                   var other_discount_fx = $("#other_discount_fx_"+row_id).val() == '' ? 0 : $("#other_discount_fx_"+row_id).val();
+                   var other_discount = Math.round(parseFloat(other_discount_fx) * parseFloat(currency_rate));
+                   $("#other_discount_"+row_id).val(other_discount);
+
+                   var amount_fx = app.decimalFormat(parseInt(qty) * parseFloat(actual_rate_fx));
+                   var amount = parseInt(qty) * parseInt(actual_rate);
+                   var discount_amount_fx = 0;
+                   var discount_amount = 0;
+
+                    if(other_discount_fx != "") {
+                        discount_amount_fx = app.decimalFormat(parseFloat(other_discount_fx)/100 * amount_fx);
+                        discount_amount = Math.round(parseFloat(discount_amount_fx) * parseFloat(currency_rate));
+                    }
+                   /** if(other_discount != "") {
+                        discount_amount = parseInt(other_discount)/100 * amount;
+                    } **/
+                        
+                   amount_fx = app.decimalFormat(parseFloat(amount_fx) - parseFloat(discount_amount_fx));
+                   amount = parseInt(amount) - parseInt(discount_amount);
+
+                    if($("#foc_"+row_id).prop("checked")) {
+                        $("#total_amount_fx_"+row_id).val('0');
+                        $("#total_amount_"+row_id).val('0');
+                    } else {
+                        $("#total_amount_fx_"+row_id).val(app.decimalFormat(amount_fx));
+                        $("#total_amount_"+row_id).val(Math.round(amount));
+                    }
                 }
 
                 //Van Sale
@@ -2035,92 +3105,383 @@
 
                //get all sub total amount
                var sub_total = 0;
+               var sub_total_fx = 0;
                for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                     if(document.getElementsByName('total_amount[]')[i].value != "") {
                         sub_total += parseFloat(document.getElementsByName('total_amount[]')[i].value);
+                        if(!app.isMMK) {
+                            sub_total_fx += parseFloat(document.getElementsByName('total_amount_fx[]')[i].value);
+                        }
                     }
                }
                var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
+               var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+
                app.form.sub_total = Math.round(sub_total);
+               app.form.sub_total_fx = app.decimalFormat(sub_total_fx);
 
                app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
+               app.form.net_total_fx = app.decimalFormat(parseFloat(app.form.sub_total_fx) - parseFloat(cash_discount_fx));
+
+                /***var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                app.form.tax_amount = Math.round(tax_amount);
+
+                var tax_fx = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : app.form.tax_fx;
+                var tax_amount_fx = app.decimalFormat(parseFloat(tax_fx)/100 * parseFloat(app.form.net_total_fx));
+                app.form.tax_amount_fx = tax_amount_fx;***/
 
                 var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
-                var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                app.form.tax_amount = tax_amount;
+                var tax_fx = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : app.form.tax_fx;
+
+                var tax_amount = app.form.tax_amount == '' || app.form.tax_amount == null ? 0 : app.form.tax_amount;
+                var tax_amount_fx = app.form.tax_amount_fx == '' || app.form.tax_amount_fx == null ? 0 : app.form.tax_amount_fx;
+
                 var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                    app.form.balance_amount = 0;
+                var pay_amount_fx = app.form.pay_amount_fx == '' || app.form.pay_amount_fx == null ? 0 : app.form.pay_amount_fx;
+                
+
+                if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                    if(app.prev_pay_amount != 0) {                        
+                        if(currency_rate != 0) {
+                            var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                            app.form.pay_amount = app.prev_pay_amount;
+                            pay_amount = app.form.pay_amount;
+                            app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            pay_amount_fx = app.form.pay_amount_fx;
+                        } else {
+                            app.form.pay_amount = app.prev_pay_amount;
+                            pay_amount = app.form.pay_amount;
+                            app.form.pay_amount_fx = 0;
+                            pay_amount_fx = app.form.pay_amount_fx;
+                        }
+                    } else {
+                        //app.form.pay_amount = app.prev_pay_amount;
+                        //app.form.pay_amount_fx = 0;
+                    }
+                } else {
+                    app.form.pay_amount = 0;
+                    pay_amount = app.form.pay_amount;
+                    app.form.pay_amount_fx = 0;
+                    pay_amount_fx = app.form.pay_amount_fx;
+                }
+
+                /***if(app.form.payment_type == 'cash') {
+                    if(pay_amount == 0) {
+                        app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                        app.form.balance_amount = 0;
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }
                 } else {
                     app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
-                } 
+                }***/
+
+                //new update
+                app.form.balance_amount_fx = app.decimalFormat((parseFloat(app.form.net_total_fx) + parseFloat(tax_amount_fx))-parseFloat(pay_amount_fx));
+                app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(tax_amount))-parseInt(pay_amount);
                 
             },
 
             changeCashDiscount() {
                 let app = this;
-                var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                if(app.isMMK) {
+                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
-                if(parseInt(cash_discount) > parseInt(app.form.sub_total)) {
-                    swal("Warning!", "Cash discount is greater than total amount", "warning");
-                    app.form.cash_discount = 0;
-                    return false;
-                }
+                    if(parseInt(cash_discount) > parseInt(app.form.sub_total)) {
+                        swal("Warning!", "Cash discount is greater than total amount", "warning");
+                        app.form.cash_discount = 0;
+                        return false;
+                    }
 
-                app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
+                    app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
 
-                var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
-                var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                app.form.tax_amount = tax_amount;
-                var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                    app.form.balance_amount = 0;
+                    var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                    var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = Math.round(tax_amount);
+                    var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
+                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(app.prev_pay_amount != 0) {                        
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                } else {
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = 0;
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                }
+                            } else {
+                                //app.form.pay_amount = app.prev_pay_amount;
+                                //app.form.pay_amount_fx = 0;
+                            }
+                        } else {
+                            app.form.pay_amount = 0;
+                            pay_amount = app.form.pay_amount;
+                            app.form.pay_amount_fx = 0;
+                            pay_amount_fx = app.form.pay_amount_fx;
+                        }
+
+                        //new update
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+
+                    /**if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }**/
                 } else {
+                    var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+                    var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate)); 
+                    app.form.cash_discount = cash_discount;
+                    //$("#cash_discount").val(cash_discount);
+
+                    /**var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+
+                    if(parseInt(cash_discount) > parseInt(app.form.sub_total)) {
+                        swal("Warning!", "Cash discount is greater than total amount", "warning");
+                        app.form.cash_discount = 0;
+                        return false;
+                    }**/
+
+                    if(parseFloat(cash_discount_fx) > parseInt(app.form.sub_total_fx)) {
+                        swal("Warning!", "Cash discount is greater than total amount", "warning");
+                        app.form.cash_discount_fx = 0;
+                        app.form.cash_discount = 0;
+                        return false;
+                    }
+
+                    app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
+                    app.form.net_total_fx = app.decimalFormat(parseFloat(app.form.sub_total_fx) - parseFloat(cash_discount_fx));
+
+                    var tax_fx = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : app.form.tax_fx;
+                    var tax = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : Math.round(parseFloat(app.form.tax_fx) * parseFloat(currency_rate));
+                    app.form.tax = tax;
+
+                    var tax_amount_fx = parseFloat(tax_fx)/100 * parseFloat(app.form.net_total_fx);
+                    app.form.tax_amount_fx = app.decimalFormat(tax_amount_fx);
+
+                    /**var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = Math.round(tax_amount);**/
+
+                    app.form.tax_amount = Math.round(parseFloat(tax_amount_fx) * parseFloat(currency_rate));
+                    
+                    /**var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                    var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = tax_amount;**/
+
+                    var pay_amount_fx = app.form.pay_amount_fx == '' || app.form.pay_amount_fx == null ? 0 : app.form.pay_amount_fx;
+                    var pay_amount = Math.round(Math.round(parseFloat(pay_amount_fx) * parseFloat(currency_rate)));
+                    $("#pay_amount").val(pay_amount);
+                    //var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;                    
+                    
+                    /***if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    } **/
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                        if(app.prev_pay_amount != 0) {                        
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = 0;
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        pay_amount = app.form.pay_amount;
+                        app.form.pay_amount_fx = 0;
+                        pay_amount_fx = app.form.pay_amount_fx;
+                    }
+                    //new update
+                    app.form.balance_amount_fx = app.decimalFormat((parseFloat(app.form.net_total_fx) + parseFloat(app.form.tax_amount_fx))-parseFloat(pay_amount_fx));
                     app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
                 }
             },
 
             changePaidAmount() {
                 let app = this;
-                var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                if(app.isMMK) {
+                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
-                app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
+                    app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
 
-                var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
-                var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                app.form.tax_amount = tax_amount;
-                var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
+                    var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                    var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = Math.round(tax_amount);
+                    var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
 
-                var total_pay = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                if(parseInt(pay_amount) > parseInt(total_pay)) {
-                    swal("Warning!", "Paid amount is greater than balance amount", "warning");
-                    app.form.pay_amount = 0;
-                    return false;
-                }
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                    app.form.balance_amount = 0;
-                } else {
+                    var total_pay = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                    if(parseInt(pay_amount) > parseInt(total_pay)) {
+                        swal("Warning!", "Paid amount is greater than balance amount", "warning");
+                       // app.form.pay_amount = 0;
+                        return false;
+                    }
+
+                    //new update
                     app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+
+                    /**if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }**/
+                } else {
+
+                    //For foreign currency
+                    var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+                    var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate));
+                    $("#cash_discount").val(cash_discount);
+
+                    app.form.net_total_fx = app.decimalFormat(parseFloat(app.form.sub_total_fx) - parseFloat(cash_discount_fx));
+                    app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
+
+                    /***var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                    var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = tax_amount;
+                    var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;***/
+
+                    var tax_fx = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : app.form.tax_fx;
+                    var tax = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : Math.round(parseFloat(app.form.tax_fx) * parseFloat(currency_rate));
+                    app.form.tax = tax;
+
+                    var tax_amount_fx = parseFloat(tax_fx)/100 * parseFloat(app.form.net_total_fx);
+                    app.form.tax_amount_fx = app.decimalFormat(tax_amount_fx);
+
+                    /**var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = Math.round(tax_amount);**/
+
+                    app.form.tax_amount = Math.round(parseFloat(tax_amount_fx) * parseFloat(currency_rate));
+
+                    var pay_amount_fx = app.form.pay_amount_fx == '' || app.form.pay_amount_fx == null ? 0 : app.form.pay_amount_fx;
+                    var pay_amount = Math.round(Math.round(parseFloat(pay_amount_fx) * parseFloat(currency_rate)));
+                    app.form.pay_amount = pay_amount;
+                    //var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
+
+                    var total_pay = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                    var total_pay_fx = app.decimalFormat(parseFloat(app.form.net_total_fx) + parseFloat(app.form.tax_amount_fx));
+                    if(parseFloat(pay_amount_fx) > parseFloat(total_pay_fx)) {
+                        swal("Warning!", "Paid amount is greater than balance amount", "warning");
+                       // app.form.pay_amount = 0;
+                        return false;
+                    }
+
+                    //new update
+                    app.form.balance_amount_fx = app.decimalFormat((parseFloat(app.form.net_total_fx) + parseFloat(app.form.tax_amount_fx))-parseFloat(pay_amount_fx));
+                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+
+                    /***if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }***/
                 }
             },
 
             changeTax() {
                 let app = this;
-                var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
-                var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
-                app.form.tax_amount = tax_amount;
-                var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
-                if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
-                    app.form.balance_amount = 0;
+                if(app.isMMK) {
+                    var tax = app.form.tax == '' || app.form.tax == null ? 0 : app.form.tax;
+                    var tax_amount = Math.round(parseInt(tax)/100 * parseInt(app.form.net_total));
+                    app.form.tax_amount = tax_amount;
+                    var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
+                    if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }
+                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
                 } else {
-                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    //for foreign currency
+                    var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+
+                    var tax_fx = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : app.form.tax_fx;
+                    var tax = app.form.tax_fx == '' || app.form.tax_fx == null ? 0 : Math.round(parseFloat(app.form.tax_fx) * parseFloat(currency_rate));
+                    app.form.tax = tax;
+
+                    var tax_amount_fx = parseFloat(tax_fx)/100 * parseFloat(app.form.net_total_fx);
+                    app.form.tax_amount_fx = app.decimalFormat(tax_amount_fx);
+
+                    /**var tax_amount = parseInt(tax)/100 * parseInt(app.form.net_total);
+                    app.form.tax_amount = Math.round(tax_amount);**/
+
+                    app.form.tax_amount = Math.round(parseFloat(tax_amount_fx) * parseFloat(currency_rate));
+
+                    var pay_amount_fx = app.form.pay_amount_fx == '' || app.form.pay_amount_fx == null ? 0 : app.form.pay_amount_fx;
+                    var pay_amount = Math.round(Math.round(parseFloat(pay_amount_fx) * parseFloat(currency_rate)));
+                    $("#pay_amount").val(pay_amount);
+                    //var pay_amount = app.form.pay_amount == '' || app.form.pay_amount == null ? 0 : app.form.pay_amount;
+
+                    app.form.balance_amount_fx = app.decimalFormat((parseFloat(app.form.net_total_fx) + parseFloat(app.form.tax_amount_fx)) - parseFloat(pay_amount_fx));
+
+                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
+
+                    /***if(app.form.payment_type == 'cash') {
+                        if(pay_amount == 0) {
+                            app.form.pay_amount = parseInt(app.form.net_total) + parseInt(app.form.tax_amount);
+                            app.form.balance_amount = 0;
+                        } else {
+                            app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                        }
+                        
+                    } else {
+                        app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount))-parseInt(pay_amount);
+                    }
+                    app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount); ***/
                 }
-                app.form.balance_amount = (parseInt(app.form.net_total) + parseInt(app.form.tax_amount)) - parseInt(pay_amount);
             },
 
             calBalance(obj) {
@@ -2153,7 +3514,9 @@
                     discount = obj.value;
                 } 
                 if(app.form.payment_type == 'cash') {
-                    app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
+                    if(app.form.pay_amount == 0) {
+                        app.form.pay_amount = parseInt(app.form.sub_total) - parseInt(discount);
+                    }
                 }
 
                 if(discount > app.form.sub_total) {
@@ -2166,12 +3529,32 @@
             onSubmit: function(event){
                 let app = this;
                 app.form.office_sale_man_id = $("#sale_man").val();
+                app.form.payment_type = $("#payment_type").val();
+                app.form.invoice_type = $("#invoice_type").val();
+                app.form.pay_amount = app.form.pay_amount == '' ? 0 : app.form.pay_amount;
+                app.form.pay_amount_fx = app.form.pay_amount_fx == '' ? 0 : app.form.pay_amount_fx;
+
+                var cus_lock = document.getElementById('customer_id').options[document.getElementById('customer_id').options.selectedIndex].dataset.lock;
+                if(cus_lock == 1) {
+                    swal("Warning!", "Customer is Locked!", "warning");
+                    return false;
+                }
+                if(app.form.payment_type == 'cash') {
+                    if(app.form.balance_amount > 0) {
+                        swal("Warning!", "Balance must be zero for cash payment!", "warning");
+                        return false;
+                    }
+                }
+
                 $('#loading').show();
-                if(app.form.cash_discount > app.form.sub_total || app.form.balance < 0 || app.form.pay_amount<0) {
+
+                if(app.form.cash_discount > app.form.sub_total || app.form.balance_amount < 0 || app.form.pay_amount<0) {
                     swal("Warning!", "Invalid balance or Invalid cash discount or Invalid pay amount. Please check!", "warning");
                     $('#loading').hide();
                     return false;
                 }
+
+               // return false;
                 app.form.product = [];
                 app.form.uom = [];
                 app.form.qty = [];
@@ -2183,6 +3566,13 @@
                 app.form.discount = [];
                 app.form.other_discount = [];
 
+                app.form.total_amount_fx = [];
+
+                app.form.rate_fx = [];
+                app.form.actual_rate_fx = [];
+                app.form.discount_fx = [];
+                app.form.other_discount_fx = [];
+
                 app.form.order_product_id = [];
 
                 app.form.sale_type = app.sale_type;
@@ -2192,8 +3582,8 @@
                 } else {
                     app.form.reference_no = '';
                 }**/
-
-                app.form.payment_type = $("#payment_type").val();
+                app.form.reference_no = $("#reference_no").val();
+                
                 if(app.form.payment_type == 'credit') {
                     app.form.due_date = $("#due_date").val();
                     app.form.credit_day = $("#credit_day").val();
@@ -2223,6 +3613,15 @@
                         app.form.actual_rate.push(document.getElementsByName('actual_rate[]')[i].value);
                         app.form.discount.push(document.getElementsByName('discount[]')[i].value);
                         app.form.other_discount.push(document.getElementsByName('other_discount[]')[i].value);
+
+                        if(!app.isMMK) {
+                            app.form.total_amount_fx.push(document.getElementsByName('total_amount_fx[]')[i].value);
+
+                            app.form.rate_fx.push(document.getElementsByName('rate_fx[]')[i].value);
+                            app.form.actual_rate_fx.push(document.getElementsByName('actual_rate_fx[]')[i].value);
+                            app.form.discount_fx.push(document.getElementsByName('discount_fx[]')[i].value);
+                            app.form.other_discount_fx.push(document.getElementsByName('other_discount_fx[]')[i].value);
+                        }
                         
                         if(document.getElementsByName('chk_foc[]')[i].checked == true) {
                             app.form.is_foc.push('1');
@@ -2324,6 +3723,15 @@
                             app.form.actual_rate.push(document.getElementsByName('actual_rate[]')[i].value);
                             app.form.discount.push(document.getElementsByName('discount[]')[i].value);
                             app.form.other_discount.push(document.getElementsByName('other_discount[]')[i].value);
+
+                            if(!app.isMMK) {
+                                app.form.total_amount_fx.push(document.getElementsByName('total_amount_fx[]')[i].value);
+
+                                app.form.rate_fx.push(document.getElementsByName('rate_fx[]')[i].value);
+                                app.form.actual_rate_fx.push(document.getElementsByName('actual_rate_fx[]')[i].value);
+                                app.form.discount_fx.push(document.getElementsByName('discount_fx[]')[i].value);
+                                app.form.other_discount_fx.push(document.getElementsByName('other_discount_fx[]')[i].value);
+                            }
                             
                             if(document.getElementsByName('chk_foc[]')[i].checked == true) {
                                 app.form.is_foc.push('1');

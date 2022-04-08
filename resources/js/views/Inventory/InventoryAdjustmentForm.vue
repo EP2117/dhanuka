@@ -85,7 +85,8 @@
                                     </thead>
                                         <template v-if="isEdit && ex_products.length > 0">
                                             <tbody v-for="(ex_prod,k) in ex_products">
-                                            <tr :id="k+1">
+                                            <!--<tr :id="k+1">-->
+                                            <tr :id="ex_prod.pivot.id">
                                                 <!-- <template v-for="ex_prod in ex_products" > -->
                                                      <td style="width:40%">
                                                     <select class="form-control txt_product"
@@ -107,7 +108,7 @@
                                                     <input type="text" class="form-control num_txt" name="qty[]" :value = "ex_prod.pivot.product_quantity" required />
                                                 </td> -->
                                                 <td class="text-center">
-                                                    <a class='red-icon' title='Remove' @click="removeProduct(ex_prod.pivot.product_id)" v-if="user_role == 'office_user' || user_role == 'system'"><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>
+                                                    <a class='red-icon' title='Remove' @click="removeProduct(ex_prod.pivot.id)" v-if="user_role == 'office_user' || user_role == 'system'"><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>
                                                 </td>
                                                 <!-- </template> -->
                                                
@@ -600,6 +601,7 @@
                             swal("Warning!", "At least one product must be added!", "warning")
                         } else
                         {
+                            //alert(id);
                             $("#"+id).remove();    
                         }
                     } else {

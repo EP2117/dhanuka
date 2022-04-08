@@ -69,7 +69,7 @@
                             <option v-for="sup in suppliers" :value="sup.id"  >{{sup.name}}</option>
                         </select>
                     </div>
-                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                    <div class="form-group col-md-3 col-lg-2 mm-txt">
                         <label >State</label>
                         <select id="state_id" class="form-control mm-txt"
                                  v-model="search.state_id" style="width:100%" required
@@ -78,12 +78,21 @@
                             <option v-for="s in states" :value="s.id"  >{{s.state_name}}</option>
                         </select>
                     </div>
-                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                    <div class="form-group col-md-3 col-lg-2 mm-txt">
                         <label >Township</label>
                         <select id="township_id" class="form-control mm-txt"
                                  v-model="search.township_id" style="width:100%" required>
                             <option value="">Select One</option>
                             <option v-for="t in townships" :value="t.id"  >{{t.township_name}}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-3 col-lg-2">
+                        <label for="currency_id">Currency</label>
+                        <select class="form-control"
+                                name="currency_id" id="currency_id" style="min-width:100px;" v-model="search.currency_id"
+                        >
+                            <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
                         </select>
                     </div>
 
@@ -140,6 +149,9 @@
 <!--                    </div>-->
 <!--                </div>-->
                 <!-- end sort by -->
+                <div class="text-right mb-2" v-if="out_count > 0">
+                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                </div>
                 <!--<div class="text-right mb-2" v-if="sales.length > 0">
                     <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                 </div>-->
@@ -152,9 +164,10 @@
                             <th class="text-center">Date</th>
                             <th class="text-center">Supplier Name</th>
                             <th class="text-center">Supplier Code</th>
-                            <th class="text-center">Invoice Amount</th>
-                            <th class="text-center">Paid Amount</th>
-                            <th class="text-center">Balance Amount</th>
+                            <th class="text-center">Invoice Amount({{sign}})</th>
+                            <th class="text-center">Paid Amount({{sign}})</th>
+                            <th class="text-center">Currency <br />Gain/Loss({{sign}})</th>
+                            <th class="text-center">Balance Amount({{sign}})</th>
                             <!-- <th class="text-center"> Discount</th> -->
                         </tr>
                         </thead>
@@ -168,15 +181,18 @@
                                 <!--                            <td class="text-center">{{c.vochur_no}}</td>-->
                                 <td class="text-center">{{c.supplier.name}}</td>
                                 <td class="text-center" style="right: 4px ">{{c.supplier.supplier_code}}</td>
-                                <td class="text-center">{{c.total_amount}} </td>
+                                <td class="text-center" v-if="search.currency_id == 1 || search.currency_id == ''">{{parseInt(c.total_amount)-parseInt(c.discount)}} </td>
+                                <td class="text-center" v-else>{{parseFloat(c.total_amount_fx)-parseFloat(c.discount_fx)}} </td>
                                 <td class="text-center">{{c.t_paid_amount}} </td>
+                                <td class="text-center">{{c.t_gain_loss_amount == 0 ? '' : c.t_gain_loss_amount}} </td>
                                 <td class="text-center">{{c.t_balance_amount}} </td>
                                     </tr>
                                 </template>
-                                <tr class="">
-                                    <td colspan="5" class="text-right mm-txt"><b>Total</b></td>
+                                <tr class="" v-if="po.total_inv_amt != 0">
+                                    <td colspan="5" class="text-right mm-txt"><b>{{Total}}</b></td>
                                     <td class="text-center">{{po.total_inv_amt}}</td>
                                     <td class="text-center">{{po.total_paid_amt}}</td>
+                                    <td class="text-center">{{po.total_gain_loss_amt == 0 ? '' : po.total_gain_loss_amt}}</td>
                                     <td class="text-center">{{po.total_bal_amt}}</td>
                                 </tr>
                                     <!-- </template> -->
@@ -189,6 +205,7 @@
                                     <td colspan="5" class="text-right mm-txt"><strong>Total Net</strong></td>
                                     <td class="text-center">{{net_inv_amt}}</td>
                                     <td class="text-center">{{net_paid_amt}}</td>
+                                    <td class="text-center">{{net_gain_loss_amt == 0 ? '' : net_gain_loss_amt}}</td>
                                     <td class="text-center">{{net_bal_amt}}</td>
                                 </tr>
                         </tbody>
@@ -200,7 +217,7 @@
             </div>
         </div>
         <!-- table end -->
-        <!-- <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div> -->
+         <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
     </div>
 
 </template>
@@ -219,6 +236,7 @@ export default {
                 branch_id: '',
                 state_id:'',
                 township_id:'',
+                currency_id: 1,
             },
             purchase_outstandings: [],
             suppliers:[],
@@ -235,6 +253,9 @@ export default {
             net_bal_amt:'',
             net_inv_amt:'',
             net_paid_amt:'',
+            currency: [],
+            sign: 'MMK',
+            isMMK: true,
         };
     },
     created() {
@@ -252,6 +273,15 @@ export default {
         app.initSuppliers();
         app.initBranches();
         app.initBrands();
+
+        app.initCurrency();
+        $("#currency_id").select2();
+        $("#currency_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.search.currency_id = data.id;
+            app.sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+        });
+
         // app.initWarehouses();
         $("#from_date")
             .datetimepicker({
@@ -363,6 +393,11 @@ export default {
             $("#supplier_id").select2();
         },
 
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
 
         initBranches() {
             axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
@@ -410,6 +445,10 @@ export default {
                 app.search.supplier_id +
                 "&brand_id=" +
                 app.search.branch_id +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
                 "&state_id=" +
                 app.search.state_id +
                 "&township_id=" +
@@ -422,9 +461,11 @@ export default {
             axios.get("/report/get_purchase_outstanding?" + search)
                 .then(function(response) {
                     console.log(response);
+                    $("#loading").hide();
                     app.purchase_outstandings=response.data.purchase_outstandings;
                     app.out_count=response.data.purchase_outstandings.length;
                     app.net_bal_amt=response.data.net_balance_amt;
+                    app.net_gain_loss_amt=response.data.net_gain_loss_amt;
                     app.net_inv_amt=response.data.net_inv_amt;
                     app.net_paid_amt=response.data.net_paid_amt;
                     // app.net_bal_amt=response.data.purchase_outstandings;
@@ -449,24 +490,26 @@ export default {
             }
 
             var search =
-                "&from_date=" +
-                app.search.from_date +
-                "&to_date=" +
-                app.search.to_date +
-                "&invoice_no=" +
-                app.search.invoice_no +
-                "&warehouse_id=" +
-                app.search.warehouse_id +
-                "&supplier_id=" +
-                app.search.supplier_id +
-                "&product_name=" +
-                app.search.product_name +
-                "&order=" +
-                app.search.order +
-                "&branch_id=" +
-                app.search.branch_id +
-                "&sort_by=" +
-                app.search.sort_by;
+            "&from_date=" +
+            app.search.from_date +
+            "&to_date=" +
+            app.search.to_date +
+            "&invoice_no=" +
+            app.search.invoice_no +
+            "&branch_id=" +
+            app.search.branch_id +
+            "&supplier_id=" +
+            app.search.supplier_id +
+            "&brand_id=" +
+            app.search.branch_id +
+            "&currency_id=" +
+            app.search.currency_id +
+            "&sign=" +
+            app.sign+
+            "&state_id=" +
+            app.search.state_id +
+            "&township_id=" +
+            app.search.township_id;
 
             /*axios.get("/daily_sales_export?" + search)
             .then(function(response) {
@@ -479,7 +522,7 @@ export default {
 
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
-            window.open(this.site_path+'/daily_sale_product_export?'+search);
+            window.open(this.site_path+'/report/purchase_outstanding_export?'+search);
         },
 
         dateFormat(d) {

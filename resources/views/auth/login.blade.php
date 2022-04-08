@@ -110,6 +110,15 @@
                                                         }
                                                     ?>
                                                 </select>
+
+                                                <!--<select id="year" class="form-control{{ $errors->has('year') ? ' is-invalid' : '' }}" name="year" required>
+                                                    <option value=''>Choose Year</option>
+                                                    <?php
+                                                        /**foreach($financial_years as $year) {
+                                                            echo "<option value='".$year->id."'>".$year->from_year.'-'.$year->to_year."</option>";
+                                                        }**/
+                                                    ?>
+                                                </select>-->
                                                 
                                             </div>
                                             <button type="submit" class="btn btn-primary btn-user btn-block">

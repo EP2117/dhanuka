@@ -137,8 +137,8 @@
                             <th class="text-center">Office Purchase Man</th>
                             <th class="text-center"> Warehouse</th>
                             <th class="text-center">Sub Total</th>
-                            <th class="text-center">Pay Amount</th>
-                            <th class="text-center">Balance</th>
+                            <!--<th class="text-center">Pay Amount</th>
+                            <th class="text-center">Balance</th>-->
                             <th class="text-center">Created Time</th>
                             <th class="text-center">Updated Time</th>
 <!--                            <th class="text-center" v-if="sale_type == 1">Delivery Approve</th>-->
@@ -157,8 +157,8 @@
                             <th class="text-center">Office Purchase Man</th>
                             <th class="text-center"> Warehouse</th>
                             <th class="text-center">Sub Total</th>
-                            <th class="text-center">Pay Amount</th>
-                            <th class="text-center">Balance</th>
+                            <!--<th class="text-center">Pay Amount</th>
+                            <th class="text-center">Balance</th>-->
                             <th class="text-center">Created Time</th>
                             <th class="text-center">Updated Time</th>
 <!--                            <th class="text-center" v-if="sale_type == 1">Delivery Approve</th>-->
@@ -180,9 +180,9 @@
                                 <td class="mm-txt" v-if="p.office_purchase_man_id != null">{{p.office_purchase_man.name}}</td>
                                 <td v-else></td>
                                 <td>{{p.warehouse.warehouse_name}}</td>
-                                <td class="text-right">{{p.total_amount}}</td>
-                                <td class="text-right">{{p.pay_amount+p.collection_amount}}</td>
-                                <td class="text-right">{{p.balance_amount-p.collection_amount}}</td>
+                                <td class="text-right">{{parseInt(p.total_amount)-parseInt(p.discount)}}</td>
+                                <!--<td class="text-right">{{p.pay_amount+p.collection_amount}}</td>
+                                <td class="text-right">{{p.balance_amount-p.collection_amount}}</td>-->
                                 <td>{{localTime(p.created_at)}}</td>
                                 <td>{{localTime(p.updated_at)}}</td>
 <!--                                <template v-if="sale_type == 1">-->

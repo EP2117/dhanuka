@@ -118,7 +118,7 @@
                                     </a>&nbsp;
                                 </router-link>
 
-                                <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system'">
+                                <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system' || user_role == 'office_user'">
                                     <i class="fas fa-trash"></i>
                                 </a>&nbsp;
 
@@ -141,7 +141,7 @@
                                         </a>
                                         <a class="dropdown-item" >
                                         <!-- <a class="dropdown-item" v-if="collection.collection_amount==0 && p.payment_type=='credit' "> -->
-                                            <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system'">
+                                            <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system' || user_role == 'office_user'">
                                                 <i class="fas fa-trash"></i>
                                             </a>&nbsp;
                                         </a>
@@ -196,7 +196,7 @@ export default {
         this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
 
         /*if(this.user_role == "office_order_user")*/
-        if(this.user_role != "admin" && this.user_role != "system")
+        if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user")
         {
             var url =  window.location.origin;
             window.location.replace(url);

@@ -210,7 +210,7 @@ class MainwarehouseEntryController extends Controller
                     DB::table('product_transitions')
                         ->where('transition_product_pivot_id', $request->product_pivot[$i])
                         ->where('transition_entry_id', $id)
-                        ->update(array('product_quantity' => $request->qty[$i], 'transition_product_quantity' => $request->qty[$i]));
+                        ->update(array('product_quantity' => $request->qty[$i], 'transition_date' => $request->entry_date, 'transition_product_quantity' => $request->qty[$i]));
                 } else {
 
                     //add product into pivot table if not exist

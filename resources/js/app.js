@@ -20,6 +20,9 @@ window.select2 = select2;
 import swal from 'sweetalert';
 window.swal = swal;
 
+import Dropzone from 'dropzone';
+window.Dropzone = Dropzone;
+
 import moment from 'moment';
 import 'moment-timezone';
 window.moment = moment;
@@ -108,7 +111,30 @@ import InventoryAdjustment from "./views/Inventory/InventoryAdjustment";
 import InventoryAdjustmentForm from "./views/Inventory/InventoryAdjustmentForm";
 import InventoryValuation from "./views/Report/InventoryValuationReport";
 import ProfitAndLoss from "./views/Report/ProfitAndLossReport";
+import CustomerBlackListRpt from "./views/customerBlackListRpt";
+import CustomerWiseRpt from "./views/customerWiseRpt";
+import ProductCostingRpt from "./views/productCostingRpt";
 import Ledger from "./views/Ledger/Ledger";
+import SaleAdvance from "./views/saleAdvance";
+import SaleAdvanceForm from "./views/saleAdvanceForm";
+import PurchaseAdvance from "./views/purchaseAdvance";
+import PurchaseAdvanceForm from "./views/purchaseAdvanceForm";
+import Return from "./views/return";
+import ReturnForm from "./views/ReturnForm";
+import ReturnPayment from "./views/returnPayment";
+import ReturnPaymentForm from "./views/ReturnPaymentForm";
+import CustomerReturn from "./views/customerReturn";
+import CustomerReturnForm from "./views/customerReturnForm";
+import LandedCosting from "./views/landedCosting";
+import LandedCostingForm from "./views/landedCostingForm";
+import Currency from "./views/currency";
+import CurrencyForm from "./views/currencyForm";
+import CurrencyGainLossRpt from "./views/currencyGainLossRpt";
+import SaleCurrencyGainLossRpt from "./views/saleCurrencyGainLossRpt";
+import SaleReturnRpt from "./views/saleReturnRpt";
+import SaleReturnProductRpt from "./views/saleReturnProductRpt";
+import SaleReturnPaymentRpt from "./views/saleReturnPaymentRpt";
+import ReturnOsRpt from "./views/returnOsRpt";
 
 const routes = [
     {
@@ -333,6 +359,18 @@ const routes = [
       component: PendingApprovalRpt
     },
     {
+      path: '/report/blacklist-rpt',
+      component: CustomerBlackListRpt
+    },
+    {
+      path: '/report/customer-wise-rpt',
+      component: CustomerWiseRpt
+    },
+    {
+      path: '/report/product-costing-rpt',
+      component: ProductCostingRpt
+    },
+    {
       path: '/import/uom',
       component: UomImport
     },
@@ -543,7 +581,115 @@ const routes = [
    name:'profit_and_loss',
    path:'/report/profit_and_loss',
    component:ProfitAndLoss,
- }
+ },
+ {
+      name:'sale_advance',
+      path:'/sale_advance',
+      component: SaleAdvance,
+  },
+  {
+      path: '/sale_advance/new',
+      component: SaleAdvanceForm,
+    },
+  {
+      path:'/sale_advance/edit/:id',
+      component: SaleAdvanceForm,
+  },
+  {
+      name:'purchase_advance',
+      path:'/purchase_advance',
+      component: PurchaseAdvance,
+  },
+  {
+      path: '/purchase_advance/new',
+      component: PurchaseAdvanceForm,
+    },
+  {
+      path:'/purchase_advance/edit/:id',
+      component: PurchaseAdvanceForm,
+  },
+  {
+      name:'return',
+      path:'/sale_return',
+      component: Return,
+  },
+  {
+      path: '/sale_return/new',
+      component: ReturnForm,
+    },
+  {
+      path:'/sale_return/edit/:id',
+      component: ReturnForm,
+  },
+  {
+      path:'/return_payment',
+      component: ReturnPayment,
+  },
+  {
+      path: '/return_payment/new',
+      component: ReturnPaymentForm,
+    },
+  {
+      path:'/return_payment/edit/:id',
+      component: ReturnPaymentForm,
+  },
+  {
+      path:'/customer_return',
+      component: CustomerReturn,
+  },
+  {
+      path: '/customer_return/new',
+      component: CustomerReturnForm,
+    },
+  {
+      path:'/customer_return/edit/:id',
+      component: CustomerReturnForm,
+  },
+  {
+      path:'/product_costing',
+      component: LandedCosting,
+  },
+  {
+      path: '/product_costing/new',
+      component: LandedCostingForm,
+    },
+  {
+      path:'/product_costing/edit/:id',
+      component: LandedCostingForm,
+  },
+  {
+      path:'/currency',
+      component: Currency,
+  },
+  {
+      path: '/currency/new',
+      component: CurrencyForm,
+  },
+  {
+      path: '/report/currency-gain-loss-rpt',
+      component: CurrencyGainLossRpt,
+  },
+  {
+      path: '/report/sale-currency-gain-loss-rpt',
+      component: SaleCurrencyGainLossRpt,
+  },
+  {
+      path: '/report/sale-return-rpt',
+      component: SaleReturnRpt,
+  },
+  {
+      path: '/report/sale-return-product-rpt',
+      component: SaleReturnProductRpt,
+  },
+  {
+      path: '/report/sale-return-payment-rpt',
+      component: SaleReturnPaymentRpt,
+  },
+  {
+      path: '/report/return-os-rpt',
+      component: ReturnOsRpt,
+  },
+  
 ];
 
 const router = new VueRouter({routes: routes});

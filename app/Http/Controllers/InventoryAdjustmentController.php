@@ -287,7 +287,7 @@ class InventoryAdjustmentController extends Controller
                 $obj->transition_date       = $request->adjustment_date;
                 $obj->transition_product_uom_id        = $request->uom[$i];
                 $obj->transition_product_quantity      = $qty;
-                $obj->cost_price=$cost_price;
+                $obj->cost_price=$cost_price * $qty;
                 $obj->product_uom_id        = $request->uom[$i];
                 $obj->product_quantity      = $qty;
                 $obj->created_by = Auth::user()->id;

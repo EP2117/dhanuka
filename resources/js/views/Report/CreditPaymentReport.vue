@@ -87,6 +87,15 @@
                         </select>
                     </div>
 
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label for="currency_id">Currency</label>
+                        <select class="form-control"
+                                name="currency_id" id="currency_id" style="min-width:100px;" v-model="search.currency_id"
+                        >
+                            <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                        </select>
+                    </div>
+
 
 <!--                    <div class="form-group col-md-4 col-lg-3 mm-txt">-->
 <!--                        <label for="brand_id">Brand</label>-->
@@ -140,6 +149,9 @@
 <!--                    </div>-->
 <!--                </div>-->
                 <!-- end sort by -->
+                <div class="text-right mb-2" v-if="payments.length > 0">
+                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                </div>
                 <!--<div class="text-right mb-2" v-if="sales.length > 0">
                     <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                 </div>-->
@@ -154,8 +166,8 @@
                             <th class="text-center">Invoice Date</th>
                             <th class="text-center">Invoice No</th>
                             <th class="text-center">Supplier</th>
-                            <th class="text-center">Payment Amount</th>
-                            <th class="text-center"> Discount</th>
+                            <th class="text-center">Payment Amount({{sign}})</th>
+                            <th class="text-center"> Discount({{sign}})</th>
                         </tr>
                         </thead>
                         <tbody id="result">
@@ -185,6 +197,7 @@ export default {
                 branch_id: '',
                 state_id:'',
                 township_id:'',
+                currency_id: 1,
             },
             payments: [],
             suppliers:[],
@@ -197,6 +210,9 @@ export default {
             branches: [],
             site_path: '',
             storage_path: '',
+            currency: [],
+            sign: 'MMK',
+            isMMK: true,
         };
     },
     created() {
@@ -205,7 +221,7 @@ export default {
         this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
         //this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
         this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
-        this.getCreditPaymentReport();
+        //this.getCreditPaymentReport();
     },
 
     mounted() {
@@ -214,6 +230,15 @@ export default {
         app.initSuppliers();
         app.initBranches();
         app.initBrands();
+
+        app.initCurrency();
+        $("#currency_id").select2();
+        $("#currency_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.search.currency_id = data.id;
+            app.sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+        });
+
         // app.initWarehouses();
         $("#from_date")
             .datetimepicker({
@@ -325,6 +350,11 @@ export default {
             $("#supplier_id").select2();
         },
 
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
 
         initBranches() {
             axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
@@ -373,6 +403,10 @@ export default {
                 app.search.supplier_id +
                 "&brand_id=" +
                 app.search.brand_id +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
                 "&state_id=" +
                 app.search.state_id +
                 "&township_id=" +
@@ -405,26 +439,26 @@ export default {
             }
 
             var search =
-                "&from_date=" +
-                app.search.from_date +
-                "&to_date=" +
-                app.search.to_date +
-                "&invoice_no=" +
-                app.search.invoice_no +
-                "&warehouse_id=" +
-                app.search.warehouse_id +
-                "&supplier_id=" +
-                app.search.supplier_id +
-                "&brand_id=" +
-                app.search.brand_id +
-                "&product_name=" +
-                app.search.product_name +
-                "&order=" +
-                app.search.order +
-                "&branch_id=" +
-                app.search.branch_id +
-                "&sort_by=" +
-                app.search.sort_by;
+            "&from_date=" +
+            app.search.from_date +
+            "&to_date=" +
+            app.search.to_date +
+            "&payment_no=" +
+            app.search.payment_no +
+            "&branch_id=" +
+            app.search.branch_id +
+            "&supplier_id=" +
+            app.search.supplier_id +
+            "&brand_id=" +
+            app.search.brand_id +
+            "&currency_id=" +
+            app.search.currency_id +
+            "&sign=" +
+            app.sign+
+            "&state_id=" +
+            app.search.state_id +
+            "&township_id=" +
+            app.search.township_id;
 
             /*axios.get("/daily_sales_export?" + search)
             .then(function(response) {
@@ -434,10 +468,9 @@ export default {
               console.log(error);
             })
             .finally(() => loading.hide());*/
-
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
-            window.open(this.site_path+'/daily_sale_product_export?'+search);
+            window.open(this.site_path+'/report/credit_payment_export?'+search);
         },
 
         dateFormat(d) {

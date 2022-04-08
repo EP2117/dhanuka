@@ -116,6 +116,16 @@
 <!--                            <option v-for="brand in brands" :value="brand.id"  >{{brand.brand_name}}</option>-->
 <!--                        </select>-->
 <!--                    </div>-->
+
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label for="currency_id">Currency</label>
+                        <select class="form-control"
+                                name="currency_id" id="currency_id" style="min-width:100px;" v-model="search.currency_id"
+                        >
+                            <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                        </select>
+                    </div>
+
                     <div class="form-group col-md-3 col-lg-2">
                         <label class="small" >&nbsp;</label>
                         <button
@@ -159,6 +169,9 @@
 <!--                    </div>-->
 <!--                </div>-->
                 <!-- end sort by -->
+                <div class="text-right mb-2" v-if="collections.length > 0">
+                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                </div>
                 <!--<div class="text-right mb-2" v-if="sales.length > 0">
                     <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                 </div>-->
@@ -174,8 +187,8 @@
                             <th class="text-center">Customer Name</th>
                             <th class="text-center">Sale Man Name</th>
                             <!-- <th class="text-center">customer Code</th> -->
-                            <th class="text-center">Collect Amount</th>
-                            <th class="text-center">Discount</th>
+                            <th class="text-center">Collect Amount({{sign}})</th>
+                            <th class="text-center">Discount({{sign}})</th>
                             <th class="text-center">Collect Type</th>
                             <!-- <th class="text-center"> Discount</th> -->
                         </tr>
@@ -210,6 +223,7 @@ export default {
                 collect_type:'',
                 state_id:'',
                 township_id:'',
+                currency_id: 1,
             },
             collections: [],
             customers:[],
@@ -227,6 +241,9 @@ export default {
             net_bal_amt:'',
             net_inv_amt:'',
             net_paid_amt:'',
+            currency: [],
+            sign: 'MMK',
+            isMMK: true,
         };
     },
     created() {
@@ -354,8 +371,22 @@ export default {
         app.initStates();
         app.initTownships();
 
+        app.initCurrency();
+        $("#currency_id").select2();
+        $("#currency_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.search.currency_id = data.id;
+            app.sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+        });
+
     },
     methods: {
+        
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
        initCustomers() {
               axios.get("/customers").then(({ data }) => (this.customers = data.data));
               $("#customer_id").select2();
@@ -384,7 +415,6 @@ export default {
             $("#warehouse_id").select2();
         },
 
-
         initBrands() {
             axios.get("/report_brands").then(({ data }) => (this.brands = data.data));
             $("#brand_id").select2();
@@ -406,6 +436,10 @@ export default {
                 app.search.collection_no +
                 "&branch_id=" +
                 app.search.branch_id +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
                 "&sale_man_id=" +
                 app.search.sale_man_id +
                  "&collect_type=" +
@@ -462,24 +496,30 @@ export default {
             }
 
             var search =
-                "&from_date=" +
-                app.search.from_date +
-                "&to_date=" +
-                app.search.to_date +
-                "&invoice_no=" +
-                app.search.invoice_no +
-                "&warehouse_id=" +
-                app.search.warehouse_id +
-                "&customer_id=" +
-                app.search.customer_id +
-                "&product_name=" +
-                app.search.product_name +
-                "&order=" +
-                app.search.order +
-                "&branch_id=" +
-                app.search.branch_id +
-                "&sort_by=" +
-                app.search.sort_by;
+            "&from_date=" +
+            app.search.from_date +
+            "&to_date=" +
+            app.search.to_date +
+            "&collection_no=" +
+            app.search.collection_no +
+            "&branch_id=" +
+            app.search.branch_id +
+            "&currency_id=" +
+            app.search.currency_id +
+            "&sign=" +
+            app.sign+
+            "&sale_man_id=" +
+            app.search.sale_man_id +
+             "&collect_type=" +
+            app.search.collect_type +
+            "&customer_id=" +
+            app.search.customer_id +
+            "&brand_id=" +
+            app.search.branch_id +
+            "&state_id=" +
+            app.search.state_id +
+            "&township_id=" +
+            app.search.township_id;
 
             /*axios.get("/daily_sales_export?" + search)
             .then(function(response) {
@@ -492,7 +532,7 @@ export default {
 
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
-            window.open(this.site_path+'/daily_sale_product_export?'+search);
+            window.open(this.site_path+'/report/credit_collection_export?'+search);
         },
 
         dateFormat(d) {

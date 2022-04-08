@@ -120,6 +120,7 @@ class ProductTransitionController extends Controller
                     ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id');
         }
 
+        $data = $data->where("product_transitions.warehouse_id",Auth::user()->warehouse_id);
 
         $data  = $data->where('products.is_active',1);
         $data  = $data->orderBy("products.product_name")
@@ -351,9 +352,9 @@ class ProductTransitionController extends Controller
         }
         
         $products = DB::table("products")
-                ->select(DB::raw("products.id as product_id, products.product_name, products.brand_id,pt.warehouse_id, products.product_code,pt.add_qty,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty, pt.receive_qty, pt.out_qty, pt.transfer_qty, pt.sale_qty, pt.branch_id, pt.transition_date, pt.approval_qty, pt.revise_qty, pt.approval_sale_qty, pt.revise_sale_qty"))
+                ->select(DB::raw("products.id as product_id, products.product_name, products.brand_id,pt.warehouse_id, products.product_code,pt.add_qty,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty, pt.receive_qty, IFNULL(pt.out_qty,0) as out_qty, pt.transfer_qty, pt.sale_qty, pt.branch_id, pt.transition_date, pt.approval_qty, pt.revise_qty, pt.approval_sale_qty, pt.revise_sale_qty,pp.photo_ids"))
                   ->leftjoin(DB::raw("(SELECT product_id, warehouse_id, transition_date, branch_id,
-                            SUM(CASE  WHEN transition_type = 'in' AND (transition_entry_id IS NOT NULL OR transition_purchase_id IS NOT NULL OR transition_adjustment_id IS NOT NULL)  THEN product_quantity  ELSE 0 END) as in_qty,
+                            SUM(CASE  WHEN transition_type = 'in' AND (transition_entry_id IS NOT NULL OR transition_purchase_id IS NOT NULL OR transition_adjustment_id IS NOT NULL OR transition_sale_id IS NOT NULL OR transition_return_id IS NOT NULL)  THEN product_quantity  ELSE 0 END) as in_qty,
                              SUM(CASE  WHEN transition_type = 'in' AND transition_transfer_id IS NOT NULL THEN product_quantity  ELSE 0 END) as receive_qty,
                               SUM(CASE  WHEN product_transitions.transition_type = 'out' THEN product_quantity  ELSE 0 END) as out_qty,
                                SUM(CASE  WHEN transition_type = 'out' AND transition_transfer_id IS NOT NULL THEN product_quantity  ELSE 0 END)  as transfer_qty,
@@ -369,6 +370,16 @@ class ProductTransitionController extends Controller
                             ) as pt"),function($join){
 
                             $join->on("pt.product_id","=","products.id");
+
+                        })
+
+                ->leftjoin(DB::raw("(SELECT product_photos.product_id as photo_product_id, GROUP_CONCAT(product_photos.id) as photo_ids
+                            FROM product_photos 
+                            GROUP BY product_photos.product_id
+
+                            ) as pp"),function($join){
+
+                            $join->on("pp.photo_product_id","=","products.id");
 
                         })
 
@@ -551,7 +562,47 @@ class ProductTransitionController extends Controller
     }
 
     public function test()
-    {
+    {  
+
+        $data = DB::table("product_transitions")
+                    ->select(DB::raw("product_transitions.*"))
+                    ->where('transition_type','out')
+                    ->where('transition_transfer_id','>=',157)
+                    ->where('transition_transfer_id','<=',177)
+                    ->get();
+        foreach($data as $d) {
+            DB::table('product_transitions')
+                        ->where('transition_type','in')
+                        ->where('transition_product_pivot_id',$d->transition_product_pivot_id)
+                        ->where('product_id',$d->product_id)
+                        ->where('transition_transfer_id',$d->transition_transfer_id)
+                        ->update(array('cost_price' => $d->cost_price));
+        }
+                    dd($data); exit();
+     $str = 'In My Cart : 000 12 items';
+$str = preg_replace('/[^0-9.]+/', '', $str); echo $str+1; exit();
+         $products = Product::all();
+         foreach($products as $p) {
+            $cost_price=$this->getCostPrice($p->id)->product_cost_price;
+            // dd($cost_price);
+             $store_cost_price=Product::find($p->id);
+             if($cost_price==0){
+                 $cost_price=$store_cost_price->purchase_price;
+             }
+             $store_cost_price->cost_price=$cost_price;
+             $store_cost_price->save();
+            /**DB::table('product_transitions')->join('products', 'product_transitions.product_id', '=', 'products.id')->where('product_transitions.product_id',$p->id)->whereNotNull('product_transitions.transition_sale_id')->update(['product_transitions.cost_price'=>DB::raw('product_transitions.product_quantity * products.purchase_price')]);
+            DB::table('product_transitions')->join('products', 'product_transitions.product_id', '=', 'products.id')->where('product_transitions.product_id',$p->id)->whereNotNull('product_transitions.transition_adjustment_id')->update(['product_transitions.cost_price'=>DB::raw('product_transitions.product_quantity * products.purchase_price')]);**/
+         }
+          
+
+          dd('success');
+
+         DB::table('product_transitions')
+                        ->where('transition_product_pivot_id', $request->product_pivot[$i])
+                        ->where('transition_sale_id', $id)
+                        ->update(array('cost_price'=>$cost_price *$request->qty[$i],'product_uom_id' => $main_uom_id, 'product_quantity' => $product_qty, 'transition_product_uom_id' => $request->uom[$i], 'transition_date' => $request->invoice_date, 'transition_product_quantity' => $request->qty[$i]));
+         dd('exit');
             $order = DB::table('order_approvals')
                                 ->where('order_id',922222)->get();
             //if(count($order) > 0) { dd('Do not delte');} else { dd('can delete'); }

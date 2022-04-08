@@ -86,7 +86,7 @@
                 <h6 class="m-0 font-weight-bold text-primary">Collection List</h6>
             </div>
             <div class="card-body">
-              <div class="table-responsive" v-if="collections.length > 0">
+              <div class="table-responsive" v-if="data_count > 0">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -111,8 +111,8 @@
                             </tr>
                         </tfoot>
                         <tbody>
-                            <tr v-for="collection,index in collections">
-                                <td class="textalign">{{index+1}}</td>
+                            <tr v-for="collection,index in collections.data">
+                                <td class="textalign">{{((currentPage * perPage) - perPage) + (index+1)}}</td>
                                 <td class="textalign">{{collection.collection_no}}</td>
                                 <td class="textalign">{{collection.collection_date}}</td>
                                 <td v-if="collection.branch != null">{{collection.branch.branch_name}}</td>
@@ -127,7 +127,7 @@
                                         </a>&nbsp;
                                     </router-link>
                                         
-                                    <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system'">
+                                    <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system' || user_role == 'office_user'">
                                         <i class="fas fa-trash"></i>
                                     </a>&nbsp;  
 
@@ -149,7 +149,7 @@
                                                 </router-link>
                                             </a>
                                             <a class="dropdown-item">
-                                                <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system'">
+                                                <a title="Delete" class="text-danger" @click="removeCollection(collection.id)" v-if="user_role == 'admin' || user_role == 'system' || user_role == 'office_user'">
                                                     <i class="fas fa-trash"></i>
                                                 </a>&nbsp;
                                             </a>
@@ -167,6 +167,42 @@
                 </div>
 
             </div>
+
+            <div class="card-footer text-center">
+          
+              <!-- pagination start -->
+              <div class="row" style="overflow:auto">
+                <div class="col-12">
+                  <template v-if="data_count > 0">
+                    <div class="overflow-auto text-center" style="display:inline-block">
+                      <!-- Use text in props -->
+                      <b-pagination
+                        v-model="currentPage"
+                        :total-rows="rows"
+                        :per-page="perPage"
+                        first-text="First"
+                        prev-text="Prev"
+                        next-text="Next"
+                        last-text="Last"
+                      >
+                        <template v-slot:first-text><span class="text-success" v-on:click="getCollections(1)">First</span></template>
+                        <template v-slot:prev-text><span class="text-danger" v-on:click="getCollections(currentPage)">Prev</span></template>
+                        <template v-slot:next-text><span class="text-warning" v-on:click="getCollections(currentPage)">Next</span></template>
+                        <template v-slot:last-text><span class="text-info" v-on:click="getCollections(pagination.last_page)">Last</span></template>
+                        <template v-slot:ellipsis-text>
+                        </template>
+                        <template v-slot:page="{ page, active }">
+                          <span v-if="active"><b>{{ page }}</b></span>
+                          <span v-else v-on:click="getCollections(page)">{{ page }}</span>
+                        </template>
+                      </b-pagination>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <!-- pagination end -->
+            </div>
+
         </div>
         <!-- table end -->
         <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
@@ -187,6 +223,18 @@
                     branch_id: "",
                     state_id:'',
                 },
+                pagination: {
+                    total: "",
+                    next: "",
+                    prev: "",
+                    last_page: "",
+                    current_page: "",
+                    next_page_url:""
+                },
+                rows: "",
+                perPage: "15",
+                currentPage: 1,
+                data_count: 0,
                 customers: [],
                 collections: [],
                 user_role: '',
@@ -206,7 +254,7 @@
             this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
             
             /*if(this.user_role == "office_order_user")*/
-            if(this.user_role != "admin" && this.user_role != "system")
+            if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user")
             {
                 var url =  window.location.origin;
                 window.location.replace(url);
@@ -327,9 +375,29 @@
                     app.search.customer_id+
                      "&state_id=" +
                     app.search.state_id;
-                    axios.get("/collection?" + search).then(({ data }) => (app.collections = data.data))
+
+                    /**axios.get("/collection?" + search).then(({ data }) => (app.collections = data.data))
                     .then(function() {
                         $("#loading").hide();
+                    });**/
+
+                    axios.get("/collection?page=" + page + search).then(function(response) {
+                        //app.initCustomers();
+                        $("#loading").hide();
+                        let data = response.data.data;
+                        app.collections = data;
+                        app.data_count = app.collections.data.length;
+                        app.pagination.last_page = data.last_page;
+                        app.pagination.next = data.next_page_url;
+                        app.pagination.prev = data.prev_page_url;
+                        app.pagination.total = data.total;
+                        app.pagination.current_page = data.current_page;
+                        app.pagination.next_page_url = data.next_page_url;
+
+
+                        app.rows = data.total;
+                        app.currentPage = data.current_page;
+                        console.log(app.currentPage);
                     });
             },
 

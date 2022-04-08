@@ -55,7 +55,7 @@ trait Ledger
         // dd($date_arr);
         return $date_arr;
     }
-    public function storeSaleInLedger($sale){
+    public function storeSaleInLedger($sale) {
         // dd($sale);
         $sale_account = AccountTransition::create([
             'sub_account_id' => $this->sale_account,
@@ -68,7 +68,7 @@ trait Ledger
             'status' => 'sale',
             // 'debit' => $sale->net_total,
             // change for account side 
-            'credit' => $sale->net_total,
+            'credit' => $sale->net_total + $sale->tax_amount,
             'created_by' => Auth::user()->id,
             'updated_by' => Auth::user()->id,
         ]);
@@ -272,12 +272,18 @@ trait Ledger
     }
     public function updateCreditPaymentInLedger($cp, $request)
     {
-        AccountTransition::where([
+        /**AccountTransition::where([
             ['is_cashbook', 0],
             ['purchase_id', $cp->id],
         ])->orWhere('status','credit_payment')
         ->orWhere('status','discount_received')
-        ->delete();
+        ->delete();**/
+        AccountTransition::where('purchase_id',$cp->id)
+                            ->where('is_cashbook', 0)
+                            ->where(function($query) {
+                                $query->orWhere('sub_account_id',7)
+                                      ->orWhere('sub_account_id',15);
+                            })->delete();
         $this->storeCreditPaymentInLedger($cp, $request);
     }
     public function storePaymentInLedger($payment){

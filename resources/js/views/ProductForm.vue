@@ -5,7 +5,7 @@
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/master'">Master</a></li>
-                <li class="breadcrumb-item"><router-link tag="span" to="/product" class="font-weight-normal"><a href="#">Category</a></router-link></li>
+                <li class="breadcrumb-item"><router-link tag="span" to="/product" class="font-weight-normal"><a href="#">Product</a></router-link></li>
                 <li class="breadcrumb-item active" aria-current="page">Product Form</li>
 
             </ol>
@@ -103,9 +103,13 @@
                         </div>
                         <div class="form-group row" >
                             <label class="col-lg-3 col-form-label text-right form-control-label">Warehouse UMO Purchase Price</label>
-                            <div class="col-lg-6">
+                            <div class="col-lg-6" v-if="!isEdit">
                                 <input class="form-control" type="text"
                                        v-model="form.purchase_price" required >
+                            </div>
+                            <div class="col-lg-6" v-else>
+                                <input class="form-control" type="text"
+                                       v-model="form.purchase_price" required disabled>
                             </div>
                         </div>
 <!--                        <div class="form-group row">-->
@@ -141,6 +145,38 @@
                                        v-model="form.reorder_level" required >
                             </div>
                         </div>
+                        <!--<div class="form-group row">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Image Upload</label>
+                            <div class="col-lg-6">
+                                <form action="/product/image/upload" class="dropzone" enctype="multipart/form-data" id="frmTarget">
+                                  <input type="hidden" name="_token" :value="csrf">
+                                  <input type="hidden" name="hid_product_id" id="hid_product_id">
+                                  <div class="fallback">
+                                    <input name="file" id="file" type="file" multiple>
+                                  </div>
+                              </form>
+                            </div>
+                        </div>-->
+
+                        <div class="form-group row" v-if="isEdit && photos.length > 0">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">&nbsp; </label>
+                            <div class="col-lg-9">
+                                <span style="position:relative; float:left; display:table; margin-left:10px;" v-for="image,k in photos">
+                                    <img :src="image.photo" width="130" class="img-thumbnail" />
+                                        <br>
+                                        <button
+                                          type="button"
+                                          rel="tooltip"
+                                          class="btn btn-danger btn-sm"
+                                          style="position: absolute;right: 0;top: 0;margin: 0px;padding:0px;"
+                                          @click="remove_this(image.id)"
+                                        >
+                                          <small>Remove</small>
+                                        </button>
+                                </span>
+                            </div>
+                        </div>
+
                         <div class="form-group row text-right">
                             <label class="col-lg-3 col-form-label form-control-label"></label>
                             <div class="col-lg-6">
@@ -204,12 +240,17 @@
                 site_path: '',
                 storage_path: '',
                 check_disable:true,
+                csrf: '',
+                dz: '',
+                file_count: 0,
+                mydz: '',
+                photos: [],
             };
         },
 
         created() {
             this.user_role = document.querySelector("meta[name='user-role']").getAttribute('content');
-
+            this.csrf = document.head.querySelector('meta[name="csrf-token"]').content;
             this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
             //this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
             this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
@@ -341,6 +382,75 @@
                 app.checkSellingUom(product_id, uom_id, relation_val, 'edit');
             });
 
+            Dropzone.autoDiscover = false;
+
+            //var dropzone = new Dropzone(".dropzone");
+            var dropzone = new Dropzone(".dropzone", {
+                paramName: "file", // The name that will be used to transfer the file
+                maxFilesize: 5,
+                uploadMultiple: false,
+                acceptedFiles: 'image/*',
+                autoProcessQueue: false,
+                url: app.site_path+'/product/image/upload',
+                maxFiles: 3,
+                addRemoveLinks: true,
+                maxfilesexceeded: function(file) {
+                    swal({
+                            title: "Warning!",
+                            text: 'Only maximum 3 photos is allowed!',
+                            icon: "warning",
+                            button: true
+                        });
+                    this.removeFile(file);
+                    return false;
+                },
+                error: function(file,errorMessage) {
+                    swal(errorMessage, {
+                        icon: "warning"
+                      });
+                    this.removeFile(file);
+                },
+                headers: {'X-CSRF-TOKEN' : $('meta[name="token"]').attr('value')},
+                init: function() { 
+                    var myDropzone = this;
+                    app.dz = myDropzone;
+                    // Update selector to match your button
+                    /**$(".btn-submit").click(function (e) {
+                        app.dz = myDropzone;
+                       e.preventDefault();
+                        myDropzone.processQueue();
+                    });**/
+
+                    /**this.on('sending', function(file, xhr, formData) {
+                        var data = $('#frmTarget').serializeArray();
+                        $.each(data, function(key, el) {
+                            formData.append(el.name, el.value);
+                        });
+                       
+                    });**/
+                },
+                success: function(file, response){
+                    // success hook
+                    this.removeFile(file);
+                },
+                complete: function(file, response){
+                    console.log(response);
+                    swal({
+                            title: "Success!",
+                            text: 'Customer Saved.',
+                            icon: "success",
+                            button: true
+                        }).then(function() {
+                            location.reload();
+                           
+
+                        });
+                }
+
+            });
+
+            app.mydz = dropzone;
+
         },
 
         methods: {
@@ -461,6 +571,9 @@
                     }
                     if(response.data.product.product_code_type==="manual"){
                         $('#product_code_div').show();
+                    }
+                    if(response.data.product.photos != null) {
+                        app.photos = response.data.product.photos;
                     }
                     app.form.product_name = response.data.product.product_name;
                     app.form.cost_price=parseInt(response.data.cost_price);
@@ -603,6 +716,8 @@
                           .then(function(data) {
                             console.log(data);
                             if(data.status == "success") {
+                                $('#hid_product_id').val(data.product_id);
+                                //app.dz.processQueue();
                                 //reset form data
                                 app.temp_selling_uom = [];
                                 event.target.reset();
@@ -710,6 +825,9 @@
                         this.form
                           .patch("/product/" + app.product_id)
                           .then(function(data) {
+
+                            $('#hid_product_id').val(app.product_id);
+                           // app.dz.processQueue();
                             console.log(data);
                             //reset form data
                                 app.temp_selling_uom = [];
@@ -770,6 +888,34 @@
                     $('#product_code_div').show();
                     $( "#product_code" ).prop( "disabled", false );
                 }
+            },
+
+            remove_this(p) {
+           
+              let app = this;
+              swal({
+                title: "Are you sure?",
+                text: "Once deleted, you will not be able to recover!",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true
+              }).then(willDelete => {
+                if (willDelete) {
+                  axios
+                    .delete("/product_photo/" + p)
+                    .then(function(response) {
+                      //app.photos = [];
+                    });
+                  swal("Photo has been deleted!", {
+                    icon: "success"
+                  }).then(function() {
+                    location.reload();
+
+                });
+                } else {
+                  //
+                }
+              });
             },
 
         }

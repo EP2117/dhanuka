@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Traits\AccountReport;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use App\AccountTransition;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ trait Cashbook{
         // $this->discount_received=config('global.discount_received'); 
         // $this->credit_payment=config('global.credit_payment'); 
     // }
-    public function getDateArr($request){
+    public function getDateArr_original($request){
         $from = \Carbon\Carbon::createFromFormat('Y-m-d',$request->from_date);
         if(!is_null($request->to_date)){
             $to = \Carbon\Carbon::createFromFormat('Y-m-d',$request->to_date);
@@ -34,6 +35,25 @@ trait Cashbook{
         }
         return $date_arr;
     }
+
+    public function getDateArr($request){
+        $st_date = $request->from_date;
+        if(!is_null($request->to_date)){
+          $ed_date = $request->to_date;
+        } else {
+          $ed_date = Carbon::now()->format('Y-m-d');  
+        }
+        
+       $period = CarbonPeriod::create($st_date, $ed_date);
+
+       $dates = array();
+        // Iterate over the period
+        foreach ($period as $date) {
+            array_push($dates, $date->format('Y-m-d'));
+        }
+        return $dates;
+    }
+    
     public function getOpening($request,$a){
         $opening=AccountTransition::whereDate('transition_date','<',$a)->where('is_cashbook',1);
         if($request->sub_account!=null){

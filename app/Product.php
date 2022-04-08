@@ -23,6 +23,11 @@ class Product extends Model
         return $this->belongsTo('App\Uom');
     }
 
+    public function photos()
+    {
+        return $this->hasMany('App\ProductPhoto');
+    }
+
     public function brand()
     {
         return $this->belongsTo('App\Brand');
@@ -40,12 +45,17 @@ class Product extends Model
 
     public function transfers()
     {
-        return $this->belongsToMany('App\Transfer', 'product_transfer', 'product_id', 'transfer_id')->withPivot('id','uom_id','product_quantity');
+        return $this->belongsToMany('App\Transfer', 'product_transfer', 'product_id', 'transfer_id')->withPivot('id','uom_id','product_quantity','cost_price');
     }
 
     public function sales()
     {
-        return $this->belongsToMany('App\Sale', 'product_sale', 'product_id', 'sale_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','price','price_variant','total_amount','is_foc');
+        return $this->belongsToMany('App\Sale', 'product_sale', 'product_id', 'sale_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','return_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc','rate','rate_fx','actual_rate','actual_rate_fx','discount','discount_fx','other_discount','other_discount_fx','order_product_pivot_id');
+    }
+
+    public function returns()
+    {
+        return $this->belongsToMany('App\SaleReturn', 'product_return', 'product_id', 'return_id')->withPivot('id','sale_product_pivot_id','uom_id','product_quantity','price','price_variant','total_amount','is_foc');
     }
 
     public function orders()

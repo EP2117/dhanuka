@@ -87,6 +87,48 @@
                         </select>
                     </div>
 
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label for="due_date">Due Date</label>
+                        <input type="text" class="form-control datetimepicker" id="due_date" name="due_date"
+                               v-model="search.due_date">
+                    </div>
+
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label for="invoice_type">Invoice Type</label>
+                        <select id="invoice_type" class="form-control mm-txt"
+                            name="invoice_type" v-model="search.invoice_type" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="office">Office</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label for="sale_man_id">Sale Man</label>
+                        <select id="sale_man_id" class="form-control mm-txt"
+                            name="sale_man_id" v-model="search.sale_man_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="sale_man in sale_mans" :value="sale_man.id"  >{{sale_man.sale_man}}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label for="product_name">Product Name</label>
+                        <input type="text" class="form-control" id="product_name" name="product_name"
+                        v-model="search.product_name">
+                    </div>
+
+                    <div class="form-group col-md-3 col-lg-2">
+                        <label for="currency_id">Currency</label>
+                        <select class="form-control"
+                                name="currency_id" id="currency_id" style="min-width:100px;" v-model="search.currency_id"
+                        >
+                            <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                        </select>
+                    </div>
+
 
 <!--                    <div class="form-group col-md-4 col-lg-3 mm-txt">-->
 <!--                        <label for="brand_id">Brand</label>-->
@@ -133,6 +175,13 @@
 <!--                            <option value="DESC">Descending</option>-->
 <!--                        </select>-->
 <!--                    </div>-->
+
+                        <div class="text-right form-group mt-4" >
+                           <div class="text-right mb-2" v-if="out_count > 0">
+                               <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                           </div>
+                       </div>
+                   
 <!--                    <div class="text-right form-group mt-4" >-->
 <!--                        <div class="text-right mb-2" v-if="payments.length > 0">-->
 <!--                            <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>-->
@@ -148,46 +197,102 @@
                         <thead>
                         <tr>
                             <th class="text-center">No.</th>
+                            <th class="text-center">Invoice Type</th>
                             <th class="text-center">Invoice No</th>
-                            <th class="text-center">Date</th>
+                            <th class="text-center">Invoice Date</th>
+                            <th class="text-center">Due Date</th>
                             <th class="text-center">Customer Name</th>
-                            <th class="text-center">customer Code</th>
-                            <th class="text-center">Invoice Amount</th>
-                            <th class="text-center">Paid Amount</th>
-                            <th class="text-center">Balance Amount</th>
+                            <th class="text-center">Customer Code</th>
+                            <th class="text-center">Township</th>
+                            <th class="text-center">Sale Man</th>
+                            <th class="text-center">Contact Multiple</th>
+                            <th class="text-center" style="min-width:150px;">Product Name</th>
+                            <th class="text-center">Invoice Amount({{sign}})</th>
+                            <th class="text-center">Paid Amount({{sign}})</th>
+                            <th class="text-center">Currency <br />Gain/Loss({{sign}})</th>
+                            <th class="text-center">Balance Amount({{sign}})</th>
                             <!-- <th class="text-center"> Discount</th> -->
                         </tr>
                         </thead>
                         <tbody id="result" >
                             <template v-for="(po,k) in sale_outstandings">
-                                <template v-for="(c,key) in po.out_list">
-                                <tr v-if="c.type=='paid'">
+                                <tr v-if="k==0 || (po.state_id != sale_outstandings[k-1].state_id)">
+                                    <th class="text-center" colspan="15"><b>{{po.state_name}}</b></th>
+                                </tr>
+                                <template v-for="(c,key) in po.out_list">                               
+
+                                <tr v-if="c.type=='paid' && c.due_date != null && c.due_date <c.current_date" style="background:#F3C1C2;">
                                     <td class="text-center"></td>
+                                    <td class="text-center">{{c.invoice_type}}</td>
                                     <td class="text-center">{{c.invoice_no}}</td>
                                     <td class="text-center">{{c.invoice_date}}</td>
+                                    <td class="text-center" v-if="c.due_date!=null">{{c.due_date}}</td>
+                                    <td v-else></td>
                                     <!--                            <td class="text-center">{{c.vochur_no}}</td>-->
-                                    <td class="text-center">{{c.customer.cus_name}}</td>
+                                    <td class="text-center mm-txt">{{c.customer.cus_name}}</td>
                                     <td class="text-center" style="right: 4px ">{{c.customer.cus_code}}</td>
-                                    <td class="text-center">{{c.total_amount}} </td>
+                                    <td class="text-center mm-txt">{{c.customer.township.township_name}}</td>
+                                    <td class="mm-txt textalign" v-if="c.office_sale_man_id != null">{{c.sale_man.sale_man}}</td>
+                                    <td v-else></td>
+                                    <td class="text-center mm-txt">{{c.customer.cus_phone}}</td>
+                                    <td class="text-center mm-txt">
+                                        <template v-for="prod,j in c.products">
+                                             {{prod.product_name}}<label v-if="j!=c.products.length-1">, </label> 
+                                        </template>                                       
+                                    </td>
+                                    <!--<td class="text-center">{{c.total_amount}} </td>-->
+                                    <td class="text-center" v-if="c.is_opening == 1">{{c.total_amount}}</td>
+                                    <td class="text-center" v-else-if="c.is_opening != 1 && search.currency_id != 1">{{decimalFormat(parseFloat(c.net_total_fx)+parseFloat(c.tax_amount_fx))}}</td>
+                                    <td class="text-center" v-else>{{parseInt(c.net_total) + parseInt(c.tax_amount == null ? 0 : c.tax_amount)}}</td>
                                     <td class="text-center">{{c.t_paid_amount}} </td>
+                                    <td class="text-center">{{c.t_gain_loss_amount == 0 ? '' : c.t_gain_loss_amount}} </td>
+                                    <td class="text-center">{{c.t_balance_amount}} </td>
+                                </tr>
+                                <tr v-else-if="c.type=='paid'">
+                                    <td class="text-center"></td>
+                                    <td class="text-center">{{c.invoice_type}}</td>
+                                    <td class="text-center">{{c.invoice_no}}</td>
+                                    <td class="text-center">{{c.invoice_date}}</td>
+                                    <td class="text-center" v-if="c.due_date!=null">{{c.due_date}}</td>
+                                    <td v-else></td>
+                                    <!--                            <td class="text-center">{{c.vochur_no}}</td>-->
+                                    <td class="text-center mm-txt">{{c.customer.cus_name}}</td>
+                                    <td class="text-center" style="right: 4px ">{{c.customer.cus_code}}</td>
+                                    <td class="text-center mm-txt">{{c.customer.township.township_name}}</td>
+                                    <td class="mm-txt textalign" v-if="c.office_sale_man_id != null">{{c.sale_man.sale_man}}</td>
+                                    <td v-else></td>
+                                    <td class="text-center mm-txt">{{c.customer.cus_phone}}</td>
+                                    <td class="text-center mm-txt">
+                                        <template v-for="prod,j in c.products">
+                                             {{prod.product_name}}<label v-if="j!=c.products.length-1">, </label> 
+                                        </template>                                       
+                                    </td>
+                                    <!--<td class="text-center">{{c.total_amount}} </td>-->
+                                    <td class="text-center" v-if="c.is_opening == 1">{{c.total_amount}}</td>
+                                    <td class="text-center" v-else-if="c.is_opening != 1 && search.currency_id != 1">{{decimalFormat(parseFloat(c.net_total_fx)+parseFloat(c.tax_amount_fx))}}</td>
+                                    <td class="text-center" v-else>{{parseInt(c.net_total) + parseInt(c.tax_amount == null ? 0 : c.tax_amount)}}</td>
+                                    <td class="text-center">{{c.t_paid_amount}} </td>
+                                    <td class="text-center">{{c.t_gain_loss_amount == 0 ? '' : c.t_gain_loss_amount}} </td>
                                     <td class="text-center">{{c.t_balance_amount}} </td>
                                 </tr>
                                 </template>
                                 <tr class="">
-                                    <td colspan="5" class="text-right mm-txt"><b>Total</b></td>
-                                    <td class="text-center">{{po.total_inv_amt}}</td>
-                                    <td class="text-center">{{po.total_paid_amt}}</td>
-                                    <td class="text-center">{{po.total_bal_amt}}</td>
+                                    <th colspan="11" class="text-right mm-txt"><b>Total</b></th>
+                                    <th class="text-center" style="font-weight:normal;">{{decimalFormat(po.total_inv_amt)}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{po.total_paid_amt}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{po.total_gain_loss_amt == 0 ? '' : po.total_gain_loss_amt}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{po.total_bal_amt}}</th>
                                 </tr>
                             </template>
                             <tr>
-                                <td></td>
+                                <th></th>
                             </tr>
                              <tr class="">
-                                    <td colspan="5" class="text-right mm-txt"><strong>Total Net</strong></td>
-                                    <td class="text-center">{{net_inv_amt}}</td>
-                                    <td class="text-center">{{net_paid_amt}}</td>
-                                    <td class="text-center">{{net_bal_amt}}</td>
+                                    <th colspan="11" class="text-right mm-txt"><strong>Total Net</strong></th>
+                                    <th class="text-center" style="font-weight:normal;">{{decimalFormat(net_inv_amt)}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{net_paid_amt}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{net_gain_loss_amt == 0 ? '' : net_gain_loss_amt}}</th>
+                                    <th class="text-center" style="font-weight:normal;">{{net_bal_amt}}</th>
                                 </tr>
                         </tbody>
                     </table>
@@ -198,7 +303,7 @@
             </div>
         </div>
         <!-- table end -->
-        <!-- <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div> -->
+        <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
     </div>
 
 </template>
@@ -217,8 +322,14 @@ export default {
                 branch_id: '',
                 state_id:'',
                 township_id:'',
+                currency_id: 1,
+                sale_man_id: "",
+                invoice_type: "",
+                due_date: "",
+                product_name: "",
             },
             sale_outstandings: [],
+            sale_mans: [],
             customers:[],
             brands: [],
             out_count:0,
@@ -233,6 +344,10 @@ export default {
             net_bal_amt:'',
             net_inv_amt:'',
             net_paid_amt:'',
+            net_gain_loss_amt:'',
+            currency: [],
+            sign: 'MMK',
+            isMMK: true,
         };
     },
     created() {
@@ -315,6 +430,38 @@ export default {
                 app.search.to_date = formatedValue;
             });
 
+        $("#due_date")
+            .datetimepicker({
+                icons: {
+                    time: "fa fa-clock-o",
+                    date: "fa fa-calendar",
+                    up: "fa fa-chevron-up",
+                    down: "fa fa-chevron-down",
+                    previous: "fa fa-chevron-left",
+                    next: "fa fa-chevron-right",
+                    today: "fa fa-screenshot",
+                    clear: "fa fa-trash",
+                    close: "fa fa-remove"
+                },
+                format:"YYYY-MM-DD",
+                minDate: app.user_year+"-01-01",
+                maxDate: app.user_year+"-12-31",
+            })
+            .on("dp.show", function(e) {
+                app.search.due_date = moment().format('YYYY-MM-DD');
+                var y = new Date().getFullYear();
+                if(app.user_year < y) {
+                    if(app.search.due_date == app.user_year+"-12-31" || app.search.due_date == '') {
+                        app.search.due_date = app.user_year+"-12-31";
+                    }
+                }
+            })
+            .on("dp.change", function(e) {
+                var formatedValue = e.date.format("YYYY-MM-DD");
+                //console.log(formatedValue);
+                app.search.due_date = formatedValue;
+            });
+
         $("#customer_id").on("select2:select", function(e) {
             var data = e.params.data
             app.search.customer_id = data.id;
@@ -341,6 +488,7 @@ export default {
             app.townships=[];
             var data = e.params.data;
             app.search.state_id = data.id;
+            app.search.township_id = '';
             axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
 
         });
@@ -354,13 +502,41 @@ export default {
         app.initStates();
         app.initTownships();
 
+        app.initCurrency();
+        $("#currency_id").select2();
+        $("#currency_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.search.currency_id = data.id;
+            app.sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+        });
+
+        app.initSaleMan();
+
+        $("#sale_man_id").on("select2:select", function(e) {
+
+            var data = e.params.data;
+            app.search.sale_man_id = data.id;
+        });
+
     },
     methods: {
-       initCustomers() {
+
+        decimalFormat(num)
+        {
+           var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(3);
+           return decimal_num;
+        },
+
+        initCustomers() {
               axios.get("/customers").then(({ data }) => (this.customers = data.data));
               $("#customer_id").select2();
             },
 
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
 
         initBranches() {
             axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
@@ -383,6 +559,11 @@ export default {
         },
 
 
+        initSaleMan() {
+          axios.get("/sale_men").then(({ data }) => (this.sale_mans = data.data));              
+          $("#sale_man_id").select2();
+        },
+
         initBrands() {
             axios.get("/report_brands").then(({ data }) => (this.brands = data.data));
             $("#brand_id").select2();
@@ -400,10 +581,22 @@ export default {
                 app.search.from_date +
                 "&to_date=" +
                 app.search.to_date +
+                "&due_date=" +
+                app.search.due_date +
                 "&invoice_no=" +
                 app.search.invoice_no +
                 "&branch_id=" +
                 app.search.branch_id +
+                "&sale_man_id=" +
+                app.search.sale_man_id +
+                "&product_name=" +
+                app.search.product_name +
+                "&invoice_type=" +
+                app.search.invoice_type +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
                 "&customer_id=" +
                 app.search.customer_id +
                 "&brand_id=" +
@@ -425,13 +618,14 @@ export default {
                     app.net_bal_amt=response.data.net_balance_amt;
                     app.net_inv_amt=response.data.net_inv_amt;
                     app.net_paid_amt=response.data.net_paid_amt;
+                    app.net_gain_loss_amt=response.data.net_gain_loss_amt;
                     // app.net_bal_amt=response.data.sale_outstandings;
                     // console.log(response.data.html);
                     // $("#result").html(response.data.html);
                     // if(response.data.html != "") {
                     //     app.payments.push('1');
                     // } else { app.payments = []; }
-                    // $('#loading').hide();
+                    $('#loading').hide();
                 })
                 .catch(error => {
                     console.log(error);
@@ -439,32 +633,41 @@ export default {
         },
 
         exportExcel() {
-
+            
             let app = this;
             if(this.search.from_date == "") {
                 swal("Warning!", "From Date must be added!", "warning")
                 return false;
             }
-
-            var search =
+           var search =
                 "&from_date=" +
                 app.search.from_date +
                 "&to_date=" +
                 app.search.to_date +
+                "&due_date=" +
+                app.search.due_date +
                 "&invoice_no=" +
                 app.search.invoice_no +
-                "&warehouse_id=" +
-                app.search.warehouse_id +
-                "&customer_id=" +
-                app.search.customer_id +
-                "&product_name=" +
-                app.search.product_name +
-                "&order=" +
-                app.search.order +
                 "&branch_id=" +
                 app.search.branch_id +
-                "&sort_by=" +
-                app.search.sort_by;
+                "&sale_man_id=" +
+                app.search.sale_man_id +
+                "&product_name=" +
+                app.search.product_name +
+                "&invoice_type=" +
+                app.search.invoice_type +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
+                "&customer_id=" +
+                app.search.customer_id +
+                "&brand_id=" +
+                app.search.branch_id +
+                "&state_id=" +
+                app.search.state_id +
+                "&township_id=" +
+                app.search.township_id; 
 
             /*axios.get("/daily_sales_export?" + search)
             .then(function(response) {
@@ -477,7 +680,7 @@ export default {
 
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
-            window.open(this.site_path+'/daily_sale_product_export?'+search);
+            window.open(this.site_path+'/report/sale_outstanding_export?'+search);
         },
 
         dateFormat(d) {

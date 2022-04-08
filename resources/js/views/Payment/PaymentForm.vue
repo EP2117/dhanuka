@@ -168,11 +168,11 @@ export default {
                 maxDate: app.user_year+"-12-31",
             }).on("dp.show", function(e) {
             var y = new Date().getFullYear();
-            // if(app.user_year < y) {
-            //     if(app.form.date == app.user_year+"-12-31" ||  app.form.date == '') {
-            //         // app.form.date = app.user_year+"-12-31";
-            //     }
-            // }
+           if(app.user_year < y) {
+                 if(app.form.date == app.user_year+"-12-31" ||  app.form.date == '') {
+                    app.form.date = app.user_year+"-12-31";
+                }
+            }
         }).on("dp.change", function(e) {
             // console.log(e);
             var formatedValue = e.date.format("YYYY-MM-DD");

@@ -26,7 +26,7 @@ class ProductController extends Controller
        	//$data = Product::with('uom','brand','category');
         //$data->select('products.*','uoms.uom_name','brands.brand_name','categories.category_name');
 
-        $data = Product::select([
+        $data = Product::with('photos')->select([
                   'products.*',
                   'uoms.uom_name',
                   'brands.brand_name',
@@ -135,9 +135,14 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::with('selling_uoms','uom')->find($id);
+        $product = Product::with('photos','selling_uoms','uom')->find($id);
         $pp=DB::table('product_purchase')->where('product_id',$id)->get();
         $cost_price=$this->getCostPrice($id)->product_cost_price;
+        //ep
+        if($cost_price == 0) {
+            $cost_price = $product->purchase_price;
+        } 
+        //end ep
         return compact('product','cost_price');
     }
 
@@ -175,6 +180,7 @@ class ProductController extends Controller
 	        $product->created_by        = Auth::user()->id;
 	        $product->updated_by        = Auth::user()->id;
 	        $product->save();
+            $product_id = $product->id;
 //	        $relation_arr = $request->uom_relations; //array value(key is uom_id, value is related uom value)
 //            $price_arr = $request->uom_prices; //array value(key is uom_id, value is related uom selling price)
 //            $per_price_arr = $request->uom_per_prices; //array value(key is uom_id, value is related warehouse uom per price)
@@ -192,7 +198,7 @@ class ProductController extends Controller
 //	            $product->selling_uoms()->attach($request->selected_selling_uom[$i],['relation' => $relation, 'retail1_price' => $retail1_price_arr[$key],  'retail2_price' => $retail2_price_arr[$key], 'wholesale_price' => $wholesale_price_arr[$key],'warehouse_uom_purchase_price' => $purchase_price_arr[$key]]);
 //	        }
 	        $status = "success";
-	        return compact('status');
+	        return compact('status','product_id');
     	}
     	catch (ValidationException $exception) {
     		return response()->json([
@@ -288,7 +294,7 @@ class ProductController extends Controller
 
     public function allProducts()
     {
-        $data = Product::with('uom')->where('is_active',1)->orderBy('product_name', 'ASC')->get();
+        $data = Product::with('uom')->where('is_active',1)->get();
         return response(compact('data'), 200);
     }
 

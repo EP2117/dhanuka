@@ -190,15 +190,16 @@ class DailySaleProductExport implements FromView, WithTitle
         if($request->sort_by != "") {
             if($request->sort_by == "invoice_no") {
                 $sales->orderBy('sales.invoice_no', $order);
+                $sales->orderBy('sales.id','DESC');
             }
             else {}
         } else {
-            $sales->orderBy('sales.invoice_date', 'DESC'); 
+            $sales->orderBy('sales.id', 'DESC'); 
         }
 
        // $data    =  $sales->orderBy('invoice_date', 'DESC')->get(); 
         $data = $sales->get();
-
+        $sale_arr = $data->pluck('sale_id')->toArray();
         /*$access_brands = array();        
 
         if(Auth::user()->role->id == 6) {
@@ -213,9 +214,9 @@ class DailySaleProductExport implements FromView, WithTitle
                     ->pluck('id')->toArray(); */
 
 
-
         return view('exports.dailySaleProduct', [
             'data' => $data,
+            'sale_arr' => $sale_arr,
             'request' => $request,
             'user_role' => Auth::user()->role->id
         ]);

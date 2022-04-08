@@ -11,7 +11,7 @@ class Transfer extends Model
     
     public function products()
     {
-         return $this->belongsToMany('App\Product', 'product_transfer', 'transfer_id', 'product_id')->withPivot('id','uom_id','product_quantity');
+         return $this->belongsToMany('App\Product', 'product_transfer', 'transfer_id', 'product_id')->withPivot('id','uom_id','product_quantity','cost_price');
     }
 
     public function from_warehouse()

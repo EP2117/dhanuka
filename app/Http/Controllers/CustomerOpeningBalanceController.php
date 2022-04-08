@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Sale;
+use App\AccountTransition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -51,6 +52,21 @@ class CustomerOpeningBalanceController extends Controller
         $customer_ob->created_by = Auth::user()->id;
         $customer_ob->updated_by = Auth::user()->id;
         $customer_ob->save();
+
+        AccountTransition::create([
+            'sub_account_id' => 8,
+            'transition_date' => $request->opening_date,
+            'sale_id' => $customer_ob->id,
+            'customer_id'=>$request->customer_id,
+            'is_cashbook' => 0,
+            'description'=>'Customer Opening Balance',
+            'vochur_no'=>$invoice_no,
+            'credit' => $request->amount,
+            'status'=>'customer_opening',
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
         return response()->json([
             'status'=>'success',
         ]);
@@ -81,6 +97,39 @@ class CustomerOpeningBalanceController extends Controller
         $customer_ob->created_by = Auth::user()->id;
         $customer_ob->updated_by = Auth::user()->id;
         $customer_ob->save();
+
+        $at_result = AccountTransition::where([
+            ['sale_id',$id],
+            ['is_cashbook',0],
+            ['status','customer_opening']])->first();
+        if($at_result) {
+            AccountTransition::where([
+                ['sale_id',$id],
+                ['is_cashbook',0],
+                ['status','customer_opening']])->update([
+                'sub_account_id' => 8,
+                'transition_date' => $request->opening_date,
+                'vochur_no'=>$request->invoice_no,
+                'customer_id'=>$request->customer_id,
+                'is_cashbook' => 0,
+                'credit' => $request->amount,
+                'updated_by' => Auth::user()->id,
+            ]);
+        } else {
+            AccountTransition::create([
+                'sub_account_id' => 8,
+                'transition_date' => $request->opening_date,
+                'sale_id' => $customer_ob->id,
+                'customer_id'=>$request->customer_id,
+                'is_cashbook' => 0,
+                'description'=>'Customer Opening Balance',
+                'vochur_no'=>$request->invoice_no,
+                'credit' => $request->amount,
+                'status'=>'customer_opening',
+                'created_by' => Auth::user()->id,
+                'updated_by' => Auth::user()->id,
+            ]);
+        }
         return response()->json([
             'status'=>'success',
         ]);
@@ -95,6 +144,10 @@ class CustomerOpeningBalanceController extends Controller
     public function destroy($id)
     {
         Sale::whereId($id)->delete();
+         AccountTransition::where([
+            ['sale_id',$id],
+            ['is_cashbook',0],
+            ['status','customer_opening']])->delete();
         return response(['message' => 'delete successful']);
 
 //            AccountTransition::where('purchase_id', $id)

@@ -191,12 +191,22 @@ export default {
             perPage: 30,
             currentPage: 1,
             rows:'',
+            login_from_date: '',
+            login_to_date: '',
+            user_role:'',
+            storage_path:'',
+            site_path:'',
+            user_year:'',
         }
     },
     created() {
         this.user_year = document.querySelector("meta[name='user-year-likelink']").getAttribute('content');
         // console.log(this.perPage);
         this.user_role = document.querySelector("meta[name='user-role']").getAttribute('content');
+
+        this.login_from_date = document.querySelector("meta[name='login_from_date']").getAttribute('content');
+        alert(this.login_from_date);
+        this.login_to_date = document.querySelector("meta[name='login_to_date']").getAttribute('content');
 
         this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
         //this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
@@ -225,8 +235,11 @@ export default {
                     close: "fa fa-remove"
                 },
                 format:"YYYY-MM-DD",
-                minDate: app.user_year+"-01-01",
-                maxDate: app.user_year+"-12-31",
+                minDate: app.login_from_date,
+                maxDate: app.login_to_date,
+
+                //minDate: app.user_year+"-01-01",
+                //maxDate: app.user_year+"-12-31",
             }).on("dp.show", function(e) {
             var y = new Date().getFullYear();
             // if(app.user_year < y) {

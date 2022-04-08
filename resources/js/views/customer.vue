@@ -151,6 +151,7 @@
                                 <th class="text-center">Customer Type</th>
                                 <th class="text-center">Phone</th>
                                 <th class="text-center">Township, State, Country</th>
+                                <th class="text-center">Photo</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">  </th> <!--Kamlesh -->
                             </tr>
@@ -163,6 +164,7 @@
                                 <th class="text-center">Customer Type</th>
                                 <th class="text-center">Phone</th>
                                 <th class="text-center">Township, State, Country</th>
+                                <th class="text-center">Photo</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">  </th> <!--Kamlesh -->
                             </tr>
@@ -175,6 +177,13 @@
                                 <td class="mm-txt textalign">{{cus.customer_type_name}}</td> <!--Kamlesh -->
                                 <td>{{cus.cus_phone}}</td>
                                 <td class="mm-txt">{{cus.township_name + ', ' + cus.state_name + ', ' + cus.country_name }}</td>
+
+                                <td v-if="cus.photo!= '' && cus.photo!= null">
+                                    <template v-for="p,i in cus.photo.split(',')">
+                                        <a :href="storage_path+'/image/customer/'+p" target="_blank">Image{{i+1}}</a><span v-if="i != cus.photo.split(',').length-1">, </span>
+                                    </template>
+                                </td>
+                                <td v-else></td>
 
                                 <td v-if="cus.is_active == 1">
                                     <span class="badge badge-success">Active</span>

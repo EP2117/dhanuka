@@ -22,4 +22,12 @@ class Supplier extends Model
     {
         return $this->belongsTo(Country::class);
     }
+
+    public function purchase_advances(){
+        return $this->hasMany('App\PurchaseAdvance');
+    }
+
+    public function landed_costings(){
+        return $this->hasMany('App\LandedCosting');
+    }
 }

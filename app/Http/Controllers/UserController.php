@@ -101,6 +101,14 @@ class UserController extends Controller
         return response(compact('data'), 200);
     }
 
+    public function getAllUsers()
+    {
+        $data = User::with('role')->where('role_id','!=',1);
+
+        $data = $data->orderBy('name', 'ASC')->get();
+        return response(compact('data'), 200);
+    }
+
      /**
      * Display the specified resource.
      *

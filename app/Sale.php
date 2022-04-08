@@ -7,8 +7,14 @@ class Sale extends Model
     protected $with=['customer','sale_man','created_user'];
     public function products()
     {
-        return $this->belongsToMany('App\Product', 'product_sale', 'sale_id', 'product_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','price','price_variant','total_amount','is_foc','rate','actual_rate','discount','other_discount','order_product_pivot_id');
+        return $this->belongsToMany('App\Product', 'product_sale', 'sale_id', 'product_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','return_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc','rate','rate_fx','actual_rate','actual_rate_fx','discount','discount_fx','other_discount','other_discount_fx','order_product_pivot_id')->orderBy('product_sale.id','ASC');
     }
+
+    public function currency()
+    {
+        return $this->belongsTo('App\Currency', 'currency_id', 'id');
+    }
+
     public function approval()
     {
         return $this->belongsTo('App\OrderApproval', 'order_approval_id', 'id'); 
@@ -23,7 +29,7 @@ class Sale extends Model
     }
     public function collections()
     {
-        return $this->belongsToMany('App\Collection', 'collection_sale', 'sale_id', 'collection_id')->withPivot('id','paid_amount','discount');
+        return $this->belongsToMany('App\Collection', 'collection_sale', 'sale_id', 'collection_id')->withPivot('id','paid_amount','paid_amount_fx','discount','discount_fx','gain_amount','loss_amount');
     }
     public function warehouse()
     {
@@ -55,5 +61,10 @@ class Sale extends Model
     public function deliveries()
     {
         return $this->hasMany('App\SaleDelivery');
+    }
+
+    public function customer_returns()
+    {
+        return $this->belongsToMany('App\CustomerReturn', 'return_invoices','sale_id','customer_return_id')->withPivot('return_amount');
     }
 }

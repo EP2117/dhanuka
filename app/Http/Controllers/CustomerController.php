@@ -4,11 +4,19 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Customer;
+use App\Category;
+use App\CustomerLog;
 use App\Imports\CustomerImport;
 use App\Exports\CustomerExport;
+use App\Exports\CustomerWiseExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use DB;
+use Session;
+use Storage;
+use Image;
+use File;
 
 class CustomerController extends Controller
 {
@@ -107,8 +115,9 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::find($id);
-        return compact('customer');
+        $customer = Customer::with('categories')->find($id);
+        $categories = Category::with('brand')->orderBy('category_name', 'ASC')->get();
+        return compact('customer','categories');
     }
 
     /**
@@ -140,10 +149,43 @@ class CustomerController extends Controller
         $obj->is_active = 1;
         $obj->created_by = Auth::user()->id;
         $obj->updated_by = Auth::user()->id;
+        $is_lock = 0;
+        $lock_remark = NULL;
+        $lock_approve = NULL;
+        if(!empty($request->is_lock)) {
+            $is_lock = $request->is_lock == 'lock' ? 1 : 0;
+            $obj->is_lock = $is_lock;
+            $lock_remark = trim(preg_replace('/\s\s+/', ' ', str_replace("\n", " ", $request->lock_remark)));
+            $lock_approve = trim(preg_replace('/\s\s+/', ' ', str_replace("\n", " ", $request->lock_approve)));
+            $obj->lock_remark  = $lock_remark;
+            $obj->lock_approve = $lock_approve;
+        } else {
+            $obj->is_lock = NULL;
+            $obj->lock_remark = NULL;
+            $obj->lock_approve = NULL;
+        }
+
         $obj->save();
 
+        for($i=0; $i<count($request->categories); $i++) {
+            $obj->categories()->attach($request->categories[$i]);
+        }
+
+        if(!empty($request->is_lock)) {
+            $log = new CustomerLog;
+            $log->customer_id = $obj->id;
+            $log->is_lock = $is_lock;
+            $log->remark = $lock_remark;
+            $log->approved_by = $lock_approve;
+            $log->added_by = Auth::user()->id;
+            $log->added_time = Carbon::now();
+            $log->save();
+        }
+
+        $cus_id = $obj->id;
+
         $status = "success";
-        return compact('status');
+        return compact('status','cus_id');
     }
 
     /**
@@ -157,6 +199,11 @@ class CustomerController extends Controller
     {
 
         $obj = Customer::find($id);
+
+        $old_is_lock = $obj->is_lock;
+        $old_lock_remark = $obj->lock_remark;
+        $old_lock_approve = $obj->lock_approve;
+
         $obj->cus_name = $request->cus_name;
         $obj->customer_type_id = $request->cus_type;
         $obj->country_id    = $request->country_id;
@@ -166,10 +213,43 @@ class CustomerController extends Controller
         $obj->cus_billing_address  = $request->billing_address;
         $obj->cus_shipping_address = $request->shipping_address;
         $obj->updated_by = Auth::user()->id;
-        $obj->save();
+        $is_lock = 0;
+        $lock_remark = NULL;
+        $lock_approve = NULL;
+        if(!empty($request->is_lock)) {
+            $is_lock = $request->is_lock == 'lock' ? 1 : 0;
+            $obj->is_lock = $is_lock;
+            $lock_remark = trim(preg_replace('/\s\s+/', ' ', str_replace("\n", " ", $request->lock_remark)));
+            $lock_approve = trim(preg_replace('/\s\s+/', ' ', str_replace("\n", " ", $request->lock_approve)));
+            $obj->lock_remark  = $lock_remark;
+            $obj->lock_approve = $lock_approve;
+        } else {
+            $obj->is_lock = NULL;
+            $obj->lock_remark = NULL;
+            $obj->lock_approve = NULL;
+        }
 
+        $obj->save(); 
+
+        $obj->categories()->detach();
+
+        for($i=0; $i<count($request->categories); $i++) {
+            $obj->categories()->attach($request->categories[$i]);
+        }
+
+        if(!empty($request->is_lock) && ($old_is_lock !==  $obj->is_lock || $old_lock_remark != $obj->lock_remark || $old_lock_approve != $obj->lock_approve)) {
+            $log = new CustomerLog;
+            $log->customer_id = $obj->id;
+            $log->is_lock = $is_lock;
+            $log->remark = $lock_remark;
+            $log->approved_by = $lock_approve;
+            $log->added_by = Auth::user()->id;
+            $log->added_time = Carbon::now();
+            $log->save();
+        }
+        $cus_id = $obj->id;
         $status = "success";
-        return compact('status');
+        return compact('status','cus_id');
 
     }
 
@@ -210,6 +290,129 @@ class CustomerController extends Controller
     {
         $export = new CustomerExport($request);
         $fileName = 'customer_export_'.Carbon::now()->format('Ymd').'.xlsx';
+
+        return Excel::download($export, $fileName);
+    }
+
+    public function addPhoto(Request $request)
+    {
+        $this->validate($request, [
+            'file' => 'required|mimes:jpeg,png,jpg,gif,svg|max:10240',
+        ]);
+        //ini_set('post_max_size', '64M');
+        //ini_set('upload_max_filesize', '64M');
+        $cus_id = $request->hid_cus_id;
+        $obj = Customer::find($cus_id);
+        $photos = '';
+        $file = $request->file('file');
+        //dd($file->getClientOriginalName());
+       /** $filename = $file->getClientOriginalName();
+        $ext = $file->getClientOriginalExtension();
+        $onlyName = explode('.'.$ext,$filename);
+        $imagename = $onlyName[0]."_".date('YmdHis')."_".$obj->id.".".$ext;
+        $destinationPath = public_path('member_families');
+        //$filename = $file->getClientOriginalName();
+        $file->move($destinationPath, $imagename);
+
+        $family   = new MemberFamily;
+        $family->member_id = $obj->id;
+        $family->file   = $imagename;
+        $family->created_by = Auth::user()->id;
+        $family->save();**/
+
+        $file_name = $file->getClientOriginalName();
+        $ext = strtolower(substr(strrchr($file_name, "."), 1));
+        $onlyName = explode('.'.$ext,$file_name); 
+
+        $newname = $onlyName[0]."_".date('YmdHis')."_".$cus_id.".".$ext;
+
+        $img = Image::make($file->getRealPath());
+
+        $destinationPath = storage_path('app/public/image/customer');
+        // save file as jpg with medium quality
+        $img->save($destinationPath.'/'.$newname, 60);
+
+        //Storage::disk('image')->put('/delivery/'.$newname, file_get_contents($file));
+
+        if(empty($obj->photo)){
+            $photos = $newname;
+        } else {
+            $photos = $obj->photo.','.$newname;
+        }
+
+        $obj->photo = $photos;
+        $obj->save();
+        $status = "success";
+        return compact('status');
+    }
+
+    public function deletePhoto($name,$id)
+    {
+        $obj = Customer::find($id);
+        $photos = explode(',',$obj->photo);
+        if (($key = array_search($name, $photos)) !== false) {
+            unset($photos[$key]);
+
+            $exist = Storage::disk('image')->exists('/customer/'.$name);
+            if ($exist) {
+                try {
+                    File::delete('storage/image/customer/' . $name);
+                } catch (Exception $e) {
+                    return  response($e->getMessage());
+                }
+            }
+        }
+        if(count($photos) == 0) {
+            $obj->photo = NULL;
+        } else {
+            $obj->photo = implode(',', $photos);
+        }
+        
+        $obj->save();
+        $status = "success";
+        return compact('status');
+    }
+
+    public function getCustomerWiseList(Request $request) {
+
+         $data = DB::table("townships")
+                    ->select(DB::raw("cus_category.*, townships.township_name"))
+                    ->leftjoin(DB::raw("(SELECT customers.*, GROUP_CONCAT(cc.category_name) as category_name, GROUP_CONCAT(cc.category_id) as category_id FROM customers LEFT JOIN (SELECT categories.category_name, category_customer.customer_id, category_customer.category_id FROM category_customer LEFT JOIN categories ON category_customer.category_id = categories.id) as cc ON cc.customer_id = customers.id GROUP BY customers.id) as cus_category"),function($join){
+                            $join->on("cus_category.township_id","=","townships.id");
+                        });
+
+        if($request->customer_id != "") {
+            $data->where('cus_category.id',$request->customer_id);
+        }
+
+        if($request->cus_code != "") {
+            $data->where('cus_category.cus_code','LIKE','%'.$request->cus_code.'%');
+        }
+
+        if($request->category_id != "") {
+            $cat_id = (int)$request->category_id;
+            $data->where(function($query) use ($cat_id) {
+                        $query->where('cus_category.category_id','LIKE',$cat_id.',')
+                              ->orWhere('cus_category.category_id','LIKE','%'.$cat_id.'%')
+                              ->orWhere('cus_category.category_id','LIKE',','.$cat_id);
+                    });
+        }
+
+        $data = $data->orderBy('townships.township_name')->get();
+        return $data;
+    }
+
+    public function getCustomerWiseReport(Request $request)
+    {
+        $data = $this->getCustomerWiseList($request);
+        return response(compact('data'), 200);
+    }
+
+    public function exportCustomerWiseReport(Request $request)
+    {
+        $data = $this->getCustomerWiseList($request);;
+        $export = new CustomerWiseExport($data,$request);
+        $fileName = 'customer_wise_contact_report_'.Carbon::now()->format('Ymd').'.xlsx';
 
         return Excel::download($export, $fileName);
     }

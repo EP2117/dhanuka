@@ -83,12 +83,12 @@
                             <tr class="total_row"   v-if="at.opening_balance != 0 && !at.hide " >
                                 <td colspan="5" class="text-right mm-txt"><strong>Opening Balance</strong></td>
                                 <td class="text-center" colspan="1" v-if="at.opening_balance > 0 ">
-                                    {{at.opening_balance}}
+                                    {{decimalFormat(at.opening_balance)}}
                                 </td>
                                 <td class="text-center" colspan="1" v-if="at.opening_balance < 0 ">
                                 </td>
                                 <td class="text-center" colspan="1" v-if="at.opening_balance < 0 ">
-                                    {{at.opening_balance*(-1)}}
+                                    {{decimalFormat(at.opening_balance*(-1))}}
                                 </td>
                                 <td class="text-center" colspan="1" v-if="at.opening_balance >0 ">
                                 </td>
@@ -101,8 +101,8 @@
                                     <!--                            <td class="text-center">{{c.vochur_no}}</td>-->
                                     <td class="text-center">{{c.description}}</td>
                                     <td class="text-center" style="right: 4px ">{{c.sub_account.sub_account_name}}</td>
-                                    <td class="text-center">{{c.debit!=''? c.debit : ''}} </td>
-                                    <td class="text-center">{{c.credit!=''? c.credit : ''}} </td>
+                                    <td class="text-center">{{c.debit!='' && c.debit != null ? decimalFormat(c.debit) : ''}} </td>
+                                    <td class="text-center">{{c.credit!='' && c.credit != null? decimalFormat(c.credit) : ''}} </td>
 
                                 </tr>
                             </template>
@@ -117,24 +117,24 @@
                             <tr class="total_row"    v-if="at.cashbook_list.length>0 && !at.hide">
                                 <td colspan="5" class="text-right mm-txt"><strong>DailyTotal</strong></td>
                                 <td class="text-center" colspan="1">
-                                    {{at.total_debit}}
+                                    {{decimalFormat(at.total_debit)}}
                                 </td>
                                 <td class="text-center" colspan="1">
-                                    {{at.total_credit}}
+                                    {{decimalFormat(at.total_credit)}}
                                 </td>
 
                             </tr>
                             <tr class="total_row" v-if="!at.hide">
                                 <td colspan="5" class="text-right mm-text"><strong>Closing Balance</strong></td>
                                 <td class="text-center " colspan="1" v-if="at.closing_balance>0">
-                                    {{at.closing_balance}}
+                                    {{decimalFormat(at.closing_balance)}}
                                     <!--                                121222-->
                                 </td>
                                 <td class="text-center " colspan="1" v-else-if="at.closing_balance<0">
                                     <!--                                121222-->
                                 </td>
                                 <td class="text-center " colspan="1" v-if="at.closing_balance < 0">
-                                    {{at.closing_balance*(-1)}}
+                                    {{decimalFormat(at.closing_balance*(-1))}}
                                     <!--                                121222-->
                                 </td>
                                 <td class="text-center " colspan="1" v-else-if="at.closing_balance > 0">
@@ -183,7 +183,7 @@
                 <!-- pagination end -->
             </div>
         </div>
-
+        <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
     </div>
 </template>
 
@@ -301,6 +301,13 @@ export default {
             });
     },
     methods:{
+
+        decimalFormat(num)
+        {
+           var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(2);
+           return decimal_num;
+        },
+
         initSubAccount(){
             axios.get('/sub_account/get_all_sub_account').then(({data})=>(this.sub_account=data.sub_account));
         },

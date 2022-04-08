@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class AccountTransition extends Model
 {
     protected $table='account_transitions';
-    protected $fillable=['transition_date','sub_account_id','receipt_id','payment_id','supplier_id','customer_id','purchase_id','sale_id','credit','debit','is_cashbook','vochur_no','description','status'];
+    protected $fillable=['transition_date','sub_account_id','receipt_id','payment_id','supplier_id','customer_id','purchase_id','purchase_advance_id','sale_id','return_id','customer_return_id','return_payment_id','sale_advance_id','credit','debit','is_cashbook','vochur_no','description','status','created_by','updated_by'];
     protected $with=['sub_account','customer','supplier','sale'];
     protected $dates = [
         'transition_date',

@@ -1,7 +1,6 @@
 <template>
 
     <div>
-
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
@@ -68,7 +67,7 @@
             <div class="card-body">
                 <!-- <div class="table-responsive" > -->
                   <div class="text-right mb-2">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="printPDF()"><i class="fas fa-print"></i> &nbsp;PDF</button>
+                    <button class="btn btn-primary btn-icon btn-sm" @click="exportPDF()"><i class="fas fa-print"></i> &nbsp;PDF</button>
                 </div>
                 <div class="table-responsive" v-if="profit_and_loss!='' || expense !='' || income!=''">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">  <!--kamlesh-->
@@ -95,9 +94,15 @@
                                   {{r.name}}
                                 </td>
                                 <td class="text-center">
-                                  {{r.amount.toLocaleString()}}
+                                  {{decimalFormat(r.amount).toLocaleString()}}
                                 </td>
                              </tr>
+                             <tr v-if="total_revenue != 0">
+                                <td></td>
+                                <td class="text-center">
+                                    {{decimalFormat(total_revenue)}}
+                                </td>
+                            </tr>
                             </template>
                             <template v-if='index=="Cost of Revenue"'>
                                 <h3 style="margin-left:100px">{{index}}</h3>
@@ -106,7 +111,7 @@
                                         {{cor.name}}
                                     </td>
                                      <td class="text-center">
-                                        {{cor.amount.toLocaleString()}}
+                                        {{decimalFormat(cor.amount).toLocaleString()}}
                                     </td>
                                   </tr>
                             </template>
@@ -117,7 +122,7 @@
                                    <strong><h3>Gross Profit </h3></strong> 
                                     </td>
                                <td colspan="1" class="text-right mm-text" v-else-if="gross_profit<0"><strong><h3>Loss Profit </h3></strong>  </td>
-                               <td colspan="1" class="text-center" >{{gross_profit.toLocaleString()}}</td>
+                               <td colspan="1" class="text-center" >{{decimalFormat(gross_profit).toLocaleString()}}</td>
                           </tr>
                         <!-- <tr class="total_row table-secondary " v-else-if='profit_and_loss!="" && gross_profit<0'  >
                                <td colspan="1" class="text-right mm-text"><strong>Loss Profit </strong>  </td>
@@ -133,18 +138,18 @@
                                                 {{i.sub_account_name}}
                                             </td>
                                              <td class="text-center">
-                                                {{i.amount.toLocaleString()}}
+                                                {{decimalFormat(i.amount).toLocaleString()}}
                                             </td>
                                           </tr>
                                             <tr class="total_row">
                                                 <td colspan="1" class="text-right mm-text"><strong>{{inc.account_head_name}} Total</strong>  </td>
-                                                <td colspan="1" class="text-center ">{{inc.total.toLocaleString()}}</td>
+                                                <td colspan="1" class="text-center ">{{decimalFormat(inc.total).toLocaleString()}}</td>
                                             </tr>
                                                         
                             </template>
                              <tr class="total_row table-secondary" v-if="income!=null">
                                    <td colspan="1" class="text-right mm-text"><strong>Total Income </strong>  </td>
-                                   <td colspan="1" class="text-center ">{{total_income.toLocaleString()}}</td>
+                                   <td colspan="1" class="text-center ">{{decimalFormat(total_income).toLocaleString()}}</td>
                               </tr>
                         </template>
                         <template v-if="expense!=''">
@@ -156,21 +161,24 @@
                                         <td class="text-center">
                                             {{e.sub_account_name}}
                                         </td>
-                                         <td class="text-center">
-                                            {{e.amount.toLocaleString()}}
+                                         <td class="text-center" v-if="e.amount==null">
+                                            {{e.amount}}
+                                        </td>
+                                        <td class="text-center" v-else>
+                                            {{decimalFormat(e.amount).toLocaleString()}}
                                         </td>
                                       </tr>
                                 </template>
                             </template>
                             <tr class="total_row" v-if="expense!=null" >
                                    <td colspan="1" class="text-right mm-text"><strong>Total Expense </strong>  </td>
-                                   <td colspan="1" class="text-center ">{{total_expense.toLocaleString()}}</td>
+                                   <td colspan="1" class="text-center ">{{decimalFormat(total_expense).toLocaleString()}}</td>
                               </tr>
                         </template>
                             <tr class="total_row table-secondary" v-if="net_profit!=''">
                                    <td colspan="1" class="text-right mm-text" v-if="net_profit>=0"><strong> <h3>Net Profit </h3></strong>  </td>
                                    <td colspan="1" class="text-right mm-text" v-if="net_profit<0"><strong> <h3> Net Loss </h3></strong>  </td>
-                                   <td colspan="1" class="text-center ">{{net_profit.toLocaleString()}}</td>
+                                   <td colspan="1" class="text-center ">{{decimalFormat(net_profit).toLocaleString()}}</td>
                               </tr>
                         </tbody> 
                     </table>
@@ -180,6 +188,7 @@
                 </div>
             </div>
         </div>
+        <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div>
         <!-- <div id="loading" class="text-center"><img :src="storage_path+'/image/loader_2.gif'" /></div> -->
     </div>
 </template>
@@ -203,6 +212,7 @@ export default {
                 next_page_url:""
             },
             profit_and_loss:[],
+            total_revenue:0,
             expense:[],
             income:[],
             net_profit:'',
@@ -237,6 +247,7 @@ export default {
         // this.getReceipt();
     },
     mounted() {
+        $("#loading").hide();
         var app=this;
         // this.initDebit();
         // this.initCredit();
@@ -333,13 +344,24 @@ export default {
             });
     },
     methods:{
+
+        decimalFormat(num)
+        {
+           var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(2);
+           return decimal_num;
+        },
+
         initMonth(){
             var month=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             // var month=['0'=>'Jan','1'=>'Feb'];
             this.month=month;
         },
         initYear(){
-            var year=['2020','2021'];
+            var year = [];
+            for(var $y=2020; $y<=this.user_year; $y++) {
+                year.push($y);
+            }
+            //var year=['2020','2021'];
             this.year=year;
         },
         // initDebit(){
@@ -372,6 +394,7 @@ export default {
                 // console.log(response);
                 app.profit_and_loss=response.data.profit_and_loss;
                 app.gross_profit=response.data.gross_profit;
+                app.total_revenue = response.data.total_revenue;
                 app.income=response.data.income;
                 app.total_income=response.data.total_income;
                 // $.each(app.income,function(k,v){
@@ -410,6 +433,41 @@ export default {
                 }
             });
         },
+
+        exportPDF(){
+              let app = this;
+            if(app.search.from_date == "" && this.search.month=="" && this.search.year=="") {                  
+                swal("Warning!", "Please must be filtered at least one!", "warning")
+                return false;
+            } else {
+                $("#loading").show();
+            }
+
+             var search =
+            "&from_date=" +
+            app.search.from_date +
+            "&to_date=" +
+            app.search.to_date +
+            "&month=" +
+            app.search.month +
+            "&year=" +
+            app.search.year 
+            axios.get("/report/export_p_and_l_pdf?" + search, {responseType: 'blob'}).then(response => {
+                $('#loading').hide();
+                const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                window.open(url);
+                /*const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'daily_sale_rpt.pdf'); //or any other extension
+                document.body.appendChild(link);
+                link.click();*/
+
+              })
+              .catch(error => {
+                console.log(error);
+              });
+
+        }
     }
 }
 </script>

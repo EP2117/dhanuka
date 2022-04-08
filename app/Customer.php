@@ -12,9 +12,21 @@ class Customer extends Model
     public function sales(){
         return $this->hasMany('App\Sale')->select('id','customer_id');
     }
+    public function categories()
+    {
+        return $this->belongsToMany('App\Category', 'category_customer', 'customer_id', 'category_id');
+    }
+
+    public function returns(){
+        return $this->hasMany('App\SaleReturn')->select('id','customer_id');
+    }
 
     public function collections(){
         return $this->hasMany('App\Collection')->select('id','customer_id');
+    }
+
+    public function return_payments(){
+        return $this->hasMany('App\ReturnPayment')->select('id','customer_id');
     }
 
     public function ara_sales(){
@@ -39,5 +51,13 @@ class Customer extends Model
     public function country()
     {
         return $this->belongsTo('App\Country')->select('id', 'country_name');
+    }
+
+    public function sale_advances(){
+        return $this->hasMany('App\SaleAdvance')->select('id','customer_id');
+    }
+
+    public function customer_logs(){
+        return $this->hasMany('App\CustomerLog');
     }
 }

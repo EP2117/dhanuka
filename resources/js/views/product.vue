@@ -140,7 +140,8 @@
                                 <th class="text-center">Brand</th>
                                 <th class="text-center">Category</th>
                                 <th class="text-center">Warehouse UOM</th>
-                                <th class="text-center">Status</th>
+                                <!--<th class="text-center">Photo</th>-->
+                                <th class="text-center">Status</th>                                
                                 <th class="text-center">Action</th>
                             </tr>
                         </thead>
@@ -152,7 +153,8 @@
                                 <th class="text-center">Brand</th>
                                 <th class="text-center">Category</th>
                                 <th class="text-center">Warehouse UOM</th>
-                                <th class="text-center">Status</th>
+                                <!--<th class="text-center">Photo</th>-->
+                                <th class="text-center">Status</th>                                
                                 <th class="text-center">Action</th>
                             </tr>
                         </tfoot>
@@ -164,6 +166,13 @@
                                 <td>{{product.brand_name}}</td>
                                 <td>{{product.category_name}}</td>
                                 <td>{{product.uom_name}}</td>
+
+                                <!--<td v-if="product.photos != null && product.photos.length > 0">
+                                    <template v-for="p,i in product.photos">
+                                    <a href="#" @click="showPhoto(p.photo)">Photo{{i+1}}</a><span v-if="i != product.photos.length-1">, </span>
+                                    </template>
+                                </td>
+                                <td v-else></td>-->
 
                                 <td v-if="product.is_active == 1">
                                     <span class="badge badge-success">Active</span>
@@ -320,6 +329,13 @@
         },
 
         methods: {
+
+            showPhoto(p) {
+                var wi = window.open();
+                var html = "<div style='text-align:center'><img style='max-width:500px' src='"+p+"' /></div>";
+                $(wi.document.body).html(html);
+            },
+
             initBrands() {
               axios.get("/brands").then(({ data }) => (this.brands = data.data));
               $("#brand_id").select2();

@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<?php
+    //$fy = \App\FinancialYear::where(['id' => Session::get('loginYear')])->first();    
+?>
 
 <head>
 
@@ -20,6 +23,8 @@
     <meta name="user-name-likelink" content="{{ Auth::user()->name }}">
     <meta name="user-id-likelink" content="{{ Auth::user()->id }}">
     <meta name="user-year-likelink" content="{{ Session::get('loginYear') }}">
+    <!--<meta name="login_from_date" content="">
+    <meta name="login_to_date" content="">-->
     <meta name="description" content="">
     <meta name="author" content="">
 
@@ -254,31 +259,46 @@
                 var text = $(this).val();
                 if ((event.which == 46) && (text.indexOf('.') == -1)) {
                     setTimeout(function() {
-                        if ($this.val().substring($this.val().indexOf('.')).length > 3) {
-                            $this.val($this.val().substring(0, $this.val().indexOf('.') + 3));
+                        if ($this.val().substring($this.val().indexOf('.')).length > 4) {
+                            $this.val($this.val().substring(0, $this.val().indexOf('.') + 4));
                         }
                     }, 1);
                 }
 
                 if ((text.indexOf('.') != -1) &&
-                    (text.substring(text.indexOf('.')).length > 2) &&
+                    (text.substring(text.indexOf('.')).length > 3) &&
                     (event.which != 0 && event.which != 8) &&
-                    ($(this)[0].selectionStart >= text.length - 2)) {
+                    ($(this)[0].selectionStart >= text.length - 3)) {
                         event.preventDefault();
                 }
             });
 
-            $('.decimal_no').bind("paste", function(e) {
+            //$('.decimal_no').bind("paste", function(e) {
+            /**$(document).bind('paste','body .decimal_no',function(e){
             var text = e.originalEvent.clipboardData.getData('Text');
             if ($.isNumeric(text)) {
-                if ((text.substring(text.indexOf('.')).length > 3) && (text.indexOf('.') > -1)) {
+                if ((text.substring(text.indexOf('.')).length > 4) && (text.indexOf('.') > -1)) {
                     e.preventDefault();
-                    $(this).val(text.substring(0, text.indexOf('.') + 3));
+                    $(this).val(text.substring(0, text.indexOf('.') + 4));
                }
             }
             else {
                     e.preventDefault();
                  }
+            });**/
+            $(document).bind('paste','.decimal_no',function(e){
+            var text = e.originalEvent.clipboardData.getData('Text');
+            if(e.target.className.includes("decimal_no")) {
+                if ($.isNumeric(text)) {
+                    if ((text.substring(text.indexOf('.')).length > 4) && (text.indexOf('.') > -1)) {
+                        e.preventDefault();
+                        $(this).val(text.substring(0, text.indexOf('.') + 4));
+                   }
+                }
+                else {
+                        e.preventDefault();
+                     }
+            }
             });
 
         });

@@ -15,4 +15,8 @@ class Branch extends Model
     {
         return $this->belongsToMany('App\User', 'branch_user', 'branch_id', 'user_id');
     }
+
+    public function return_payments(){
+        return $this->hasMany('App\ReturnPayment')->select('id','customer_id');
+    }
 }

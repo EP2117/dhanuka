@@ -69,7 +69,7 @@
                 $total = 0;
                 $i = 1;
                 $html = '';
-                foreach($data as $sale) {
+               /** foreach($data as $sale) {
                         $html .= '<tr><td class="text-right">'.$i.'</td><td>'.$sale->invoice_no.'</td><td>'.$sale->invoice_date.'</td>';
                         $html .= '<td class="mm-txt">'.$sale->branch_name.'</td>';
                         $html .= '<td class="mm-txt">'.$sale->cus_name.'</td>';
@@ -101,9 +101,56 @@
                         
                         $i++;
                     
-                }
+                }**/
+                $n=0;
+                $sp_total = 0;
+                foreach($data as $k=>$sale) {                
+                        $html .= '<tr>';
+                        if($k==0 || $sale->sale_id != $data[$k-1]->sale_id)
+                        {
+                            $sp_total = 0;
+                            $n=$n+1;
+                            $r_count = count(array_keys($sale_arr, (int)$sale->sale_id));
+                            $html .= '<td class="text-right" rowspan="'.$r_count.'" style="vertical-align:middle">'.$n.'</td><td rowspan="'.$r_count.'" style="vertical-align:middle">'.$sale->invoice_no.'</td><td rowspan="'.$r_count.'" style="vertical-align:middle">'.$sale->invoice_date.'</td>';
+                            $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="vertical-align:middle;min-width:150px;">'.$sale->branch_name.'</td>';
+                            $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="vertical-align:middle;text-align:center;min-width:150px;">'.str_replace('&', ' &amp; ', $sale->cus_name).'</td>';
+                            $html .= '<td class="mm-txt" rowspan="'.$r_count.'" style="min-width:150px;border-right:solid 1px #ccc !important;vertical-align:middle">'.$sale->sale_man.'</td>';
+                        } 
+                        //$html .= '<td class="mm-txt">'.$sale->office_sale_man.'</td>';
+                        $html .= '<td>'.$sale->product_code.'</td>';
+                        $html .= '<td class="mm-txt">'.str_replace('&', ' &amp; ', $sale->product_name).'</td>';
+                        $html .= '<td>'.$sale->product_quantity.'</td>';
+                        $html .= '<td>'.$sale->uom_name.'</td>';
+                        if($sale->is_foc == 0) {
+                            if(!empty($sale->other_discount)) {
+                                $other_discount = ($sale->other_discount/100) * $sale->actual_rate;
+                            } else {
+                                $other_discount = 0;
+                            }
+                            $price = $sale->actual_rate - $other_discount;
+                            $html .= '<td class="text-right">'.$price.'</td>';
+                        }
+                        else {
+                            $html .= '<td class="text-right">FOC</td>';
+                        }
+
+                        $html .='<td class="text-right" style="text-align: right;">'.$sale->total_amount.'</td>';
+                        $html .= '</tr>';
+
+                        if($sale->is_foc == 0){
+                            $total = $total + $sale->total_amount;
+                            $sp_total = $sp_total + $sale->total_amount;
+                        }
+
+                        $i++;
+
+                        if(count($data) == 1 || $k == count($data) - 1 || (isset($data[$k+1]) && $sale->sale_id != $data[$k+1]->sale_id))
+                        {
+                            $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right" style="text-align: right;">'.number_format($sp_total).'</td></tr>';
+                        } 
+                } 
                 
-                $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right">'.number_format($total).'</td></tr>';
+                $html .= '<tr><td colspan ="11" style="text-align: right;">Total</td><td class="text-right" style="text-align: right;">'.number_format($total).'</td></tr>';
                 
                 echo $html;
             ?>
