@@ -221,10 +221,8 @@
                                                 </router-link>
                                             </a>
 
-                                            <a class="dropdown-item" >
-                                                <a title="Print" class="text-primary" @click="printSale(p.id)" v-if="user_role != 'Country Head' && user_role != 'Local Supervisor' && user_role != 'office_order_user'">
-                                                    <i class="fas fa-print"></i>
-                                                </a>
+                                            <a title="Print" class=" dropdown-item text-primary" @click="generatePDF(p.id)">
+                                                <i class="fas fa-print"></i>
                                             </a>
                                             <a class="dropdown-item" v-if="(p.collection_amount==0 && p.payment_type=='credit') || p.payment_type=='cash' ">
                                                 <a title="Delete" class="text-danger" @click="removePurchase(p.id)" v-if="(user_role == 'system' || user_role == 'office_user') ">
@@ -584,27 +582,27 @@ export default {
             }
         },
 
-        generatePDF(sale_id)
+        generatePDF(purchase_id)
         {
             var baseurl = window.location.origin;
-            window.open(this.site_path+'/generate_invoice/'+sale_id);
+            window.open(this.site_path+'/generate_purchase_invoice/'+purchase_id);
         },
 
         printSale(objName)
         {
             var printWin = window.open('','Print','left=0,top=0,width=744,height=1052,toolbar=0,status =0');
 
-            var printContents = document.getElementById(objName).innerHTML;
+           var printContents = document.getElementById(objName).innerHTML;    
+          
+            
+           printWin.document.open();
+           printWin.document.clear();
+           printWin.document.writeln("<html>");
+          
+          // printWin.document.writeln("<head><title>PrintATestPage.com</title></head>");
+           printWin.document.writeln('<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="ie=edge"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>' + document.title  + '</title>');
 
-
-            printWin.document.open();
-            printWin.document.clear();
-            printWin.document.writeln("<html>");
-
-            // printWin.document.writeln("<head><title>PrintATestPage.com</title></head>");
-            printWin.document.writeln('<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="ie=edge"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>' + document.title  + '</title>');
-
-            // Make sure the relative URL to the stylesheet works:
+           // Make sure the relative URL to the stylesheet works:
             //printWin.document.writeln('<base href="' + location.origin + location.pathname + '">');
             printWin.document.writeln('<base href="' + location.origin + '/">');
 
@@ -612,22 +610,22 @@ export default {
             printWin.document.writeln('<link rel="stylesheet" href="' + location.origin + '/css/print.css" />');
 
             printWin.document.writeln('</head>');
+          
 
+           printWin.document.writeln("<body>");
+           printWin.document.write(printContents);
+           
+           printWin.document.writeln("</body></html>");
+           printWin.document.close(); 
 
-            printWin.document.writeln("<body>");
-            printWin.document.write(printContents);
-
-            printWin.document.writeln("</body></html>");
-            printWin.document.close();
-
-            setTimeout(function () {
+           setTimeout(function () {
                 printWin.focus(); // necessary for IE >= 10*/
                 printWin.print();
 
-                return true;
+            return true;
             }, 1000);
-
-            //printWin.print();
+           
+           //printWin.print();
         },
 
         localTime(utcTime)

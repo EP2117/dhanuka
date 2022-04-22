@@ -174,6 +174,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::post('/import/state','StateController@import');
     Route::post('/import/customer_type','CustomerTypeController@import');
     Route::post('/import/product_min_percentage_qty','ProductController@qtyImport');
+    Route::get('/generate_purchase_invoice/{purchase_id}', 'PurchaseInvoiceController@generatePurchaseInvoicePDF');
+    Route::get('/generate_sale_return/{return_id}', 'SaleReturnController@generateReturnPDF');
     Route::get('/generate_invoice/{sale_id}', 'SaleController@generateInvoicePDF');
     Route::get('/generate_order/{order_id}', 'OrderController@generateOrderPDF');
     Route::group(['prefix'=>'supplier'],function() {

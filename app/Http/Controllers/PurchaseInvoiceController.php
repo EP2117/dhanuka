@@ -982,4 +982,17 @@ class PurchaseInvoiceController extends Controller
 
     }
 
+    public function generatePurchaseInvoicePDF($purchase_id)
+    {
+
+       // $data = ['title' => ''];
+       //$pdf = PDF::loadView('invoice_print', $data);
+
+        $purchase = PurchaseInvoice::with('products','supplier','products.uom','products.selling_uoms')->find($purchase_id);        
+
+       // $previous_balance = $previous_balance - $return_amount;
+
+        return view('exports.purchase_invoice_print', compact('purchase'));
+    }
+
 }

@@ -144,6 +144,10 @@
                                                 </router-link>        
                                             </a>
 
+                                            <a title="Print" class=" dropdown-item text-primary" @click="generatePDF(sreturn.id)">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+
                                             <a class="dropdown-item" v-if="sreturn.payment_amount == sreturn.total_payment_amount">
                                                 <a title="Delete" class="text-danger" @click="removeReturn(sreturn.id)">
                                                     <i class="fas fa-trash"></i>
@@ -491,6 +495,12 @@
 
             dateFormat(d) {
                 return moment(d).format('YYYY-MM-DD');
+            },
+
+            generatePDF(return_id)
+            {
+                var baseurl = window.location.origin;
+                window.open(this.site_path+'/generate_sale_return/'+return_id);
             },
 
             numberWithCommas(x) {

@@ -1002,4 +1002,17 @@ class SaleReturnController extends Controller
 
         return Excel::download($export, $fileName);
     }
+
+    public function generateReturnPDF($return_id)
+    {
+
+       // $data = ['title' => ''];
+       //$pdf = PDF::loadView('invoice_print', $data);
+
+        $return = SaleReturn::with('products','customer','sale','office_sale_man','products.uom','products.selling_uoms')->find($return_id);        
+
+       // $previous_balance = $previous_balance - $return_amount;
+
+        return view('exports.sale_return_print', compact('return'));
+    }
 }

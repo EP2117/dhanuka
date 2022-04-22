@@ -183,6 +183,7 @@
                                             <th scope="col" >Product Name</th>
                                             <th scope="col" >Quantity</th>
                                             <th scope="col" >UOM</th>
+                                            <th scope="col" >CTN</th>
                                             <th scope="col" v-if="!isMMK">Rate(<label class="sign">{{sign}}</label>)</th>
                                             <th scope="col" >Rate(MMK)</th>
                                             <th scope="col" v-if="!isMMK">Discount(<label class="sign">% {{sign}}</label>)</th>
@@ -224,6 +225,9 @@
                                                 >
                                                     <option value="">Select One</option>
                                                 </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control num_txt txt_ctn" style="width:100px;" name="ctn[]"  id="ctn_1"  />
                                             </td>
                                             <td v-if="!isMMK">
                                                 <input type="text" style="min-width:100px;" class="form-control" name="rate_fx[]" id="rate_fx_1" @blur="calTotalAmount($event.target)" :required="!isMMK"  />
@@ -406,7 +410,7 @@
                                             </td>-->
                                         </tr>
                                         <tr class="total_row" v-if="!isMMK">
-                                            <td colspan="9" class="text-right">Previous Balance :</td>
+                                            <td colspan="10" class="text-right">Previous Balance :</td>
                                             <td>{{form.previous_balance}}</td>
 
                                             <td colspan="2" class="text-right">Balance Amount</td>
@@ -431,7 +435,7 @@
                                             </td>-->
                                         </tr> 
                                         <tr class="total_row" v-else>
-                                            <td colspan="4" class="text-right">Previous Balance :</td>
+                                            <td colspan="5" class="text-right">Previous Balance :</td>
                                             <td>{{form.previous_balance}}</td>
 
                                             <td colspan="2" class="text-right">Balance Amount</td>
@@ -479,6 +483,7 @@
                                             <th scope="col" >SO QTY</th>
                                             <th scope="col" >Accept QTY</th>
                                             <th scope="col" >UOM</th>
+                                            <th scope="col" >CTN</th>
                                             <th scope="col" v-if="!isMMK">Rate(<label class="sign">{{sign}}</label>)</th>
                                             <th scope="col" >Rate(MMK)</th>
                                             <th scope="col" v-if="!isMMK">Discount(<label class="sign">% {{sign}}</label>)</th>
@@ -657,7 +662,7 @@
                                             </td>-->
                                         </tr> 
                                         <tr class="total_row" v-else>
-                                            <td colspan="5" class="text-right">Previous Balance :</td>
+                                            <td colspan="6" class="text-right">Previous Balances :</td>
                                             <td>{{form.previous_balance}}</td>
 
                                             <td colspan="2" class="text-right">Balance Amount</td>
@@ -763,6 +768,7 @@
                 office_sale_man_id: "",
                 product: [],
                 uom: [],
+                ctn: [],
                 qty: [],
                 unit_price: [],
                 rate: [],
@@ -840,8 +846,8 @@
               user_branch: '',
               sale_men: [],
               sign: 'MMK',
-              total_colspan : 7,
-              order_colspan : 8,
+              total_colspan : 8,
+              order_colspan : 9,
               prev_pay_amount: 0,
             };
         },
@@ -917,15 +923,15 @@
 
                 if(data.id != 1) {
                     app.isMMK = false;
-                    app.total_colspan = 12;
-                    app.order_colspan = 13;
+                    app.total_colspan = 13;
+                    app.order_colspan = 14;
                     if(app.form.sale_order == false) { 
                      app.addProduct();
                     }
                 } else{
                     app.isMMK = true;
-                    app.total_colspan = 7;
-                    app.order_colspan = 8;
+                    app.total_colspan = 8;
+                    app.order_colspan = 9;
                     if(app.form.sale_order == false) { 
                      app.addProduct();
                     }
@@ -1489,6 +1495,7 @@
                                
                             var cell3=row.insertCell(3);
 
+
                             var t3=document.createElement("select");
                                 t3.name = "uom[]";
                                 t3.id = "uom_"+row_id;
@@ -1545,8 +1552,17 @@
 
                              cell3.appendChild(t3);
 
+                            var ctn_cell=row.insertCell(4);
+                            var ctn=document.createElement("input");
+                                ctn.name = "ctn[]";
+                                ctn.id = "ctn_"+row_id;
+                                ctn.value = '';
+                                ctn.style = "width:100px;";
+                                ctn.className ="form-control num_txt";
+                                //$(accept_qty).attr("required", true);
+                                ctn_cell.appendChild(ctn); 
 
-                            var cell4=row.insertCell(4);
+                            var cell4=row.insertCell(5);
                             var rate=document.createElement("input");
                                 rate.name = "rate[]";
                                 rate.id = "rate_"+row_id;
@@ -1560,7 +1576,7 @@
                                 rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
                                 cell4.appendChild(rate);
 
-                            var cell_discount=row.insertCell(5);
+                            var cell_discount=row.insertCell(6);
                             var discount=document.createElement("input");
                                 discount.name = "discount[]";
                                 discount.id = "discount_"+row_id;
@@ -1573,7 +1589,7 @@
                                 discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
                                 cell_discount.appendChild(discount);
 
-                            var cell_actual=row.insertCell(6);
+                            var cell_actual=row.insertCell(7);
                             var actual_rate=document.createElement("input");
                                 actual_rate.name = "actual_rate[]";
                                 actual_rate.id = "actual_rate_"+row_id;
@@ -1605,7 +1621,7 @@
                                 });
                             });                            
 
-                            var cell5=row.insertCell(7);
+                            var cell5=row.insertCell(8);
                                 cell5.className = "text-center";
                             var t5=document.createElement("input");
                                 t5.type = "checkbox";
@@ -1621,7 +1637,7 @@
                                 t5.addEventListener('change', function(){ app.checkFoc(t5); });
                                 cell5.appendChild(t5);
 
-                            var cell_other_disc=row.insertCell(8);
+                            var cell_other_disc=row.insertCell(9);
                             var other_discount=document.createElement("input");
                                 other_discount.name = "other_discount[]";
                                 other_discount.id = "other_discount_"+row_id;
@@ -1634,7 +1650,7 @@
                                 other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
                                 cell_other_disc.appendChild(other_discount);
 
-                            var cell7=row.insertCell(9);
+                            var cell7=row.insertCell(10);
                             var t7=document.createElement("input");
                                 t7.name = "total_amount[]";
                                 t7.id = "total_amount_"+row_id;
@@ -1649,7 +1665,7 @@
                                // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                                 cell7.appendChild(t7);
 
-                            var cell8=row.insertCell(10);
+                            var cell8=row.insertCell(11);
                             cell8.className = "text-center";
                             /**if(app.user_role != 'admin' && (app.order_status == 'Draft' || app.order_status == ''))
                             {**/
@@ -2004,9 +2020,19 @@
 
                  cell3.appendChild(t3);
 
+                var ctn_cell=row.insertCell(3);
+                var ctn=document.createElement("input");
+                    ctn.name = "ctn[]";
+                    ctn.id = "ctn_"+row_id;
+                    ctn.style = "width:100px;";
+                    ctn.className ="form-control num_txt";
+                    //$(ctn).attr("required", true);
+                    //ctn.addEventListener('blur', function(){ app.checkQty(t2); });
+                    ctn_cell.appendChild(ctn);
+
                 if(app.isMMK)
                 {
-                    var cell4=row.insertCell(3);
+                    var cell4=row.insertCell(4);
                     var rate=document.createElement("input");
                         rate.name = "rate[]";
                         rate.id = "rate_"+row_id;
@@ -2016,7 +2042,7 @@
                         rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
                         cell4.appendChild(rate);
 
-                    var cell_discount=row.insertCell(4);
+                    var cell_discount=row.insertCell(5);
                     var discount=document.createElement("input");
                         discount.name = "discount[]";
                         discount.id = "discount_"+row_id;
@@ -2025,7 +2051,7 @@
                         discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
                         cell_discount.appendChild(discount);
 
-                    var cell_actual=row.insertCell(5);
+                    var cell_actual=row.insertCell(6);
                     var actual_rate=document.createElement("input");
                         actual_rate.name = "actual_rate[]";
                         actual_rate.id = "actual_rate_"+row_id;
@@ -2036,7 +2062,7 @@
                         actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
                         cell_actual.appendChild(actual_rate);
 
-                    var cell5=row.insertCell(6);
+                    var cell5=row.insertCell(7);
                         cell5.className = "text-center";
                     var t5=document.createElement("input");
                         t5.type = "checkbox";
@@ -2045,7 +2071,7 @@
                         t5.addEventListener('change', function(){ app.checkFoc(t5); });
                         cell5.appendChild(t5);
 
-                    var cell_other_disc=row.insertCell(7);
+                    var cell_other_disc=row.insertCell(8);
                     var other_discount=document.createElement("input");
                         other_discount.name = "other_discount[]";
                         other_discount.id = "other_discount_"+row_id;
@@ -2054,7 +2080,7 @@
                         other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
                         cell_other_disc.appendChild(other_discount);
 
-                    var cell7=row.insertCell(8);
+                    var cell7=row.insertCell(9);
                     var t7=document.createElement("input");
                         t7.name = "total_amount[]";
                         t7.id = "total_amount_"+row_id;
@@ -2065,13 +2091,13 @@
                        // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                         cell7.appendChild(t7);
 
-                    var cell8=row.insertCell(9);
+                    var cell8=row.insertCell(10);
                     cell8.className = "text-center";
                     var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
                     $(cell8).append(row_action);
                 } else {
 
-                    var cell4_fx=row.insertCell(3);
+                    var cell4_fx=row.insertCell(4);
                     var rate_fx=document.createElement("input");
                         rate_fx.name = "rate_fx[]";
                         rate_fx.id = "rate_fx_"+row_id;
@@ -2081,7 +2107,7 @@
                         rate_fx.addEventListener('blur', function(){ app.calTotalAmount(rate_fx); });
                         cell4_fx.appendChild(rate_fx);
 
-                    var cell4=row.insertCell(4);
+                    var cell4=row.insertCell(5);
                     var rate=document.createElement("input");
                         rate.name = "rate[]";
                         rate.id = "rate_"+row_id;
@@ -2092,7 +2118,7 @@
                         rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
                         cell4.appendChild(rate);
 
-                    var cell_discount_fx=row.insertCell(5);
+                    var cell_discount_fx=row.insertCell(6);
                     var discount_fx=document.createElement("input");
                         discount_fx.name = "discount_fx[]";
                         discount_fx.id = "discount_fx_"+row_id;
@@ -2101,7 +2127,7 @@
                         discount_fx.addEventListener('blur', function(){ app.calTotalAmount(discount_fx); });
                         cell_discount_fx.appendChild(discount_fx);
 
-                    var cell_discount=row.insertCell(6);
+                    var cell_discount=row.insertCell(7);
                     var discount=document.createElement("input");
                         discount.name = "discount[]";
                         discount.id = "discount_"+row_id;
@@ -2111,7 +2137,7 @@
                         discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
                         cell_discount.appendChild(discount);
 
-                    var cell_actual_fx=row.insertCell(7);
+                    var cell_actual_fx=row.insertCell(8);
                     var actual_rate_fx=document.createElement("input");
                         actual_rate_fx.name = "actual_rate_fx[]";
                         actual_rate_fx.id = "actual_rate_fx_"+row_id;
@@ -2122,7 +2148,7 @@
                         actual_rate_fx.addEventListener('blur', function(){ app.calTotalAmount(actual_rate_fx); });
                         cell_actual_fx.appendChild(actual_rate_fx);
 
-                    var cell_actual=row.insertCell(8);
+                    var cell_actual=row.insertCell(9);
                     var actual_rate=document.createElement("input");
                         actual_rate.name = "actual_rate[]";
                         actual_rate.id = "actual_rate_"+row_id;
@@ -2133,7 +2159,7 @@
                         actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
                         cell_actual.appendChild(actual_rate);
 
-                    var cell5=row.insertCell(9);
+                    var cell5=row.insertCell(10);
                         cell5.className = "text-center";
                     var t5=document.createElement("input");
                         t5.type = "checkbox";
@@ -2142,7 +2168,7 @@
                         t5.addEventListener('change', function(){ app.checkFoc(t5); });
                         cell5.appendChild(t5);
 
-                    var cell_other_disc_fx=row.insertCell(10);
+                    var cell_other_disc_fx=row.insertCell(11);
                     var other_discount_fx=document.createElement("input");
                         other_discount_fx.name = "other_discount_fx[]";
                         other_discount_fx.id = "other_discount_fx_"+row_id;
@@ -2152,7 +2178,7 @@
                         //$(other_discount_fx).attr("readonly", true);
                         cell_other_disc_fx.appendChild(other_discount_fx);
 
-                    var cell_other_disc=row.insertCell(11);
+                    var cell_other_disc=row.insertCell(12);
                     var other_discount=document.createElement("input");
                         other_discount.name = "other_discount[]";
                         other_discount.id = "other_discount_"+row_id;
@@ -2162,7 +2188,7 @@
                         $(other_discount).attr("readonly", true);
                         cell_other_disc.appendChild(other_discount);
 
-                    var cell7_fx=row.insertCell(12);
+                    var cell7_fx=row.insertCell(13);
                     var t7_fx=document.createElement("input");
                         t7_fx.name = "total_amount_fx[]";
                         t7_fx.id = "total_amount_fx_"+row_id;
@@ -2173,7 +2199,7 @@
                        // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                         cell7_fx.appendChild(t7_fx);
 
-                    var cell7=row.insertCell(13);
+                    var cell7=row.insertCell(14);
                     var t7=document.createElement("input");
                         t7.name = "total_amount[]";
                         t7.id = "total_amount_"+row_id;
@@ -2184,7 +2210,7 @@
                        // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                         cell7.appendChild(t7);
 
-                    var cell8=row.insertCell(14);
+                    var cell8=row.insertCell(15);
                     cell8.className = "text-center";
                     var row_action = "<a class='remove-row red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
                     $(cell8).append(row_action);
@@ -2433,8 +2459,19 @@
                                 });
                              cell3.appendChild(t3);
 
+                            var ctn_cell=row.insertCell(3);
+                            var ctn=document.createElement("input");
+                                ctn.name = "ctn[]";
+                                ctn.id = "ctn_"+row_id;
+                                ctn.style = "width:100px;";
+                                ctn.value = product.pivot.ctn;
+                                ctn.className ="form-control num_txt";
+                                //$(ctn).attr("required", true);
+                                //ctn.addEventListener('blur', function(){ app.checkQty(t2); });
+                                ctn_cell.appendChild(ctn);
+
                             if(app.isMMK) {
-                                var cell4=row.insertCell(3);
+                                var cell4=row.insertCell(4);
                                 var rate=document.createElement("input");
                                     rate.name = "rate[]";
                                     rate.id = "rate_"+row_id;
@@ -2448,7 +2485,7 @@
                                     rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
                                     cell4.appendChild(rate);
 
-                                var cell_discount=row.insertCell(4);
+                                var cell_discount=row.insertCell(5);
                                 var discount=document.createElement("input");
                                     discount.name = "discount[]";
                                     discount.id = "discount_"+row_id;
@@ -2461,7 +2498,7 @@
                                     discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
                                     cell_discount.appendChild(discount);
 
-                                var cell_actual=row.insertCell(5);
+                                var cell_actual=row.insertCell(6);
                                 var actual_rate=document.createElement("input");
                                     actual_rate.name = "actual_rate[]";
                                     actual_rate.id = "actual_rate_"+row_id;
@@ -2473,7 +2510,7 @@
                                     actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
                                     cell_actual.appendChild(actual_rate);
 
-                                var cell5=row.insertCell(6);
+                                var cell5=row.insertCell(7);
                                 cell5.className = "text-center";
                             var t5=document.createElement("input");
                                 t5.type = "checkbox";
@@ -2489,7 +2526,7 @@
                                 t5.addEventListener('change', function(){ app.checkFoc(t5); });
                                 cell5.appendChild(t5);
 
-                                var cell_other_disc=row.insertCell(7);
+                                var cell_other_disc=row.insertCell(8);
                                 var other_discount=document.createElement("input");
                                     other_discount.name = "other_discount[]";
                                     other_discount.id = "other_discount_"+row_id;
@@ -2502,7 +2539,7 @@
                                     other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
                                     cell_other_disc.appendChild(other_discount);
 
-                                var cell7=row.insertCell(8);
+                                var cell7=row.insertCell(9);
                                 var t7=document.createElement("input");
                                     t7.name = "total_amount[]";
                                     t7.id = "total_amount_"+row_id;
@@ -2517,7 +2554,7 @@
                                    // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                                     cell7.appendChild(t7);
 
-                                var cell8=row.insertCell(9);
+                                var cell8=row.insertCell(10);
                                 cell8.className = "text-center";
                                 if(app.user_role != 'admin' && response.data.sale.order_id == null)
                                 {
@@ -2525,7 +2562,7 @@
                                 }
                                 $(cell8).append(row_action);
                             } else {
-                                var cell4_fx=row.insertCell(3);
+                                var cell4_fx=row.insertCell(4);
                                 var rate_fx=document.createElement("input");
                                     rate_fx.name = "rate_fx[]";
                                     rate_fx.id = "rate_fx_"+row_id;
@@ -2539,7 +2576,7 @@
                                     rate_fx.addEventListener('blur', function(){ app.calTotalAmount(rate_fx); });
                                     cell4_fx.appendChild(rate_fx);
 
-                                var cell4=row.insertCell(4);
+                                var cell4=row.insertCell(5);
                                 var rate=document.createElement("input");
                                     rate.name = "rate[]";
                                     rate.id = "rate_"+row_id;
@@ -2554,7 +2591,7 @@
                                     rate.addEventListener('blur', function(){ app.calTotalAmount(rate); });
                                     cell4.appendChild(rate);
 
-                                var cell_discount_fx=row.insertCell(5);
+                                var cell_discount_fx=row.insertCell(6);
                                 var discount_fx=document.createElement("input");
                                     discount_fx.name = "discount_fx[]";
                                     discount_fx.id = "discount_fx_"+row_id;
@@ -2567,7 +2604,7 @@
                                     discount_fx.addEventListener('blur', function(){ app.calTotalAmount(discount_fx); });
                                     cell_discount_fx.appendChild(discount_fx);
 
-                                var cell_discount=row.insertCell(6);
+                                var cell_discount=row.insertCell(7);
                                 var discount=document.createElement("input");
                                     discount.name = "discount[]";
                                     discount.id = "discount_"+row_id;
@@ -2581,7 +2618,7 @@
                                     discount.addEventListener('blur', function(){ app.calTotalAmount(discount); });
                                     cell_discount.appendChild(discount);
 
-                                var cell_actual_fx=row.insertCell(7);
+                                var cell_actual_fx=row.insertCell(8);
                                 var actual_rate_fx=document.createElement("input");
                                     actual_rate_fx.name = "actual_rate_fx[]";
                                     actual_rate_fx.id = "actual_rate_fx_"+row_id;
@@ -2593,7 +2630,7 @@
                                     actual_rate_fx.addEventListener('blur', function(){ app.calTotalAmount(actual_rate_fx); });
                                     cell_actual_fx.appendChild(actual_rate_fx);
 
-                                var cell_actual=row.insertCell(8);
+                                var cell_actual=row.insertCell(9);
                                 var actual_rate=document.createElement("input");
                                     actual_rate.name = "actual_rate[]";
                                     actual_rate.id = "actual_rate_"+row_id;
@@ -2605,7 +2642,7 @@
                                     actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
                                     cell_actual.appendChild(actual_rate);
 
-                                var cell5=row.insertCell(9);
+                                var cell5=row.insertCell(10);
                                 cell5.className = "text-center";
                             var t5=document.createElement("input");
                                 t5.type = "checkbox";
@@ -2621,7 +2658,7 @@
                                 t5.addEventListener('change', function(){ app.checkFoc(t5); });
                                 cell5.appendChild(t5);
 
-                                var cell_other_disc_fx=row.insertCell(10);
+                                var cell_other_disc_fx=row.insertCell(11);
                                 var other_discount_fx=document.createElement("input");
                                     other_discount_fx.name = "other_discount_fx[]";
                                     other_discount_fx.id = "other_discount_fx_"+row_id;
@@ -2634,7 +2671,7 @@
                                     other_discount_fx.addEventListener('blur', function(){ app.calTotalAmount(other_discount_fx); });
                                     cell_other_disc_fx.appendChild(other_discount_fx);
 
-                                var cell_other_disc=row.insertCell(11);
+                                var cell_other_disc=row.insertCell(12);
                                 var other_discount=document.createElement("input");
                                     other_discount.name = "other_discount[]";
                                     other_discount.id = "other_discount_"+row_id;
@@ -2648,7 +2685,7 @@
                                     other_discount.addEventListener('blur', function(){ app.calTotalAmount(other_discount); });
                                     cell_other_disc.appendChild(other_discount);
 
-                                var cell7_fx=row.insertCell(12);
+                                var cell7_fx=row.insertCell(13);
                                 var t7_fx=document.createElement("input");
                                     t7_fx.name = "total_amount_fx[]";
                                     t7_fx.id = "total_amount_fx_"+row_id;
@@ -2663,7 +2700,7 @@
                                    // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                                     cell7_fx.appendChild(t7_fx);
 
-                                var cell7=row.insertCell(13);
+                                var cell7=row.insertCell(14);
                                 var t7=document.createElement("input");
                                     t7.name = "total_amount[]";
                                     t7.id = "total_amount_"+row_id;
@@ -2767,8 +2804,8 @@
 
 
                     if(!app.isMMK) {
-                        app.total_colspan = 12;
-                        app.order_colspan = 13;
+                        app.total_colspan = 13;
+                        app.order_colspan = 14;
                         app.form.sub_total_fx  = app.decimalFormat(response.data.sale.total_amount_fx);
                         app.form.cash_discount_fx  = app.decimalFormat(response.data.sale.cash_discount_fx);
                         app.form.net_total_fx     = app.decimalFormat(response.data.sale.net_total_fx);
@@ -2777,8 +2814,8 @@
                         app.form.pay_amount_fx= app.decimalFormat(response.data.sale.pay_amount_fx);
                         app.form.balance_amount_fx= app.decimalFormat(response.data.sale.balance_amount_fx);
                     } else {
-                        app.total_colspan = 7;
-                        app.order_colspan = 8;
+                        app.total_colspan = 8;
+                        app.order_colspan = 9;
                     }
 
                     $("#loading").hide();
@@ -3557,6 +3594,7 @@
                // return false;
                 app.form.product = [];
                 app.form.uom = [];
+                app.form.ctn = [];
                 app.form.qty = [];
                 app.form.unit_price = [];
                 app.form.total_amount = [];
@@ -3599,7 +3637,7 @@
                     for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                         app.form.product.push(document.getElementsByName('product[]')[i].value);
                         app.form.uom.push(document.getElementsByName('uom[]')[i].value);
-
+                        app.form.ctn.push(document.getElementsByName('ctn[]')[i].value);
                         if(app.form.sale_order == true) {
                             app.form.qty.push(document.getElementsByName('accept_qty[]')[i].value);
                             app.form.order_product_id.push(document.getElementsByName('product[]')[i].options[document.getElementsByName('product[]')[i].options.selectedIndex].dataset.pivotid);
@@ -3709,6 +3747,7 @@
                         for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                              app.form.product.push(document.getElementsByName('product[]')[i].value);
                             app.form.uom.push(document.getElementsByName('uom[]')[i].value);
+                            app.form.ctn.push(document.getElementsByName('ctn[]')[i].value);
 
                             if(app.form.sale_order == true) {
                                 app.form.qty.push(document.getElementsByName('accept_qty[]')[i].value);

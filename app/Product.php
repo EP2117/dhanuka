@@ -50,7 +50,7 @@ class Product extends Model
 
     public function sales()
     {
-        return $this->belongsToMany('App\Sale', 'product_sale', 'product_id', 'sale_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','return_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc','rate','rate_fx','actual_rate','actual_rate_fx','discount','discount_fx','other_discount','other_discount_fx','order_product_pivot_id');
+        return $this->belongsToMany('App\Sale', 'product_sale', 'product_id', 'sale_id')->withPivot('id','uom_id','ctn','product_quantity','delivered_quantity','return_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc','rate','rate_fx','actual_rate','actual_rate_fx','discount','discount_fx','other_discount','other_discount_fx','order_product_pivot_id');
     }
 
     public function returns()

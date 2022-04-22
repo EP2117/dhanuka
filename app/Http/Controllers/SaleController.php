@@ -569,9 +569,9 @@ class SaleController extends Controller
                 }
 
                 if($request->sale_order == true) {
-                    $pivot = $sale->products()->attach($request->product[$i],['order_product_pivot_id' => $request->order_product_id[$i],'uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
+                    $pivot = $sale->products()->attach($request->product[$i],['order_product_pivot_id' => $request->order_product_id[$i],'uom_id' => $request->uom[$i],'ctn' => $request->ctn[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
                 } else {
-                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
+                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i],'ctn' => $request->ctn[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]); 
                 }
 
                 //get last pivot insert id
@@ -996,7 +996,7 @@ class SaleController extends Controller
                     //update existing product in pivot and transition tables
                     DB::table('product_sale')
                         ->where('id', $request->product_pivot[$i])
-                        ->update(array('uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]));
+                        ->update(array('uom_id' => $request->uom[$i], 'ctn' => $request->ctn[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]));
 
                     //get product pre-defined UOM
                     $product_result = Product::select('uom_id')->find($request->product[$i]);
@@ -1029,7 +1029,7 @@ class SaleController extends Controller
                     //add product into pivot table
                     /*$pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'price' => $request->unit_price[$i], 'price_variant' => $request->price_variants[$i], 'total_amount' => $request->total_amount[$i]]);*/
 
-                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]);
+                    $pivot = $sale->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'ctn' => $request->ctn[$i], 'product_quantity' => $request->qty[$i], 'rate' => $request->rate[$i], 'rate_fx' => $rate_fx, 'actual_rate' => $request->actual_rate[$i], 'actual_rate_fx' => $actual_rate_fx, 'discount' => $request->discount[$i], 'discount_fx' => $discount_fx, 'other_discount' => $request->other_discount[$i], 'other_discount_fx' => $other_discount_fx, 'total_amount' => $request->total_amount[$i], 'total_amount_fx' => $total_amount_fx, 'is_foc' => $request->is_foc[$i]]);
 
                     //get last pivot insert id
                     $last_row=DB::table('product_sale')->orderBy('id', 'DESC')->first();
