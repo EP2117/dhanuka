@@ -180,6 +180,37 @@
                                    <td colspan="1" class="text-right mm-text" v-if="net_profit<0"><strong> <h3> Net Loss </h3></strong>  </td>
                                    <td colspan="1" class="text-center ">{{decimalFormat(net_profit).toLocaleString()}}</td>
                               </tr>
+                            <template>
+                                  <tr>  
+                                    <td class="text-center">
+                                        Currency Gain
+                                    </td>
+                                     <td class="text-center">
+                                        {{decimalFormat(c_gain).toLocaleString()}}
+                                    </td>
+                                  </tr>
+                            </template>
+
+                            <template>
+                                  <tr>  
+                                    <td class="text-center">
+                                        Currency Loss
+                                    </td>
+                                     <td class="text-center">
+                                        {{decimalFormat(c_loss).toLocaleString()}}
+                                    </td>
+                                  </tr>
+                            </template>
+
+                            <tr class="total_row table-secondary">
+                                   <td colspan="1" class="text-right mm-text"><strong> <h5>Currency Gain/Loss Total</h5></strong>  </td> 
+                                   <td colspan="1" class="text-center ">{{decimalFormat(gain_loss_total).toLocaleString()}}</td>
+                            </tr>
+
+                            <tr class="total_row table-secondary">
+                                   <td colspan="1" class="text-right mm-text"><strong> <h3>After Gain/Loss Profit</h3></strong>  </td> 
+                                   <td colspan="1" class="text-center ">{{decimalFormat(gain_loss_profit).toLocaleString()}}</td>
+                            </tr>
                         </tbody> 
                     </table>
                 </div>
@@ -216,6 +247,10 @@ export default {
             expense:[],
             income:[],
             net_profit:'',
+            c_gain: '',
+            c_loss: '',
+            gain_loss_total: '',
+            gain_loss_profit: '',
             total_income:'',
             total_expense:'',
             month:[],
@@ -396,6 +431,8 @@ export default {
                 app.gross_profit=response.data.gross_profit;
                 app.total_revenue = response.data.total_revenue;
                 app.income=response.data.income;
+                app.c_gain = response.data.c_gain==null ? 0 : response.data.c_gain.amount;
+                app.c_loss = response.data.c_loss==null ? 0 : response.data.c_loss.amount;
                 app.total_income=response.data.total_income;
                 // $.each(app.income,function(k,v){
                     // console.log(v.income);
@@ -406,7 +443,10 @@ export default {
                 // app.count_of_expense=Object.keys(response.data.expense).length
                 // app.count_of_revenue=Object.keys(response.data.profit_and_loss).length
                 // app.gross_profit=response.data.gross_profit.toLocaleString();
-                app.net_profit=response.data.net_profit;
+                app.net_profit=response.data.net_profit==null ? 0 : response.data.net_profit;
+
+                app.gain_loss_total = parseInt(app.c_gain) - parseInt(app.c_loss);
+                app.gain_loss_profit = (parseInt(app.net_profit) + parseInt(app.c_gain))  - parseInt(app.c_loss);
                 // // app.receipt=data.data;
                 
                

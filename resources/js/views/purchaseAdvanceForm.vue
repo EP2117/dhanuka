@@ -50,12 +50,36 @@
                                 </select>
                             </div>
                         </div>
+
+                        <div class="row form-group ">
+                            <label class="col-lg-3 text-right col-form-label form-control-label">Currency</label>
+                            <div class="col-md-4">
+                                <select class="form-control"
+                                        name="currency_id" id="currency_id" style="min-width:100px;" v-model="form.currency_id"
+                                >
+                                    <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate"> ) MMK</span></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group row"  v-if="!isMMK">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount ({{sign}})</label>
+                            <div class="col-lg-6">
+                                <input class="form-control" type="number"
+                                       id="amount_fx" name="amount_fx"
+                                       v-model="form.amount_fx" autocomplete="off">
+                            </div>
+                        </div>
+
                         <div class="form-group row">
-                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount</label>
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount (MMK)</label>
                             <div class="col-lg-6">
                                 <input class="form-control" type="number"
                                        id="amount" name="amount"
-                                       v-model="form.amount" autocomplete="off">
+                                       v-model="form.amount" autocomplete="off" :readonly="!isMMK">
                             </div>
                         </div>
                         <div class="form-group row text-right" v-if="">
@@ -86,6 +110,9 @@ export default {
                 advance_no:'',
                 supplier_id:'',
                 amount:'',
+                currency_id: 1,
+                currency_rate: '',
+                amount_fx: '',
             }),
             isEdit:false,
             suppliers:[],
@@ -95,6 +122,9 @@ export default {
             user_role:'',
             storage_path:'',
             user_year:'',
+            isMMK: true,
+            currency: [],
+            sign: '',
         }
     },
     created() {
@@ -120,6 +150,24 @@ export default {
     mounted() {
         let app=this;
         app.initSuppliers();
+
+        app.initCurrency();
+
+        $("#currency_id").on("select2:select", function(e) {            
+            var data = e.params.data;
+            app.form.currency_id = data.id;
+            var sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+            if(data.id != 1) {
+                app.isMMK = false;
+                app.form.amount_fx = '';
+            } else{
+                app.isMMK = true;
+            }
+
+            app.sign = sign;
+            
+        });
+
 
         $("#supplier_id").select2();
         $("#supplier_id").on("select2:select", function(e) {
@@ -156,10 +204,25 @@ export default {
             app.form.date = formatedValue;
         });
 
+        $(document).on('blur','#currency_rate, #amount_fx',function(e) {
+            var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
+            $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+        });
 
+        $(document).on('keyup','#amount_fx',function(e) {
+            var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
+            $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+        });
 
     },
     methods:{
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
         initSuppliers() {
             axios.get("/supplier").then(({ data }) => (this.suppliers = data.data));
             $("#supplier_id").select2();
@@ -170,6 +233,17 @@ export default {
                 console.log(response.data);
                
                 app.form.advance_no=response.data.data.advance_no;
+                app.form.currency_id = response.data.data.currency_id;
+                $("#currency_id").val(app.form.currency_id).trigger('change'); 
+                app.sign = response.data.data.currency.sign;               
+                if(response.data.data.currency_id != 1) {
+                    app.isMMK = false;
+                    app.form.amount_fx = response.data.data.amount_fx;
+
+                    app.form.currency_rate = response.data.data.currency_rate;
+                } else{
+                    app.isMMK = true;
+                }
                 app.form.amount=response.data.data.amount;
                // app.check_collection=r.collection_amount;
                 app.form.supplier_id=response.data.data.supplier_id;
@@ -181,6 +255,7 @@ export default {
         onSubmit:function (event){
             var app = this;             
             app.form.date = $("#date").val();
+            app.form.amount = $("#amount").val();
             $("#loading").show();
             if (!this.isEdit) {
                 this.form.post('/purchase_advance').then(function (data){

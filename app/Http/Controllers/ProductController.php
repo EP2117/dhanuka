@@ -98,7 +98,7 @@ class ProductController extends Controller
         $where = "warehouse_id = 1";//for main warehouse
         $data = DB::table("products")
 
-                ->select(DB::raw("products.id as product_id,products.minimum_qty, products.selling_price, CONCAT(products.product_name, ' - ', products.product_code, ' - ', categories.category_name) as product_name,products.product_price,products.uom_id,uoms.uom_name,(CASE WHEN pt.in_count IS NOT NULL THEN pt.in_count ELSE 0 END) as in_count,(CASE WHEN pt.out_count IS NOT NULL THEN pt.out_count ELSE 0 END) as out_count,(CASE WHEN pt.direct_sale_qty IS NOT NULL THEN pt.direct_sale_qty ELSE 0 END) as direct_sale_qty, (CASE WHEN pt.transfer_qty IS NOT NULL THEN pt.transfer_qty ELSE 0 END) as transfer_qty, (CASE WHEN pt.revise_sale_qty IS NOT NULL THEN pt.revise_sale_qty ELSE 0 END) as revise_sale_qty"))
+                ->select(DB::raw("products.product_name as name, products.id as product_id,products.minimum_qty, products.selling_price, CONCAT(products.product_name, ' - ', products.product_code, ' - ', categories.category_name) as product_name,products.product_price,products.uom_id,uoms.uom_name,(CASE WHEN pt.in_count IS NOT NULL THEN pt.in_count ELSE 0 END) as in_count,(CASE WHEN pt.out_count IS NOT NULL THEN pt.out_count ELSE 0 END) as out_count,(CASE WHEN pt.direct_sale_qty IS NOT NULL THEN pt.direct_sale_qty ELSE 0 END) as direct_sale_qty, (CASE WHEN pt.transfer_qty IS NOT NULL THEN pt.transfer_qty ELSE 0 END) as transfer_qty, (CASE WHEN pt.revise_sale_qty IS NOT NULL THEN pt.revise_sale_qty ELSE 0 END) as revise_sale_qty"))
 
                 ->leftjoin(DB::raw("(SELECT product_id, warehouse_id, transition_date,
 

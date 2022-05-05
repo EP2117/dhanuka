@@ -50,12 +50,20 @@
                                     <option v-for="ctype in cus_types" :value="ctype.id"  >{{ctype.customer_type_name}}</option>
                                 </select>
                             </div>  
-                            <div class="form-group col-md-8">
+                            <div class="form-group col-md-4">
                                 <label>Category</label>
                                 <select class="form-control categories"
                                     name="categories[]" id="categories" style="width:100%" multiple>
                                     <option value="">Select One</option>
                                     <option v-for="cat in categories" v-if="!isEdit" :value="cat.id">{{cat.category_name}}</option>
+                                </select>
+                            </div>
+                             <div class="form-group col-md-4">
+                                <label>Product</label>
+                                <select class="form-control products"
+                                    name="products[]" id="products" style="width:100%" multiple>
+                                    <option value="">Select One</option>
+                                    <option v-for="p in products" v-if="!isEdit" :value="p.product_id">{{p.name}}</option>
                                 </select>
                             </div>                          
                         </div>
@@ -202,12 +210,15 @@
                 lock_remark: '',
                 lock_approve: '',
                 categories: [],
+                products: [],
               }),
               cus_types: [],
               countries: [],
               selected_categories: [],
+              selected_products: [],
               states: [],
               categories: [],
+              products: [],
               townships: [],
               isEdit: false,
               customer_id: '',
@@ -240,7 +251,8 @@
                 this.customer_id = this.$route.params.id;
                 this.getCustomer(this.customer_id);
             } else {
-                this.initCategories(); 
+                this.initCategories();
+                this.initProducts(); 
             }
             //console.log(this.isEdit);
         },
@@ -308,6 +320,30 @@
                   app.selected_categories.splice(index, 1);
                 }
                 $('.categories').val(app.selected_categories).trigger('change');
+            });
+
+            $(".products").select2();                      
+
+            $(".products").on("select2:select", function(e) {
+                var data = e.params.data;
+                app.selected_products.push(data.id); 
+
+                var unique_products = app.selected_products.filter((a, b) => app.selected_products.indexOf(a) === b);
+                // console.log(unique_invoices);
+                app.selected_products = unique_products;
+
+                $('.products').val(app.selected_products).trigger('change');
+            });
+
+            $(".products").on("select2:unselect", function(e) {
+                var data = e.params.data;
+                var unique_products = app.selected_products.filter((a, b) => app.selected_products.indexOf(a) === b);
+                app.selected_products = unique_products;
+                const index = app.selected_products.indexOf(data.id);
+                if (index > -1) {
+                  app.selected_products.splice(index, 1);
+                }
+                $('.products').val(app.selected_products).trigger('change');
             });
 
             Dropzone.autoDiscover = false;
@@ -379,6 +415,13 @@
               axios.get("/categories").then(({ data }) => (this.categories = data.data));
               $("#categories").select2();
             },
+
+            initProducts() {
+              axios.get("/order/products/").then(({ data }) => (this.products = data.data));
+              console.log(this.products);
+              $(".products").select2();
+            },
+
             initTypes() {
               axios.get("/customer_type").then(({ data }) => (this.cus_types = data.data));
             //   console.log(this.cus_types);
@@ -454,7 +497,7 @@
                         cat_arr.push(value.id);
                      });
                     var index = '';
-                    console.log(response.data.categories);
+                   // console.log(response.data.customer.products);
                     $.each(response.data.categories, function( key, value ) {
                         index = cat_arr.indexOf(value.id);                        
                         if (index > -1) {
@@ -467,6 +510,29 @@
                         }
                     });
                     s2.val(app.selected_categories).trigger("change");
+
+                    var ps = $(".products").select2({
+                        tags: true
+                    });
+                     var p_arr = [];
+                     $.each(response.data.customer.products, function( key, value ) {
+                        p_arr.push(value.id);
+                     });
+                     //console.log(p_arr);
+                    var i = '';
+                    console.log(response.data.products);
+                    $.each(response.data.products, function( key, value ) {
+                        i = p_arr.indexOf(value.product_id);                        
+                        if (i > -1) {
+                          app.selected_products.push(String(value.product_id));
+                        }
+
+                        if(!ps.find('option[value="'+value.product_id+'"]').length) {
+                        // console.log(s2.find('option[value="'+value.product_id+'"]').length);
+                            ps.append($('<option value="'+value.product_id+'">').text(value.name));
+                        }
+                    });
+                    ps.val(app.selected_products).trigger("change");
 
                     if(response.data.customer.is_lock !== null) {
                         $("#lock_div").show();
@@ -525,6 +591,11 @@
                 app.form.categories = [];
                 $('#categories :selected').each(function() {                    
                     app.form.categories.push($(this).val());                   
+                });
+
+                app.form.products = [];
+                $('#products :selected').each(function() {                    
+                    app.form.products.push($(this).val());                   
                 });
 
                 $("#loading").show(); 

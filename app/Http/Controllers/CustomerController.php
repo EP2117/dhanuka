@@ -17,6 +17,7 @@ use Session;
 use Storage;
 use Image;
 use File;
+use PDF;
 
 class CustomerController extends Controller
 {
@@ -115,9 +116,38 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::with('categories')->find($id);
+        $customer = Customer::with('categories','products')->find($id);
         $categories = Category::with('brand')->orderBy('category_name', 'ASC')->get();
-        return compact('customer','categories');
+
+        $where = "warehouse_id = 1";//for main warehouse
+        $products = DB::table("products")
+
+                ->select(DB::raw("products.product_name as name, products.id as product_id,products.minimum_qty, products.selling_price, CONCAT(products.product_name, ' - ', products.product_code, ' - ', categories.category_name) as product_name,products.product_price,products.uom_id,uoms.uom_name,(CASE WHEN pt.in_count IS NOT NULL THEN pt.in_count ELSE 0 END) as in_count,(CASE WHEN pt.out_count IS NOT NULL THEN pt.out_count ELSE 0 END) as out_count,(CASE WHEN pt.direct_sale_qty IS NOT NULL THEN pt.direct_sale_qty ELSE 0 END) as direct_sale_qty, (CASE WHEN pt.transfer_qty IS NOT NULL THEN pt.transfer_qty ELSE 0 END) as transfer_qty, (CASE WHEN pt.revise_sale_qty IS NOT NULL THEN pt.revise_sale_qty ELSE 0 END) as revise_sale_qty"))
+
+                ->leftjoin(DB::raw("(SELECT product_id, warehouse_id, transition_date,
+
+                            SUM(CASE  WHEN transition_type = 'in' THEN product_quantity  ELSE 0 END)  as in_count, SUM(CASE  WHEN transition_type = 'out' THEN product_quantity  ELSE 0 END)  as out_count, SUM(CASE  WHEN transition_type = 'out' AND transition_sale_id IS NOT NULL AND transition_approval_id IS NULL THEN product_quantity  ELSE 0 END)  as direct_sale_qty, SUM(CASE  WHEN transition_type = 'out' AND transition_transfer_id IS NOT NULL THEN product_quantity  ELSE 0 END)  as transfer_qty, SUM(CASE  WHEN transition_type = 'out' AND transition_approval_id IS NOT NULL AND transition_sale_id IS NOT NULL AND is_revise IS NOT NULL THEN product_quantity  ELSE 0 END)  as revise_sale_qty
+
+                            FROM product_transitions Where ".$where."
+
+                            GROUP BY product_transitions.product_id
+
+                            ) as pt"),function($join){
+
+                            $join->on("pt.product_id","=","products.id");
+
+                        })
+
+                ->leftjoin('categories', 'categories.id', '=', 'products.category_id')
+
+                ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+
+                ->where('products.is_active', 1)
+
+                ->orderBy("products.product_name")
+
+                ->get();
+        return compact('customer','categories','products');
     }
 
     /**
@@ -169,6 +199,10 @@ class CustomerController extends Controller
 
         for($i=0; $i<count($request->categories); $i++) {
             $obj->categories()->attach($request->categories[$i]);
+        }
+
+        for($i=0; $i<count($request->products); $i++) {
+            $obj->products()->attach($request->products[$i]);
         }
 
         if(!empty($request->is_lock)) {
@@ -235,6 +269,12 @@ class CustomerController extends Controller
 
         for($i=0; $i<count($request->categories); $i++) {
             $obj->categories()->attach($request->categories[$i]);
+        }
+
+        $obj->products()->detach();
+
+        for($i=0; $i<count($request->products); $i++) {
+            $obj->products()->attach($request->products[$i]);
         }
 
         if(!empty($request->is_lock) && ($old_is_lock !==  $obj->is_lock || $old_lock_remark != $obj->lock_remark || $old_lock_approve != $obj->lock_approve)) {
@@ -329,6 +369,7 @@ class CustomerController extends Controller
         $img = Image::make($file->getRealPath());
 
         $destinationPath = storage_path('app/public/image/customer');
+       // $destinationPath = '/home/god/img/';
         // save file as jpg with medium quality
         $img->save($destinationPath.'/'.$newname, 60);
 
@@ -376,9 +417,13 @@ class CustomerController extends Controller
     public function getCustomerWiseList(Request $request) {
 
          $data = DB::table("townships")
-                    ->select(DB::raw("cus_category.*, townships.township_name"))
-                    ->leftjoin(DB::raw("(SELECT customers.*, GROUP_CONCAT(cc.category_name) as category_name, GROUP_CONCAT(cc.category_id) as category_id FROM customers LEFT JOIN (SELECT categories.category_name, category_customer.customer_id, category_customer.category_id FROM category_customer LEFT JOIN categories ON category_customer.category_id = categories.id) as cc ON cc.customer_id = customers.id GROUP BY customers.id) as cus_category"),function($join){
+                    ->select(DB::raw("cus_category.*, townships.township_name, states.state_name,cus_product.product_name,cus_product.product_id"))                    
+                    ->leftjoin(DB::raw("(SELECT customers.*, GROUP_CONCAT(cc.category_name) as category_name, GROUP_CONCAT(cc.category_id) as category_id, GROUP_CONCAT(cc.cat_product_id SEPARATOR '_') as cat_product_id FROM customers LEFT JOIN (SELECT cate.category_name, cate.cat_product_id, category_customer.customer_id, category_customer.category_id FROM category_customer LEFT JOIN (SELECT categories.*, GROUP_CONCAT(products.id) as cat_product_id FROM categories LEFT JOIN products ON products.category_id = categories.id GROUP BY products.category_id) as cate ON category_customer.category_id = cate.id) as cc ON cc.customer_id = customers.id GROUP BY customers.id) as cus_category"),function($join){
                             $join->on("cus_category.township_id","=","townships.id");
+                        })
+                    ->leftjoin('states', 'states.id', '=', 'cus_category.state_id')
+                    ->leftjoin(DB::raw("(SELECT product_customer.customer_id, GROUP_CONCAT(products.product_name) as product_name, GROUP_CONCAT(products.id) as product_id FROM product_customer LEFT JOIN products ON product_customer.product_id = products.id GROUP BY product_customer.customer_id) as cus_product"),function($join){
+                            $join->on("cus_product.customer_id","=","cus_category.id");
                         });
 
         if($request->customer_id != "") {
@@ -389,16 +434,83 @@ class CustomerController extends Controller
             $data->where('cus_category.cus_code','LIKE','%'.$request->cus_code.'%');
         }
 
-        if($request->category_id != "") {
+        /**if($request->category_id != "") {
             $cat_id = (int)$request->category_id;
             $data->where(function($query) use ($cat_id) {
                         $query->where('cus_category.category_id','LIKE',$cat_id.',')
                               ->orWhere('cus_category.category_id','LIKE','%'.$cat_id.'%')
                               ->orWhere('cus_category.category_id','LIKE',','.$cat_id);
                     });
+        }**/
+        if($request->township_id != "") {
+            $data->where('townships.id',$request->township_id);
         }
 
-        $data = $data->orderBy('townships.township_name')->get();
+        if($request->state_id != "") {
+            $data->where('states.id',$request->state_id);
+        }
+
+        if(!empty($request->categories)){
+            $c_arr = explode(',',$request->categories);
+
+             if(!empty($request->products)){
+                $p_arr = explode(',',$request->products);
+                foreach($p_arr as $pk=>$pv) {
+                    $p_id = (int)$pv;
+                    $pc_id_data =  DB::table("products")
+                        ->where('id',$p_id)                        
+                        ->first();
+                    $c_id = $pc_id_data->category_id;
+                    array_push($c_arr, $c_id);
+                }
+            }
+
+            $data->where(function($query) use ($c_arr) {
+                    foreach($c_arr as $ck=>$cv) {
+                        $cat_id = (int)$cv;
+                        $query->where('cus_category.category_id','LIKE',$cat_id.',')
+                              ->orWhere('cus_category.category_id','LIKE','%'.$cat_id.'%')
+                              ->orWhere('cus_category.category_id','LIKE',','.$cat_id);
+
+                        
+                    }
+
+                });
+        }
+
+        if(!empty($request->products)){
+            $p_arr = explode(',',$request->products);            
+
+            $data->where(function($query) use ($p_arr) {
+                    foreach($p_arr as $pk=>$pv) {
+                        $p_id = (int)$pv;
+                        $pc_id_data =  DB::table("products")
+                            ->where('id',$p_id)                        
+                            ->first();
+                        $c_id = $pc_id_data->category_id;
+                        $query->where('cus_product.product_id','LIKE',$p_id.',')
+                              ->orWhere('cus_product.product_id','LIKE','%'.$p_id.'%')
+                              ->orWhere('cus_product.product_id','LIKE',','.$p_id)
+                              ->orwhere('cus_category.category_id','LIKE',$c_id.',')
+                              ->orWhere('cus_category.category_id','LIKE','%'.$c_id.'%')
+                              ->orWhere('cus_category.category_id','LIKE',','.$c_id);
+                    }
+                });
+
+            if(!empty($request->categories)){
+                $c_arr = explode(',',$request->categories);
+                foreach($c_arr as $ck=>$cv) {
+                    $cat_id = (int)$cv;
+                    $data->orWhere('cus_category.category_id','LIKE',$cat_id.',')
+                          ->orWhere('cus_category.category_id','LIKE','%'.$cat_id.'%')
+                          ->orWhere('cus_category.category_id','LIKE',','.$cat_id);
+                }
+            }
+        }
+
+        $data = $data->whereNotNull('states.state_name');
+        $data = $data->whereNotNull('cus_category.id');
+        $data = $data->orderBy('states.state_name')->orderBy('townships.township_name')->get();
         return $data;
     }
 
@@ -415,5 +527,22 @@ class CustomerController extends Controller
         $fileName = 'customer_wise_contact_report_'.Carbon::now()->format('Ymd').'.xlsx';
 
         return Excel::download($export, $fileName);
+    }
+
+    public function exportCustomerWiseReportPdf(Request $request)
+    {
+        $data = $this->getCustomerWiseList($request);
+
+
+        $pdf = PDF::loadView('exports.customer_wise_pdf', compact('data','request'));
+        $pdf->setPaper('a4' , 'portrait');
+       // $output = $pdf->output();
+
+      /*  return new Response($output, 200, [
+           'Content-Type' => 'application/pdf',
+            'Content-Disposition' =>  'inline; filename="sale_invoice.pdf"',
+        ]);*/
+
+        return $pdf->output();
     }
 }

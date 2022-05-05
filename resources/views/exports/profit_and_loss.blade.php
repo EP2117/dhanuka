@@ -194,6 +194,59 @@
                     </td>
                 </tr>
                 @endif
+
+                <tr>
+                  <td class="text-right" style="padding-left:200px" colspan="3">
+                      <!--{{$e->sub_account_name}}(Sub-Account)-->
+                      Currency Gain
+                  </td>
+                  <td class="text-right" style="padding-left:35px" >
+                      {{!empty($c_gain->amount) ? number_format($c_gain->amount) : 0}}
+                  </td>
+               </tr>
+
+               <tr>
+                  <td class="text-right" style="padding-left:200px" colspan="3">
+                      <!--{{$e->sub_account_name}}(Sub-Account)-->
+                      Currency Loss
+                  </td>
+                  <td class="text-right" style="padding-left:35px" >
+                      {{!empty($c_loss->amount) ? number_format($c_loss->amount) : 0}}
+                  </td>
+               </tr>
+               <?php
+                  $gain = !empty($c_gain->amount) ? $c_gain->amount : 0;
+                  $loss = !empty($c_loss->amount) ? $c_loss->amount : 0;
+                  $netProfit = $net_profit!='' ? $net_profit : 0;
+                  $gain_loss_total = $gain + $loss;
+                  $gain_loss_profit = ($netProfit + $gain) - $loss;
+               ?>
+
+               <tr>
+                  <td colspan="3" style="padding-left:400px;padding-top:30px">
+                      <strong><h5>Currency Gain/Loss Total</h5></strong>
+                  </td>
+                  <td >
+                      <hr style="width:10px;padding-right:80px" >
+                      <hr style="width:10px;padding-right:80px" >
+                      <span style="padding-left:35px;">
+                      {{number_format($gain_loss_total)}}
+                      </span>
+                  </td>
+              </tr>
+
+              <tr>
+                  <td colspan="3" style="padding-left:400px;padding-top:30px">
+                      <strong><h3>After Gain/Loss Profit</h3></strong>
+                  </td>
+                  <td >
+                      <hr style="width:10px;padding-right:80px" >
+                      <hr style="width:10px;padding-right:80px" >
+                      <span style="padding-left:35px;">
+                      {{number_format($gain_loss_profit)}}
+                      </span>
+                  </td>
+              </tr>
             </tbody>
         </table>
         @endif

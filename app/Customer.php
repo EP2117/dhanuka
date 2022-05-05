@@ -17,6 +17,11 @@ class Customer extends Model
         return $this->belongsToMany('App\Category', 'category_customer', 'customer_id', 'category_id');
     }
 
+    public function products()
+    {
+        return $this->belongsToMany('App\Product', 'product_customer', 'customer_id', 'product_id');
+    }
+
     public function returns(){
         return $this->hasMany('App\SaleReturn')->select('id','customer_id');
     }

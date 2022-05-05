@@ -347,7 +347,7 @@ class AccountTransitionController extends Controller
             $q->where('name','Expense');
         })->get();
         foreach($ah_income as $key=>$ai){
-            $pla=AccountTransition::where('is_cashbook',0);
+            $pla=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',79);
             $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
             $pla->when(!is_null($request->from_date),function($q)use($request){
                 return  $q->whereDate('transition_date','>=',$request->from_date);
@@ -407,7 +407,7 @@ class AccountTransitionController extends Controller
         }
       
         foreach($ah_expense as $key=>$ae){
-            $ple=AccountTransition::where('is_cashbook',0);
+            $ple=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',80);
             $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
             $ple->when(!is_null($request->from_date),function($q)use($request){
                 return  $q->whereDate('transition_date','>=',$request->from_date);
@@ -463,6 +463,52 @@ class AccountTransitionController extends Controller
                 //     // $index_expense=new stdClass();
                 // }
         }
+
+      /** currency gain **/
+      $c_gain=AccountTransition::where('is_cashbook',0)->where('sub_account_id',79);
+      $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      $c_gain->when(!is_null($request->from_date),function($q)use($request){
+          return  $q->whereDate('transition_date','>=',$request->from_date);
+      });
+      $c_gain->when(!is_null($request->from_date),function($q){
+          return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+      });
+      if($request->month){
+          $c_gain->whereMonth('transition_date','=',$request->month);
+      }
+      $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+      if($request->year){
+          $c_gain->whereYear('transition_date','=',$request->year);
+      }
+      /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
+          $q->whereId($ae->id);
+      })->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');*/
+      $c_gain->selectRaw('*, sum(credit) as amount, sum(debit) as db_amount')->groupBy('sub_account_id');
+      $c_gain=$c_gain->first();
+        /** end currency gain **/
+
+        /** currency Loss **/
+      $c_loss=AccountTransition::where('is_cashbook',0)->where('sub_account_id',80);
+      $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      $c_loss->when(!is_null($request->from_date),function($q)use($request){
+          return  $q->whereDate('transition_date','>=',$request->from_date);
+      });
+      $c_loss->when(!is_null($request->from_date),function($q){
+          return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+      });
+      if($request->month){
+          $c_loss->whereMonth('transition_date','=',$request->month);
+      }
+      $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+      if($request->year){
+          $c_loss->whereYear('transition_date','=',$request->year);
+      }
+      /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
+          $q->whereId($ae->id);
+      })->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');*/
+      $c_loss->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');
+      $c_loss=$c_loss->first();
+        /** end currency loss **/
         
         $gross_profit=$this->total_revenue-$this->total_cor;
         $net_profit=($gross_profit+$total_income)- $total_expense;
@@ -479,7 +525,7 @@ class AccountTransitionController extends Controller
         $net_profit=$net_profit;
 
         if($route_name=='export_p_and_l_pdf'){
-            $pdf = PDF::loadView('exports.profit_and_loss', compact('profit_and_loss','income','gross_profit','total_income','expense','total_expense','net_profit'));
+            $pdf = PDF::loadView('exports.profit_and_loss', compact('profit_and_loss','income','gross_profit','total_income','expense','total_expense','net_profit','c_gain','c_loss'));
             $pdf->setPaper('a4' , 'portrait');
            // $output = $pdf->output();
             /*  return new Response($output, 200, [
@@ -499,6 +545,8 @@ class AccountTransitionController extends Controller
             'total_expense'=>$total_expense,
             'total_revenue'=>$this->total_revenue,
             'net_profit'=>$net_profit,
+            'c_gain'=>$c_gain,
+            'c_loss'=>$c_loss,
             'status'=>200,
         ]);
     }

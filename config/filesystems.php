@@ -71,6 +71,11 @@ return [
             'url' => env('AWS_URL'),
         ],
 
+        'common' => [
+            'driver' => 'local',
+            'root' => '//home/god/img/',
+        ],
+
     ],
 
 ];

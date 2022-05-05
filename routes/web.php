@@ -137,6 +137,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
 
     Route::get('/customer_wise_report/', 'CustomerController@getCustomerWiseReport');
     Route::get('/customer_wise_export/', 'CustomerController@exportCustomerWiseReport');
+    Route::get('/customer_wise_export_pdf/', 'CustomerController@exportCustomerWiseReportPdf');
 
     Route::get('/product_costing_report/', 'LandedCostingController@getProductCostingReport');
     Route::get('/product_costing_export/', 'LandedCostingController@exportProductCostingReport');

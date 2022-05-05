@@ -49,6 +49,11 @@ class PurchaseAdvanceController extends Controller
         $obj->advance_no = $advance_no;
         $obj->advance_date = $request->date;
         $obj->supplier_id = $request->supplier_id;
+        $obj->currency_id = $request->currency_id;
+        if($request->currency_id != 1) {
+            $obj->currency_rate = $request->currency_rate;
+            $obj->amount_fx = $request->amount_fx;
+        }
         $obj->amount = $request->amount;
         $obj->advance_type = 'in';
         $obj->created_by = Auth::user()->id;
@@ -106,7 +111,7 @@ class PurchaseAdvanceController extends Controller
     }
 
     public function show($id){
-        $data=PurchaseAdvance::find($id);
+        $data=PurchaseAdvance::with('currency')->find($id);
         return compact('data');
     }
 
@@ -138,6 +143,11 @@ class PurchaseAdvanceController extends Controller
             $obj->supplier_id = $request->supplier_id;
             $obj->amount = $request->amount;
             $obj->advance_type = 'in';
+            $obj->currency_id = $request->currency_id;
+            if($request->currency_id != 1) {
+                $obj->currency_rate = $request->currency_rate;
+                $obj->amount_fx = $request->amount_fx;
+            }
             $obj->updated_by = Auth::user()->id;
             $obj->save();
 

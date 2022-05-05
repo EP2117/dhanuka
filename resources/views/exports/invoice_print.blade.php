@@ -176,7 +176,7 @@
         <tr>
           <td colspan="9" style="border:none;">
             <div>
-              <div style="float:left;" class="mm-txt"><b>ဝယ်သူအမည်</b>&nbsp; &nbsp;  {{$sale->customer->cus_name}}</div>
+              <div style="float:left;" class="mm-txt"><b>ဝယ်သူအမည်</b>&nbsp; &nbsp; &nbsp;&nbsp; {{$sale->customer->cus_name}}</div>
               <div style="float:right" class="mm-txt"><b>ရက်စွဲ</b>&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php
                         $date_arr = explode('-',$sale->invoice_date);
                       ?>
@@ -184,7 +184,7 @@
               </div>
             </div>
             <div style="clear: both;">
-              <div style="float:left;" class="mm-txt"><b>လိပ်စာ</b>&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;{{$sale->customer->cus_shipping_address}}</div>
+              <div style="float:left;" class="mm-txt"><b>လိပ်စာ/Ph. No.</b>&nbsp;&nbsp;&nbsp;{{$sale->customer->cus_shipping_address}} / {{$sale->customer->cus_phone}}</div>
               <div style="float:right" class="mm-txt"><b>ဘောက်ချာ နံပါတ်</b>&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;{{$sale->invoice_no}}</div>
             </div>
             <!--<table cellpadding="0" cellspacing="0" style="border:none; width:100%;">
