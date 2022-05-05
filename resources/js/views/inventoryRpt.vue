@@ -86,12 +86,46 @@
                 <h6 class="m-0 font-weight-bold text-primary">Product List</h6>
             </div>
             <div class="card-body">
-
-                <div class="text-right mb-2">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
-                </div>
-
                <div class="table-responsive">
+<!-- Kamlesh Start -->
+                <!-- sort by -->
+                <div class="form-group float-left pr-2">
+                    <label for="sort_by">Sort By</label>
+                    <select id="sort_by" class="form-control"
+                        name="sort_by" v-model="search.sort_by" style="width:200px" @change="getInventoryRpt(1)"
+                    >
+                        <option value="">Select One</option>
+                        <option value="name">Product Name</option>
+                        <option value="code">Product Code</option>
+                        <option value="brand">Brand</option>
+                        <option value="category">Category</option>
+                        <option value="uom">Warehouse UOM</option>
+                    </select>
+                </div>
+                <div>
+                <div class="form-group float-left">
+                    <select id="order" class="form-control mt-2"
+                        name="order" v-model="search.order" style="width:150px; margin-left:10px;" @change="getInventoryRpt(1)"
+                    >
+                        <option value="">Select One</option>
+                        <option value="ASC">Ascending</option>
+                        <option value="DESC">Descending</option>
+                    </select>
+                </div>
+               
+                <div class="text-right form-group mt-4" >
+                    <div class="mb-2" style="display:inline-block">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                    </div>
+                    <div class="mb-2 pl-2" style="display:inline-block;">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
+                    </div>
+                </div>
+               
+                </div>
+               
+ <!-- Kamlesh End -->
+
                     <table class="table table-bordered table-striped table_num" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -228,6 +262,8 @@
                     product_name: "",
                     brand_id: "",
                     branch_id: "",
+                    sort_by: "",
+                    order:"",
                 },
                 products: [],
                 op_products: [],
@@ -444,8 +480,6 @@
                 $("#loading").show();
                 let app = this;
 
-
-
                 var search =
                     "&from_date=" +
                     app.search.from_date +
@@ -458,7 +492,14 @@
                     "&brand_id=" +
                     app.search.brand_id +
                     "&product_name=" +
-                    app.search.product_name;
+                    app.search.product_name+
+                    "&order=" +
+                    app.search.order +
+                    "&sort_by=" +
+                    app.search.sort_by; //Kamlesh
+
+                    console.log(search);
+
 
                 axios.get("/inventory_report?" + search)
                 .then(function(response) {
@@ -518,12 +559,60 @@
                 "&brand_id=" +
                 app.search.brand_id +
                 "&product_name=" +
-                app.search.product_name;
+                app.search.product_name+
+                "&order=" +
+                app.search.order +
+                "&sort_by=" +
+                app.search.sort_by;
 
                 var baseurl = window.location.origin;
                 //window.open(baseurl+'/inventory_export?'+search);
                 window.open(this.site_path+'/inventory_export?'+search);
             },
+
+            //Kamlesh Start
+         exportPdf() {   
+
+                let app = this;
+                if(this.search.from_date == "") {                  
+                    swal("Warning!", "From Date must be added!", "warning")
+                    return false;
+                } 
+                // else {
+                //     $("#loading").show();
+                // }
+
+                var search =
+                    "&from_date=" +
+                    app.search.from_date +
+                    "&to_date=" +
+                    app.search.to_date +
+                    "&warehouse_id=" +
+                    app.search.warehouse_id +
+                    "&branch_id=" +
+                    app.search.branch_id +
+                    "&brand_id=" +
+                    app.search.brand_id +
+                    "&product_name=" +
+                    app.search.product_name+
+                    "&order=" +
+                    app.search.order +
+                    "&sort_by=" +
+                    app.search.sort_by;
+                    
+
+                axios.get("/inventory_export_pdf?" + search, {responseType: 'blob'}).then(response => {
+                    $('#loading').hide();
+                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                    window.open(url);
+
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+
+            },
+            // Kamlesh End
 
             dateFormat(d) {
                 return moment(d).format('YYYY-MM-DD');

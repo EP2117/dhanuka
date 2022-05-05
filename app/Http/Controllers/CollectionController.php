@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 //use Session;
+use PDF;
 use App\Sale;
 use Carbon\Carbon;
 use App\Collection;
@@ -25,60 +26,58 @@ class CollectionController extends Controller
 {
     use GetReport;
     use Ledger;
-	public function index(Request $request)
+    public function index(Request $request)
     {
         // dd($request->all());
         $login_year = Session::get('loginYear');
 
-        $data = Collection::with('customer','branch');
+        $data = Collection::with('customer', 'branch');
 
         $now = Carbon::now()->format('Y-m-d');
 
-        if($request->from_date == "" && $request->to_date == "" && $request->collection_no == "" && $request->branch_id == "" && $request->customer_id == "" && $request->state_id == "") {
-            $data->whereDate('collection_date',$now);
+        if ($request->from_date == "" && $request->to_date == "" && $request->collection_no == "" && $request->branch_id == "" && $request->customer_id == "" && $request->state_id == "") {
+            $data->whereDate('collection_date', $now);
         }
 
-        if($request->collection_no != "") {
+        if ($request->collection_no != "") {
             $data->where('collection_no',  $request->collection_no);
         }
-     //for Country Head and Admin roles (can access multiple branch)
-        if(Auth::user()->role->id == 6 || Auth::user()->role->id == 2) {
-            if(Auth::user()->role->id != 1) { //system can access all branches
+        //for Country Head and Admin roles (can access multiple branch)
+        if (Auth::user()->role->id == 6 || Auth::user()->role->id == 2) {
+            if (Auth::user()->role->id != 1) { //system can access all branches
                 $branches = Auth::user()->branches;
                 $branch_arr = array();
-                foreach($branches as $branch) {
+                foreach ($branches as $branch) {
                     array_push($branch_arr, $branch->id);
                 }
-                $data->whereIn('branch_id',$branch_arr);
+                $data->whereIn('branch_id', $branch_arr);
             }
         } else {
             //other roles can access only one branch
-            if(Auth::user()->role->id != 1) { //system can access all branches
+            if (Auth::user()->role->id != 1) { //system can access all branches
                 $branch = Auth::user()->branch_id;
-                $data->where('branch_id',$branch);
+                $data->where('branch_id', $branch);
             }
         }
-        if($request->branch_id != "") {
+        if ($request->branch_id != "") {
             $data->where('branch_id',  $request->branch_id);
         }
-        if($request->state_id != "") {
-            $data->whereHas('customer',function($q)use($request){
-                $q->where('state_id',$request->state_id);
-            });   
+        if ($request->state_id != "") {
+            $data->whereHas('customer', function ($q) use ($request) {
+                $q->where('state_id', $request->state_id);
+            });
         }
-        if($request->from_date != '' && $request->to_date != '')
-        {
+        if ($request->from_date != '' && $request->to_date != '') {
             $data->whereBetween('collection_date', array($request->from_date, $request->to_date));
-        } else if($request->from_date != '') {
+        } else if ($request->from_date != '') {
             $data->whereDate('collection_date', '>=', $request->from_date);
-
-        }else if($request->to_date != '') {
-             $data->whereDate('collection_date', '<=', $request->to_date);
+        } else if ($request->to_date != '') {
+            $data->whereDate('collection_date', '<=', $request->to_date);
         } else {
-            $data->whereBetween('collection_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            $data->whereBetween('collection_date', array($login_year . '-01-01', $login_year . '-12-31'));
         }
 
-        if($request->customer_id != "") {
+        if ($request->customer_id != "") {
             $data->where('customer_id', $request->customer_id);
         }
 
@@ -101,33 +100,33 @@ class CollectionController extends Controller
 
             //auto generate collection no;
             $max_id = Collection::max('id');
-            if($max_id) {
+            if ($max_id) {
                 $max_id = $max_id + 1;
             } else {
                 $max_id = 1;
             }
-            $collection_no = "C".str_pad($max_id,5,"0",STR_PAD_LEFT);
+            $collection_no = "C" . str_pad($max_id, 5, "0", STR_PAD_LEFT);
 
-            $collection->collection_no 		= $collection_no;
-            $collection->collection_date 	= $request->collection_date;
-            $collection->customer_id		= $request->customer_id;
+            $collection->collection_no         = $collection_no;
+            $collection->collection_date     = $request->collection_date;
+            $collection->customer_id        = $request->customer_id;
             $collection->collect_type       = $request->collect_type;
             $collection->branch_id = $request->branch_id;
 
-            if($request->is_auto == true) {
+            if ($request->is_auto == true) {
                 $collection->auto_payment  = 1;
                 $collection->total_paid_amount  = $request->pay_amount;
                 $total_paid_amount_fx  = 0;
                 $collection->total_paid_amount_fx  = 0;
-                if($request->currency_id != 1) {
+                if ($request->currency_id != 1) {
                     $collection->total_paid_amount_fx   = $request->pay_amount;
                     $collection->total_paid_amount = round($request->pay_amount * $request->currency_rate);
-                }                
+                }
             } else {
                 $collection->auto_payment  = 0;
                 $collection->total_paid_amount  = $request->total_pay;
                 $collection->total_paid_amount_fx  = 0;
-                if($request->currency_id != 1) {
+                if ($request->currency_id != 1) {
                     $collection->total_paid_amount_fx  = $request->total_pay_fx;
                 }
             }
@@ -136,26 +135,26 @@ class CollectionController extends Controller
             $collection->created_by = Auth::user()->id;
             //$collection->updated_by = Auth::user()->id;
             $collection->save();
-            $description="Inv ".$collection->collection_no.",Inv Date ".$collection->collection_date." to " .$collection->customer->cus_name;
-            $sub_account_id=config('global.credit_collection');   /*sub account  id for sale collection*/
-            if($collection){
+            $description = "Inv " . $collection->collection_no . ",Inv Date " . $collection->collection_date . " to " . $collection->customer->cus_name;
+            $sub_account_id = config('global.credit_collection');   /*sub account  id for sale collection*/
+            if ($collection) {
                 AccountTransition::create([
                     'sub_account_id' => $sub_account_id,
                     'transition_date' => $request->collection_date,
                     'sale_id' => $collection->id,
                     'is_cashbook' => 1,
-                    'description'=>$description,
-                    'status'=>'credit_collection',
-                    'customer_id'=>$collection->customer_id,
-                    'vochur_no'=>$collection_no,
+                    'description' => $description,
+                    'status' => 'credit_collection',
+                    'customer_id' => $collection->customer_id,
+                    'vochur_no' => $collection_no,
                     'debit' => $collection->total_paid_amount,
                     'created_by' => Auth::user()->id,
                     'updated_by' => Auth::user()->id,
                 ]);
-                $this->storeSaleCollectionInLedger($collection,$request);
+                $this->storeSaleCollectionInLedger($collection, $request);
             }
-            for($i=0; $i<count($request->invoices); $i++) {
-               /*** //add invoices into pivot table
+            for ($i = 0; $i < count($request->invoices); $i++) {
+                /*** //add invoices into pivot table
                 $pivot = $collection->sales()->attach($request->invoices[$i],['paid_amount' => $request->payments[$i], 'discount' => $request->discounts[$i]]);
 
                 //Get all collection amount and update collection_amount in each sale invoice
@@ -174,13 +173,13 @@ class CollectionController extends Controller
                 $sale->collection_amount = $collection_amount;
                 $sale->save();**/
 
-                if($request->discounts[$i]==null){
-                    $dsc=0;
-                }else{
-                    $dsc=$request->discounts[$i];
+                if ($request->discounts[$i] == null) {
+                    $dsc = 0;
+                } else {
+                    $dsc = $request->discounts[$i];
                 }
                 //add invoices into pivot table
-                if($request->currency_id == 1) {
+                if ($request->currency_id == 1) {
                     $paid_amount_fx = 0;
                     $discount_fx = 0;
                     $gain = 0;
@@ -194,21 +193,21 @@ class CollectionController extends Controller
 
                 $paid_amt = $request->payments[$i] == '' ? 0 : $request->payments[$i];
 
-                $pivot = $collection->sales()->attach($request->invoices[$i],['paid_amount' => $paid_amt, 'paid_amount_fx' => $paid_amount_fx, 'discount' => $dsc, 'discount_fx' => $discount_fx, 'gain_amount' => $gain, 'loss_amount' => $loss]);
+                $pivot = $collection->sales()->attach($request->invoices[$i], ['paid_amount' => $paid_amt, 'paid_amount_fx' => $paid_amount_fx, 'discount' => $dsc, 'discount_fx' => $discount_fx, 'gain_amount' => $gain, 'loss_amount' => $loss]);
 
 
                 //Get all collection amount and update collection_amount in each sale invoice
-                if($request->currency_id == 1) {
+                if ($request->currency_id == 1) {
                     //for MMK
                     $collect_qry = DB::table("collection_sale")
                         ->select(DB::raw("SUM(paid_amount)  as total_paid, SUM(discount)  as total_discount"))
                         ->where('sale_id', $request->invoices[$i])
                         ->groupBy('sale_id')
                         ->first();
-    //                dd($collect_qry);
-                    if($collect_qry) {
-                        if($collect_qry->total_discount==null){
-                            $collect_qry->total_discount=0;
+                    //                dd($collect_qry);
+                    if ($collect_qry) {
+                        if ($collect_qry->total_discount == null) {
+                            $collect_qry->total_discount = 0;
                         }
                         $collection_amount = $collect_qry->total_paid + $collect_qry->total_discount;
                     } else {
@@ -224,10 +223,10 @@ class CollectionController extends Controller
                         ->where('sale_id', $request->invoices[$i])
                         ->groupBy('sale_id')
                         ->first();
-    //                dd($collect_qry);
-                    if($collect_qry) {
-                        if($collect_qry->total_discount==null){
-                            $collect_qry->total_discount=0;
+                    //                dd($collect_qry);
+                    if ($collect_qry) {
+                        if ($collect_qry->total_discount == null) {
+                            $collect_qry->total_discount = 0;
                         }
                         $collection_amount = $collect_qry->total_paid + $collect_qry->total_discount;
                         $collection_amount_fx = $collect_qry->total_paid_fx + $collect_qry->total_discount_fx;
@@ -242,37 +241,37 @@ class CollectionController extends Controller
                 }
 
                 //add gain/loss amount to ledger
-                if($gain != 0) {
+                if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'supplier_id'=>$collection->customer_id,
+                        'supplier_id' => $collection->customer_id,
                         'is_cashbook' => 0,
-                        'description'=>'Gain Amount',
-                        'vochur_no'=>$s->invoice_no,
+                        'description' => 'Gain Amount',
+                        'vochur_no' => $s->invoice_no,
                         //'debit' => $gain,
                         'credit' => $gain,
-                        'status'=>'gain',
+                        'status' => 'gain',
                         'created_by' => Auth::user()->id,
                         'updated_by' => Auth::user()->id,
                     ]);
                 }
-                if($loss != 0) {
+                if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'customer_id'=>$collection->customer_id,
+                        'customer_id' => $collection->customer_id,
                         'is_cashbook' => 0,
-                        'description'=>'Loss Amount',
-                        'vochur_no'=>$s->invoice_no,
+                        'description' => 'Loss Amount',
+                        'vochur_no' => $s->invoice_no,
                         //'credit' => abs($loss),
                         'debit' => abs($loss),
-                        'status'=>'loss',
+                        'status' => 'loss',
                         'created_by' => Auth::user()->id,
                         'updated_by' => Auth::user()->id,
-                    ]);   
+                    ]);
                 }
             }
 
@@ -280,15 +279,13 @@ class CollectionController extends Controller
             $collection_id = $collection->id;
             DB::commit();
 
-            return compact('status','collection_id');
+            return compact('status', 'collection_id');
         } catch (\Throwable $e) {
             DB::rollback();
             $status = $e->getMessage();
             return compact('status');
             throw $e;
         }
-       
-
     }
 
     /**
@@ -303,22 +300,22 @@ class CollectionController extends Controller
         DB::beginTransaction();
         try {
             $collection = Collection::find($id);
-            $collection->collection_date 	= $request->collection_date;
+            $collection->collection_date     = $request->collection_date;
             $collection->collect_type       = $request->collect_type;
-            if($request->is_auto == true) {
+            if ($request->is_auto == true) {
                 $collection->auto_payment  = 1;
                 $collection->total_paid_amount  = $request->pay_amount;
                 $total_paid_amount_fx  = 0;
                 $collection->total_paid_amount_fx  = 0;
-                if($request->currency_id != 1) {
+                if ($request->currency_id != 1) {
                     $collection->total_paid_amount_fx   = $request->pay_amount;
                     $collection->total_paid_amount = round($request->pay_amount * $request->currency_rate);
-                }                
+                }
             } else {
                 $collection->auto_payment  = 0;
                 $collection->total_paid_amount  = $request->total_pay;
                 $collection->total_paid_amount_fx  = 0;
-                if($request->currency_id != 1) {
+                if ($request->currency_id != 1) {
                     $collection->total_paid_amount_fx  = $request->total_pay_fx;
                 }
             }
@@ -330,60 +327,60 @@ class CollectionController extends Controller
             $collection->updated_at = time();
             $collection->updated_by = Auth::user()->id;
             $collection->save();
-            $sub_account_id=config('global.credit_collection');    /*sub account id for credit payment */
-            $description=$collection->collection_no.",Date ".$collection->collection_date." to " .$collection->customer->cus_name;
-            if($collection){
-                 AccountTransition::where('sale_id',$id)
-                                        ->where(function($query) {
-                                            $query->orwhere('status','credit_collection')
-                                                  ->orwhere('status','discount_allowed')
-                                                  ->orwhere('sub_account_id',79)//for loss account
-                                                  ->orwhere('sub_account_id',80);//for gain account
-                                        })->delete();
-                if($collection->total_paid_amount!=0){
-                   
+            $sub_account_id = config('global.credit_collection');    /*sub account id for credit payment */
+            $description = $collection->collection_no . ",Date " . $collection->collection_date . " to " . $collection->customer->cus_name;
+            if ($collection) {
+                AccountTransition::where('sale_id', $id)
+                    ->where(function ($query) {
+                        $query->orwhere('status', 'credit_collection')
+                            ->orwhere('status', 'discount_allowed')
+                            ->orwhere('sub_account_id', 79) //for loss account
+                            ->orwhere('sub_account_id', 80); //for gain account
+                    })->delete();
+                if ($collection->total_paid_amount != 0) {
+
                     /**AccountTransition::where([
                         ['sale_id',$id],
                         ['is_cashbook',1],
                         ['status','credit_collection'],
                     ])->delete();**/
-                        AccountTransition::create([
+                    AccountTransition::create([
                         'sub_account_id' => $sub_account_id,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'vochur_no'=>$request->collection_no,
-                        'description'=>$description,
-                        'status'=>'credit_collection',
+                        'vochur_no' => $request->collection_no,
+                        'description' => $description,
+                        'status' => 'credit_collection',
                         'is_cashbook' => 1,
-                        'customer_id'=>$collection->customer_id,
+                        'customer_id' => $collection->customer_id,
                         'debit' => $collection->total_paid_amount,
                         'created_by' => Auth::user()->id,
                         'updated_by' => Auth::user()->id,
                     ]);
                     // update sale collection in ledger 
-                    $this->updateSaleCollectionInLedger($collection,$request);
+                    $this->updateSaleCollectionInLedger($collection, $request);
                     // update sale collection in ledger 
 
-                }elseif($collection->total_paid_amount==0){
+                } elseif ($collection->total_paid_amount == 0) {
                     /**AccountTransition::
                     where(['sale_id'=>$id,'status'=>'sale_collection','is_cashbook'=>1])->delete();
                     AccountTransition::
                     where(['sale_id'=>$id,'status'=>'sale_collection','is_cashbook'=>0])->delete();**/
-                    AccountTransition::where('sale_id',$id)
-                                    ->where(function($query) {
-                                            $query->orwhere('status','credit_collection')
-                                                  ->orwhere('status','discount_allowed');
-                                        })->delete();
+                    AccountTransition::where('sale_id', $id)
+                        ->where(function ($query) {
+                            $query->orwhere('status', 'credit_collection')
+                                ->orwhere('status', 'discount_allowed');
+                        })->delete();
                 }
             }
             //update collection amount for removed sales
-            foreach($request->remove_pivot_id as $key => $val) {
+            foreach ($request->remove_pivot_id as $key => $val) {
                 //get paid amount and discount value before delete
                 $relation = DB::table('collection_sale')
-                                ->select('sale_id','collection_id','paid_amount','paid_amount_fx','discount','discount_fx')
-                                ->where('id',$val)
-                                ->first();
-                if($relation->discount == NULL) {
+                    ->select('sale_id', 'collection_id', 'paid_amount', 'paid_amount_fx', 'discount', 'discount_fx')
+                    ->where('id', $val)
+                    ->first();
+                if ($relation->discount == NULL) {
                     $discount = 0;
                 } else {
                     $discount = $relation->discount;
@@ -404,25 +401,25 @@ class CollectionController extends Controller
                 $sale->save();
 
                 //remove gain/loss transition
-                AccountTransition::where('sale_id',$collection->id)
-                        ->where('vochur_no',$inv_no)
-                        ->where(function($query) {
-                            $query->orwhere('sub_account_id',79)//for loss account
-                                  ->orwhere('sub_account_id',80);//for gain account
-                        })->delete();
+                AccountTransition::where('sale_id', $collection->id)
+                    ->where('vochur_no', $inv_no)
+                    ->where(function ($query) {
+                        $query->orwhere('sub_account_id', 79) //for loss account
+                            ->orwhere('sub_account_id', 80); //for gain account
+                    })->delete();
             }
 
             $collection->sales()->detach();
 
-            for($i=0; $i<count($request->invoices); $i++) {
+            for ($i = 0; $i < count($request->invoices); $i++) {
 
-                if($request->discounts[$i]==null){
-                    $dsc=0;
-                }else{
-                    $dsc=$request->discounts[$i];
+                if ($request->discounts[$i] == null) {
+                    $dsc = 0;
+                } else {
+                    $dsc = $request->discounts[$i];
                 }
                 //add invoices into pivot table
-                if($request->currency_id == 1) {
+                if ($request->currency_id == 1) {
                     $paid_amount_fx = 0;
                     $discount_fx = 0;
                     $gain = 0;
@@ -436,17 +433,17 @@ class CollectionController extends Controller
 
                 $paid_amt = $request->payments[$i] == '' ? 0 : $request->payments[$i];
                 //add invoices into pivot table
-                $pivot = $collection->sales()->attach($request->invoices[$i],['paid_amount' => $paid_amt, 'paid_amount_fx' => $paid_amount_fx, 'discount' => $dsc, 'discount_fx' => $discount_fx, 'gain_amount' => $gain, 'loss_amount' => $loss]);
+                $pivot = $collection->sales()->attach($request->invoices[$i], ['paid_amount' => $paid_amt, 'paid_amount_fx' => $paid_amount_fx, 'discount' => $dsc, 'discount_fx' => $discount_fx, 'gain_amount' => $gain, 'loss_amount' => $loss]);
                 //$pivot = $collection->sales()->attach($request->invoices[$i],['paid_amount' => $request->payments[$i], 'discount' => $request->discounts[$i]]);
 
                 //Get all collection amount and update collection_amount in each sale invoice
-                if($request->currency_id == 1) {
+                if ($request->currency_id == 1) {
                     $collect_qry = DB::table("collection_sale")
-                                            ->select(DB::raw("SUM(paid_amount)  as total_paid, SUM(discount)  as total_discount"))
-                                            ->where('sale_id', $request->invoices[$i])
-                                            ->groupBy('sale_id')
-                                            ->first();
-                    if($collect_qry) {
+                        ->select(DB::raw("SUM(paid_amount)  as total_paid, SUM(discount)  as total_discount"))
+                        ->where('sale_id', $request->invoices[$i])
+                        ->groupBy('sale_id')
+                        ->first();
+                    if ($collect_qry) {
                         $collection_amount = $collect_qry->total_paid + $collect_qry->total_discount;
                     } else {
                         $collection_amount = 0;
@@ -461,10 +458,10 @@ class CollectionController extends Controller
                         ->where('sale_id', $request->invoices[$i])
                         ->groupBy('sale_id')
                         ->first();
-    //                dd($collect_qry);
-                    if($collect_qry) {
-                        if($collect_qry->total_discount==null){
-                            $collect_qry->total_discount=0;
+                    //                dd($collect_qry);
+                    if ($collect_qry) {
+                        if ($collect_qry->total_discount == null) {
+                            $collect_qry->total_discount = 0;
                         }
                         $collection_amount = $collect_qry->total_paid + $collect_qry->total_discount;
                         $collection_amount_fx = $collect_qry->total_paid_fx + $collect_qry->total_discount_fx;
@@ -479,54 +476,50 @@ class CollectionController extends Controller
                 }
 
                 //add gain/loss amount to ledger
-                if($gain != 0) {
+                if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'supplier_id'=>$collection->customer_id,
+                        'supplier_id' => $collection->customer_id,
                         'is_cashbook' => 0,
-                        'description'=>'Gain Amount',
-                        'vochur_no'=>$sale->invoice_no,
+                        'description' => 'Gain Amount',
+                        'vochur_no' => $sale->invoice_no,
                         //'debit' => $gain,
                         'credit' => $gain,
-                        'status'=>'gain',
+                        'status' => 'gain',
                         'created_by' => Auth::user()->id,
                         'updated_by' => Auth::user()->id,
                     ]);
                 }
-                if($loss != 0) {
+                if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'customer_id'=>$collection->customer_id,
+                        'customer_id' => $collection->customer_id,
                         'is_cashbook' => 0,
-                        'description'=>'Loss Amount',
-                        'vochur_no'=>$sale->invoice_no,
+                        'description' => 'Loss Amount',
+                        'vochur_no' => $sale->invoice_no,
                         //'credit' => abs($loss),
                         'debit' => abs($loss),
-                        'status'=>'loss',
+                        'status' => 'loss',
                         'created_by' => Auth::user()->id,
                         'updated_by' => Auth::user()->id,
-                    ]);   
+                    ]);
                 }
-
             }
 
             $status = "success";
             $collection_id = $collection->id;
             DB::commit();
-            return compact('status','collection_id');
-            
+            return compact('status', 'collection_id');
         } catch (\Throwable $e) {
             DB::rollback();
             $status = "fail";
             return compact('status');
             throw $e;
         }
-       
-
     }
 
     /**
@@ -537,20 +530,20 @@ class CollectionController extends Controller
      */
     public function show($id)
     {
-        $collection = Collection::with('sales','currency','customer','branch')->find($id);
+        $collection = Collection::with('sales', 'currency', 'customer', 'branch')->find($id);
         $customer_id = $collection->customer_id;
         $branch_id = $collection->branch_id;
         $col_sales = array();
-        foreach($collection->sales as $sale) {
-        	array_push($col_sales, $sale->id);
+        foreach ($collection->sales as $sale) {
+            array_push($col_sales, $sale->id);
 
-            foreach($collection->sales as $key=>$val) {
+            foreach ($collection->sales as $key => $val) {
                 $gain_amt = 0;
                 $loss_amt = 0;
-                if(!empty($val->collections)) {
-                    foreach($val->collections as $c){
+                if (!empty($val->collections)) {
+                    foreach ($val->collections as $c) {
                         $gain_amt += $c->pivot->gain_amount;
-                        $loss_amt += abs($c->pivot->loss_amount); 
+                        $loss_amt += abs($c->pivot->loss_amount);
                     }
                 }
 
@@ -558,53 +551,51 @@ class CollectionController extends Controller
                 $collection->sales[$key]->loss_amount = $loss_amt;
             }
         }
-        if($collection->currency_id != 1)
-        {
+        if ($collection->currency_id != 1) {
             $cus_invoices = Sale::orderBy('invoice_date', 'ASC')
-                ->where('customer_id',$customer_id)
+                ->where('customer_id', $customer_id)
                 ->where('branch_id', $branch_id)
                 ->where('payment_type', 'credit')
-                ->where('currency_id',$collection->currency_id)
-                ->where(function ($query) use ($col_sales){
+                ->where('currency_id', $collection->currency_id)
+                ->where(function ($query) use ($col_sales) {
                     $query->whereRaw('((total_amount_fx + IFNULL(tax_amount_fx,0))-(IFNULL(cash_discount_fx,0) + pay_amount_fx + collection_amount_fx)) > 0')
-                                  ->orWhereIn('id', $col_sales);
-                            })->get();
-                    /**$query->whereRaw('(total_amount_fx-(pay_amount_fx + collection_amount_fx)) > 0')
+                        ->orWhereIn('id', $col_sales);
+                })->get();
+            /**$query->whereRaw('(total_amount_fx-(pay_amount_fx + collection_amount_fx)) > 0')
                         ->orWhereIn('id', $col_sales);
                 });**/
 
-                foreach($cus_invoices as $key=>$val) {
-                    $gain_amt = 0;
-                    $loss_amt = 0;
-                    if(!empty($val->collections)) {
-                        foreach($val->collections as $c){
-                            $gain_amt += $c->pivot->gain_amount;
-                            $loss_amt += abs($c->pivot->loss_amount); 
-                        }
-                    }
-
-                    $cus_invoices[$key]->gain_amount = $gain_amt;
-                    $cus_invoices[$key]->loss_amount = $loss_amt;
-                }
-        }
-        else {
-            $cus_invoices = Sale::orderBy('invoice_date', 'ASC')
-                    ->where('customer_id',$customer_id)
-                    ->where('branch_id', $branch_id)
-                    ->where('payment_type', 'credit')
-                    ->where('currency_id',1)
-                    ->where(function ($query) use ($col_sales){
-    	    				$query->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
-    	          				  ->orWhereIn('id', $col_sales);
-    						})
-            		->get();
-            foreach($cus_invoices as $key=>$val) {
+            foreach ($cus_invoices as $key => $val) {
                 $gain_amt = 0;
                 $loss_amt = 0;
-                if(!empty($val->collections)) {
-                    foreach($val->collections as $c){
+                if (!empty($val->collections)) {
+                    foreach ($val->collections as $c) {
                         $gain_amt += $c->pivot->gain_amount;
-                        $loss_amt += abs($c->pivot->loss_amount); 
+                        $loss_amt += abs($c->pivot->loss_amount);
+                    }
+                }
+
+                $cus_invoices[$key]->gain_amount = $gain_amt;
+                $cus_invoices[$key]->loss_amount = $loss_amt;
+            }
+        } else {
+            $cus_invoices = Sale::orderBy('invoice_date', 'ASC')
+                ->where('customer_id', $customer_id)
+                ->where('branch_id', $branch_id)
+                ->where('payment_type', 'credit')
+                ->where('currency_id', 1)
+                ->where(function ($query) use ($col_sales) {
+                    $query->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
+                        ->orWhereIn('id', $col_sales);
+                })
+                ->get();
+            foreach ($cus_invoices as $key => $val) {
+                $gain_amt = 0;
+                $loss_amt = 0;
+                if (!empty($val->collections)) {
+                    foreach ($val->collections as $c) {
+                        $gain_amt += $c->pivot->gain_amount;
+                        $loss_amt += abs($c->pivot->loss_amount);
                     }
                 }
 
@@ -612,7 +603,7 @@ class CollectionController extends Controller
                 $cus_invoices[$key]->loss_amount = $loss_amt;
             }
         }
-        return compact('collection','cus_invoices');
+        return compact('collection', 'cus_invoices');
     }
 
     /**
@@ -624,15 +615,15 @@ class CollectionController extends Controller
     public function destroy($id)
     {
         $collection = Collection::with('sales')->find($id);
-        foreach($collection->sales as $sale) {
-        	$relation = DB::table('collection_sale')
-                            ->select('sale_id','collection_id','paid_amount','paid_amount_fx','discount','discount_fx')
-                            ->where('id',$sale->pivot->id)
-                            ->first();
-            if($relation->discount == NULL) {
-            	$discount = 0;
+        foreach ($collection->sales as $sale) {
+            $relation = DB::table('collection_sale')
+                ->select('sale_id', 'collection_id', 'paid_amount', 'paid_amount_fx', 'discount', 'discount_fx')
+                ->where('id', $sale->pivot->id)
+                ->first();
+            if ($relation->discount == NULL) {
+                $discount = 0;
             } else {
-            	$discount = $relation->discount;
+                $discount = $relation->discount;
             }
 
             $discount_fx = $relation->discount_fx;
@@ -644,9 +635,9 @@ class CollectionController extends Controller
             $sale = Sale::find($relation->sale_id);
             $collection_amount = $sale->collection_amount - $sale_col_amt;
             $collection_amount_fx = $sale->collection_amount_fx - $sale_col_amt_fx;
-        	$sale->collection_amount = $collection_amount;
+            $sale->collection_amount = $collection_amount;
             $sale->collection_amount_fx = $collection_amount_fx;
-            AccountTransition::where('sale_id',$id)->where('sub_account_id',7)->delete();
+            AccountTransition::where('sale_id', $id)->where('sub_account_id', 7)->delete();
             $sale->save();
         }
 
@@ -656,25 +647,26 @@ class CollectionController extends Controller
         /**AccountTransition::where('sale_id',$id)
             ->where('status','credit_collection')
             ->delete();**/
-        AccountTransition::where('sale_id',$id)
-                        ->where(function($query) {
-                                $query->orwhere('status','credit_collection')
-                                      ->orwhere('status','discount_allowed')
-                                      ->orwhere('sub_account_id',79)//for loss account
-                                      ->orwhere('sub_account_id',80);//for gain account
-                            })->delete();
+        AccountTransition::where('sale_id', $id)
+            ->where(function ($query) {
+                $query->orwhere('status', 'credit_collection')
+                    ->orwhere('status', 'discount_allowed')
+                    ->orwhere('sub_account_id', 79) //for loss account
+                    ->orwhere('sub_account_id', 80); //for gain account
+            })->delete();
         return response(['message' => 'delete successful']);
     }
-    public function getSaleOutstanding(Request $request){
-        $route_name=Route::currentRouteName();
-        $sale_outstandings=$this->getSaleOutstandingReport($request);
-        $net_gain_loss_amt=$net_inv_amt=$net_paid_amt=$net_balance_amt=0;
-        foreach($sale_outstandings as $po){
-            foreach($po->out_list as $i){
-                if($i->type=='paid'){
-                    if($i->currency_id == 1) {
-                        if($i->is_opening == 1) {
-                            $net_inv_amt+=$i->total_amount;
+    public function getSaleOutstanding(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+        $sale_outstandings = $this->getSaleOutstandingReport($request);
+        $net_gain_loss_amt = $net_inv_amt = $net_paid_amt = $net_balance_amt = 0;
+        foreach ($sale_outstandings as $po) {
+            foreach ($po->out_list as $i) {
+                if ($i->type == 'paid') {
+                    if ($i->currency_id == 1) {
+                        if ($i->is_opening == 1) {
+                            $net_inv_amt += $i->total_amount;
                         } else {
                             $taxAmt = $i->tax_amount == NULL ? 0 : $i->tax_amount;
                             $net_inv_amt = $net_inv_amt + $i->net_total + $taxAmt;
@@ -682,28 +674,36 @@ class CollectionController extends Controller
                     } else {
                         $net_inv_amt = $net_inv_amt + $i->net_total_fx + $i->tax_amount_fx;
                     }
-                   // $net_inv_amt+=$i->total_amount; 
-                    $net_paid_amt+=$i->t_paid_amount;
-                    $net_balance_amt+=$i->t_balance_amount;
-                    $net_gain_loss_amt+=$i->t_gain_loss_amount;
+                    // $net_inv_amt+=$i->total_amount; 
+                    $net_paid_amt += $i->t_paid_amount;
+                    $net_balance_amt += $i->t_balance_amount;
+                    $net_gain_loss_amt += $i->t_gain_loss_amount;
                 }
                 // dd($i);
-              
+
             }
         }
-        if($route_name=='sale_outstanding_export'){
-            $export=new SaleOutstandingExport($sale_outstandings,$net_paid_amt,$net_balance_amt,$net_inv_amt,$net_gain_loss_amt,$request);
-            $fileName = 'Sale Outstanding Export'.Carbon::now()->format('Ymd').'.xlsx';
+        if ($route_name == 'sale_outstanding_export') {
+            $export = new SaleOutstandingExport($sale_outstandings, $net_paid_amt, $net_balance_amt, $net_inv_amt, $net_gain_loss_amt, $request);
+            $fileName = 'Sale Outstanding Export' . Carbon::now()->format('Ymd') . '.xlsx';
             return Excel::download($export, $fileName);
         }
-        return compact('sale_outstandings','net_paid_amt','net_balance_amt','net_inv_amt','net_gain_loss_amt');
+        // Kamlesh Start
+        if ($route_name == 'sale_outstanding_export_pdf') {
+            $pdf = PDF::loadView('exports.sale_outstanding_report_pdf', compact('sale_outstandings', 'net_paid_amt', 'net_balance_amt', 'net_inv_amt', 'net_gain_loss_amt', 'request'));
+            $pdf->setPaper('a4', 'landscape');
+            return $pdf->output();
+        }
+        // Kamlesh End
+        return compact('sale_outstandings', 'net_paid_amt', 'net_balance_amt', 'net_inv_amt', 'net_gain_loss_amt');
     }
-    public function getCreditCollectionReport(Request $request){
-        $route_name=Route::currentRouteName();
-        $html=$this->getCreditCollection($request);
-        if($route_name=='credit_collection_export'){
-            $export=new CreditCollectionExport($html,$request);
-            $fileName = 'Credit Collection Export'.Carbon::now()->format('Ymd').'.xlsx';
+    public function getCreditCollectionReport(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+        $html = $this->getCreditCollection($request);
+        if ($route_name == 'credit_collection_export') {
+            $export = new CreditCollectionExport($html, $request);
+            $fileName = 'Credit Collection Export' . Carbon::now()->format('Ymd') . '.xlsx';
             return Excel::download($export, $fileName);
         }
         return response(compact('html'), 200);
@@ -712,51 +712,49 @@ class CollectionController extends Controller
 
     public function getCurrencyGainLoss(Request $request)
     {
-        ini_set('memory_limit','512M');
+        ini_set('memory_limit', '512M');
         ini_set('max_execution_time', 240);
 
-         $data = Collection::with('sales','customer','currency');
+        $data = Collection::with('sales', 'customer', 'currency');
 
-        if($request->invoice_no != "") {
-             $data->whereHas('sales',function($q)use($request){
-                    $q->where('invoice_no', 'LIKE','%'.$request->invoice_no.'%');
-                });
+        if ($request->invoice_no != "") {
+            $data->whereHas('sales', function ($q) use ($request) {
+                $q->where('invoice_no', 'LIKE', '%' . $request->invoice_no . '%');
+            });
         }
 
-        $from_date=$to_date="";
-        if($request->from_date != '' && $request->to_date != '')
-        {
-            $data->whereHas('sales',function($q)use($request){
-                    $q->whereBetween('invoice_date', array($request->from_date, $request->to_date));
-                }); 
-           // $data->whereBetween('landed_costings.bill_date', array($request->bill_from_date, $request->bill_to_date));
-        } else if($request->from_date != '') {
-            $data->whereHas('sales',function($q)use($request){
-                    $q->whereDate('invoice_date', '>=', $request->from_date);
-                });
+        $from_date = $to_date = "";
+        if ($request->from_date != '' && $request->to_date != '') {
+            $data->whereHas('sales', function ($q) use ($request) {
+                $q->whereBetween('invoice_date', array($request->from_date, $request->to_date));
+            });
+            // $data->whereBetween('landed_costings.bill_date', array($request->bill_from_date, $request->bill_to_date));
+        } else if ($request->from_date != '') {
+            $data->whereHas('sales', function ($q) use ($request) {
+                $q->whereDate('invoice_date', '>=', $request->from_date);
+            });
             //$data->whereDate('landed_costings.bill_date', '>=', $request->bill_from_date);
 
-        }else if($request->to_date != '') {
-            $data->whereHas('sales',function($q)use($request){
-                    $q->whereDate('invoice_date', '<=', $request->to_date);
-                });
+        } else if ($request->to_date != '') {
+            $data->whereHas('sales', function ($q) use ($request) {
+                $q->whereDate('invoice_date', '<=', $request->to_date);
+            });
             //$data->whereDate('landed_costings.bill_date', '<=', $request->bill_to_date);
-        } else {}
+        } else {
+        }
 
-        if($request->c_from_date != '' && $request->c_to_date != '')
-        {            
+        if ($request->c_from_date != '' && $request->c_to_date != '') {
             $data->whereBetween('collection_date', array($request->c_from_date, $request->c_to_date));
-        } else if($request->c_from_date != '') {
+        } else if ($request->c_from_date != '') {
             $data->whereDate('collection_date', '>=', $request->c_from_date);
-
-        }else if($request->c_to_date != '') {
-             $data->whereDate('collection_date', '<=', $request->c_to_date);
+        } else if ($request->c_to_date != '') {
+            $data->whereDate('collection_date', '<=', $request->c_to_date);
         } else {
             //$data->whereBetween('collection_date', array($login_year.'-01-01', $login_year.'-12-31'));
         }
 
-        if(isset($request->collection_no) && $request->collection_no != "") {
-            $data->where('collection_no','LIKE','%'.$request->collection_no.'%');
+        if (isset($request->collection_no) && $request->collection_no != "") {
+            $data->where('collection_no', 'LIKE', '%' . $request->collection_no . '%');
         }
 
         $data->where('currency_id', '!=', 1);
@@ -773,67 +771,67 @@ class CollectionController extends Controller
 
         $data    =  $data->orderBy('collection_date', 'DESC')->get();
 
-       // $sale_arr = $data->pluck('sale_id')->toArray();
+        // $sale_arr = $data->pluck('sale_id')->toArray();
 
-        $html = ''; $i=0;$gain =$loss=0;
-        foreach($data as $collection) {
+        $html = '';
+        $i = 0;
+        $gain = $loss = 0;
+        foreach ($data as $collection) {
             $rowspan = count($collection->sales);
-        foreach($collection->sales as $k=>$p) {
-            $i++;
-            $html .= '<tr>';
-            $html .= '<td>'.$i.'</td>';
-            $html .= '<td class="text-center">'.$p->invoice_no.'</td>';
-            $html .= '<td class="text-center">'.$p->invoice_date.'</td>';
-            $html .= '<td class="text-center">1'.$collection->currency->sign.' = '.floatval($p->currency_rate).'MMK</td>';
-            if($k==0) {
-                $html .= '<td rowspan="'.$rowspan.'" style="text-align:center; vertical-align:middle;">'.$collection->collection_no.'</td>';
-                $html .= '<td rowspan="'.$rowspan.'" style="text-align:center; vertical-align:middle;">'.$collection->collection_date.'</td>';
-                $html .= '<td rowspan="'.$rowspan.'" style="text-align:center; vertical-align:middle;">1'.$collection->currency->sign.' = '.floatval($collection->currency_rate).'MMK</td>';
-                $html .= '<td rowspan="'.$rowspan.'" style="text-align:center; vertical-align:middle;">'.$collection->currency->name.'</td>';
+            foreach ($collection->sales as $k => $p) {
+                $i++;
+                $html .= '<tr>';
+                $html .= '<td>' . $i . '</td>';
+                $html .= '<td class="text-center">' . $p->invoice_no . '</td>';
+                $html .= '<td class="text-center">' . $p->invoice_date . '</td>';
+                $html .= '<td class="text-center">1' . $collection->currency->sign . ' = ' . floatval($p->currency_rate) . 'MMK</td>';
+                if ($k == 0) {
+                    $html .= '<td rowspan="' . $rowspan . '" style="text-align:center; vertical-align:middle;">' . $collection->collection_no . '</td>';
+                    $html .= '<td rowspan="' . $rowspan . '" style="text-align:center; vertical-align:middle;">' . $collection->collection_date . '</td>';
+                    $html .= '<td rowspan="' . $rowspan . '" style="text-align:center; vertical-align:middle;">1' . $collection->currency->sign . ' = ' . floatval($collection->currency_rate) . 'MMK</td>';
+                    $html .= '<td rowspan="' . $rowspan . '" style="text-align:center; vertical-align:middle;">' . $collection->currency->name . '</td>';
+                }
+
+                $gain_amount = $p->pivot->gain_amount == 0 ? '' : floatval($p->pivot->gain_amount);
+                $loss_amount = abs($p->pivot->loss_amount) == 0 ? '' : floatval(abs($p->pivot->loss_amount));
+                $html .= '<td class="text-right">' . $gain_amount . '</td>';
+                $html .= '<td class="text-right">' . $loss_amount . '</td>';
+
+                $html .= '</tr>';
+
+                $gain += abs($p->pivot->gain_amount);
+                $loss += abs($p->pivot->loss_amount);
             }
-
-            $gain_amount = $p->pivot->gain_amount == 0 ? '' : floatval($p->pivot->gain_amount);
-            $loss_amount = abs($p->pivot->loss_amount) == 0 ? '' : floatval(abs($p->pivot->loss_amount));
-            $html .= '<td class="text-right">'.$gain_amount .'</td>';
-            $html .= '<td class="text-right">'.$loss_amount .'</td>';
-
-            $html .= '</tr>';
-
-            $gain += abs($p->pivot->gain_amount);
-            $loss += abs($p->pivot->loss_amount);
-
-        } 
-        } 
+        }
         $net_gain = $net_loss = 0;
-        if(!empty($data)) {
-            $html .= '<tr><td colspan="8" class="text-right">Total</td><td class="text-right">'.floatval($gain) .'</td><td class="text-right">'.floatval($loss) .'</td></tr>';
+        if (!empty($data)) {
+            $html .= '<tr><td colspan="8" class="text-right">Total</td><td class="text-right">' . floatval($gain) . '</td><td class="text-right">' . floatval($loss) . '</td></tr>';
 
-            if($gain > $loss) {
+            if ($gain > $loss) {
                 $net_gain = $gain - $loss;
             } else {
                 $net_loss = $loss - $gain;
             }
             $net_gain = $net_gain == 0 ? '' : floatval($net_gain);
             $net_loss = $net_loss == 0 ? '' : floatval($net_loss);
-            $html .= '<tr><td colspan="8" class="text-right">Net Total</td><td class="text-right">'.$net_gain.'</td><td class="text-right">'.$net_loss.'</td></tr>';
-
+            $html .= '<tr><td colspan="8" class="text-right">Net Total</td><td class="text-right">' . $net_gain . '</td><td class="text-right">' . $net_loss . '</td></tr>';
         }
 
         //return $html;
-        return array($data,$html);
+        return array($data, $html);
     }
 
     public function getCurrencyGainLossReport(Request $request)
     {
-        list($data,$html) = $this->getCurrencyGainLoss($request);
+        list($data, $html) = $this->getCurrencyGainLoss($request);
         return response(compact('html'), 200);
     }
 
     public function exportCurrencyGainLossReport(Request $request)
     {
-        list($data,$html) = $this->getCurrencyGainLoss($request);
-        $export = new SaleCurrencyGainLossExport($data,$request);
-        $fileName = 'sale_currency_gain_loss_report_'.Carbon::now()->format('Ymd').'.xlsx';
+        list($data, $html) = $this->getCurrencyGainLoss($request);
+        $export = new SaleCurrencyGainLossExport($data, $request);
+        $fileName = 'sale_currency_gain_loss_report_' . Carbon::now()->format('Ymd') . '.xlsx';
 
         return Excel::download($export, $fileName);
     }

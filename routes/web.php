@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
@@ -18,14 +19,30 @@ use Illuminate\Support\Facades\Route;
 })->where('any', '.*');*/
 
 Auth::routes(['verify' => false, 'register' => false, 'reset' => true]);
-Route::get('/', function () {return view('home');})->middleware('auth');
-Route::get('/master/', function () {return view('module_vw');})->middleware('auth');
-Route::get('/van/', function () {return view('module_vw');})->middleware('auth');
-Route::get('/office/', function () {return view('module_vw');})->middleware('auth');
-Route::get('/account/', function () {return view('module_vw');})->middleware('auth');
-Route::get('/purchase_office', function () {return view('module_vw');})->middleware('auth');
-Route::get('/inventory/', function () {return view('module_vw');})->middleware('auth');
-Route::get('/report/', function () {return view('module_vw');})->middleware('auth');
+Route::get('/', function () {
+    return view('home');
+})->middleware('auth');
+Route::get('/master/', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/van/', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/office/', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/account/', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/purchase_office', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/inventory/', function () {
+    return view('module_vw');
+})->middleware('auth');
+Route::get('/report/', function () {
+    return view('module_vw');
+})->middleware('auth');
 
 Route::get('/test', 'ProductTransitionController@test');
 
@@ -46,8 +63,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/township_by_state/{id}', 'TownshipController@townshipBystate');
     Route::get('/product/selling_uom/{product_id}', 'ProductController@getSellingUomByProductId');
     Route::get('/products', 'ProductController@allProducts');
-    Route::post('/product/image/upload','ProductPhotoController@store');
-    Route::get('/product_photo/{id}','ProductPhotoController@show');
+    Route::post('/product/image/upload', 'ProductPhotoController@store');
+    Route::get('/product_photo/{id}', 'ProductPhotoController@show');
     Route::delete('product_photo/{id}', 'ProductPhotoController@destroy');
     Route::resource('mainwarehouse_entry', 'MainwarehouseEntryController');
     Route::get('/transfer/maxid/', 'TransferController@getMaxId');
@@ -56,8 +73,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::post('/transfer_receive/{id}', 'TransferController@receiveTransfer');
     Route::get('/warehouses', 'WarehouseController@allWarehouses');
     Route::get('/customers', 'CustomerController@allCustomers');
-    Route::post('/customer/image/upload','CustomerController@addPhoto');
-    Route::post('/customer/image/delete/{name}/{id}','CustomerController@deletePhoto');
+    Route::post('/customer/image/upload', 'CustomerController@addPhoto');
+    Route::post('/customer/image/delete/{name}/{id}', 'CustomerController@deletePhoto');
     Route::get('/productsByUserWarehouse', 'ProductTransitionController@getProductsByUserWarehouse');
     Route::get('/productsByUserWarehouse/{action}/{id}', 'ProductTransitionController@getProductsForSaleInvoice');
     Route::get('/get_product_for_purchase/{action}/{id}', 'ProductTransitionController@getProductsForPurchaseInvoice');
@@ -80,7 +97,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/sale_order_approval/{id}', 'OrderApprovalController@getApproval');
     Route::get('/customer_credit_sale/{cus_id}', 'SaleController@getCreditSaleByCustomer');
     Route::get('/customer_all_sale/{cus_id}', 'SaleController@getAllSaleByCustomer');
-    Route::post('/product/search','ProductController@search');
+    Route::post('/product/search', 'ProductController@search');
     Route::get('/ara_brand', 'AraProductController@allBrands');
     Route::get('/ara_category', 'AraProductController@allCategories');
     Route::get('/report_brands', 'BrandController@filterBrands');
@@ -125,6 +142,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
 
     Route::get('/inventory_report/', 'ProductTransitionController@getInventoryReport');
     Route::get('/inventory_export/', 'ProductTransitionController@exportInventoryReport');
+    Route::get('/inventory_export_pdf/', 'ProductTransitionController@getInventoryReport')->name('inventory_export_pdf');; //Kamlesh
 
     Route::get('/so_product_report/', 'OrderController@getSOProductReport');
     Route::get('/so_product_export/', 'OrderController@exportSOProductReport');
@@ -145,7 +163,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/currency_gain_loss_export/', 'PurchaseCollectionController@exportCurrencyGainLossReport');
 
     Route::get('/sale_currency_gain_loss_report/', 'CollectionController@getCurrencyGainLossReport');
-    Route::get('/sale_currency_gain_loss_export/', 'CollectionController@exportCurrencyGainLossReport');    
+    Route::get('/sale_currency_gain_loss_export/', 'CollectionController@exportCurrencyGainLossReport');
     Route::get('/sale_return_report/', 'SaleReturnController@getSaleReturnReport');
     Route::get('/sale_return_export/', 'SaleReturnController@exportSaleReturnReport');
 
@@ -164,115 +182,119 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::resource('sale_advance', 'SaleAdvanceController');
     Route::resource('purchase_advance', 'PurchaseAdvanceController');
     //Route for Import (Migration)
-    Route::post('/import/uom','UomController@import');
-    Route::post('/import/brand','BrandController@import');
-    Route::post('/import/category','CategoryController@import');
-    Route::post('/import/warehouse','WarehouseController@import');
-    Route::post('/import/township','TownshipController@import');
-    Route::post('/import/customer','CustomerController@import');
-    Route::post('/import/product','ProductController@import');
-    Route::post('/import/state','StateController@import');
-    Route::post('/import/customer_type','CustomerTypeController@import');
-    Route::post('/import/product_min_percentage_qty','ProductController@qtyImport');
+    Route::post('/import/uom', 'UomController@import');
+    Route::post('/import/brand', 'BrandController@import');
+    Route::post('/import/category', 'CategoryController@import');
+    Route::post('/import/warehouse', 'WarehouseController@import');
+    Route::post('/import/township', 'TownshipController@import');
+    Route::post('/import/customer', 'CustomerController@import');
+    Route::post('/import/product', 'ProductController@import');
+    Route::post('/import/state', 'StateController@import');
+    Route::post('/import/customer_type', 'CustomerTypeController@import');
+    Route::post('/import/product_min_percentage_qty', 'ProductController@qtyImport');
     Route::get('/generate_purchase_invoice/{purchase_id}', 'PurchaseInvoiceController@generatePurchaseInvoicePDF');
     Route::get('/generate_sale_return/{return_id}', 'SaleReturnController@generateReturnPDF');
     Route::get('/generate_invoice/{sale_id}', 'SaleController@generateInvoicePDF');
     Route::get('/generate_order/{order_id}', 'OrderController@generateOrderPDF');
-    Route::group(['prefix'=>'supplier'],function() {
-        Route::get('','SupplierController@index');
-        Route::post('create','SupplierController@store');
-        Route::get('get_suppliers','SupplierController@getSupplier');
-        Route::get('/edit/{id}','SupplierController@edit');
-        Route::patch('{id}/update','SupplierController@update');
-        Route::get('supplier_status','SupplierController@changeStatus');
+    Route::group(['prefix' => 'supplier'], function () {
+        Route::get('', 'SupplierController@index');
+        Route::post('create', 'SupplierController@store');
+        Route::get('get_suppliers', 'SupplierController@getSupplier');
+        Route::get('/edit/{id}', 'SupplierController@edit');
+        Route::patch('{id}/update', 'SupplierController@update');
+        Route::get('supplier_status', 'SupplierController@changeStatus');
     });
-    Route::group(['prefix'=>'purchase'],function() {
-        Route::post('create','PurchaseInvoiceController@store');
-        Route::get('get_purchase_list','PurchaseInvoiceController@index');
-        Route::get('/{id}/edit',"PurchaseInvoiceController@edit");
-        Route::get('/{id}/destroy',"PurchaseInvoiceController@destroy");
-        Route::patch('/{id}/update',"PurchaseInvoiceController@update");
-        Route::get('/{id}/get_previous_balance','PurchaseInvoiceController@getPreviousBalance');
+    Route::group(['prefix' => 'purchase'], function () {
+        Route::post('create', 'PurchaseInvoiceController@store');
+        Route::get('get_purchase_list', 'PurchaseInvoiceController@index');
+        Route::get('/{id}/edit', "PurchaseInvoiceController@edit");
+        Route::get('/{id}/destroy', "PurchaseInvoiceController@destroy");
+        Route::patch('/{id}/update', "PurchaseInvoiceController@update");
+        Route::get('/{id}/get_previous_balance', 'PurchaseInvoiceController@getPreviousBalance');
     });
     Route::group(['prefix' => 'purchase_collection'], function () {
-        Route::get('get_collection','PurchaseCollectionController@getPurchaseCollection');
+        Route::get('get_collection', 'PurchaseCollectionController@getPurchaseCollection');
         Route::get('supplier_credit_purchase/{id}', 'PurchaseCollectionController@getSupplierCreditPurchase');
-        Route::post('store',"PurchaseCollectionController@store");
+        Route::post('store', "PurchaseCollectionController@store");
         Route::get('edit/{c_id}', 'PurchaseCollectionController@edit');
         Route::patch('update/{c_id}', 'PurchaseCollectionController@update');
         Route::delete('destroy/{id}', 'PurchaseCollectionController@destroy');
-
     });
     Route::group(['prefix' => 'account_head'], function () {
-        Route::get('get_all','AccountHeadController@getAll');
-        Route::get('get_financial_type/{type}','AccountHeadController@getFinancialType');
-        Route::get('edit/{id}','AccountHeadController@edit');
-        Route::post('store','AccountHeadController@store');
-        Route::get('change_status/{id}/{active}','AccountHeadController@changeStatus');
-        Route::patch('update/{id}','AccountHeadController@update');
-        Route::delete('destroy/{id}','AccountHeadController@destroy');
+        Route::get('get_all', 'AccountHeadController@getAll');
+        Route::get('get_financial_type/{type}', 'AccountHeadController@getFinancialType');
+        Route::get('edit/{id}', 'AccountHeadController@edit');
+        Route::post('store', 'AccountHeadController@store');
+        Route::get('change_status/{id}/{active}', 'AccountHeadController@changeStatus');
+        Route::patch('update/{id}', 'AccountHeadController@update');
+        Route::delete('destroy/{id}', 'AccountHeadController@destroy');
     });
     Route::group(['prefix' => 'sub_account'], function () {
-        Route::get('get_all','SubAccountController@getAll');
-        Route::get('get_sub_account/{type}','SubAccountController@getSubAccount');
-        Route::get('get_account_type','SubAccountController@getAccountType');
-        Route::get('get_account_head','SubAccountController@getAccountHead');
-        Route::get('get_all_sub_account','SubAccountController@getAllSubAccount');
+        Route::get('get_all', 'SubAccountController@getAll');
+        Route::get('get_sub_account/{type}', 'SubAccountController@getSubAccount');
+        Route::get('get_account_type', 'SubAccountController@getAccountType');
+        Route::get('get_account_head', 'SubAccountController@getAccountHead');
+        Route::get('get_all_sub_account', 'SubAccountController@getAllSubAccount');
 
-        Route::get('change_status/{id}/{active}','SubAccountController@changeStatus');
-        Route::get('edit/{id}','SubAccountController@edit');
-        Route::post('store','SubAccountController@store');
-        Route::patch('update/{id}','SubAccountController@update');
-        Route::delete('destroy/{id}','SubAccountController@destroy');
-        Route::get('get_sub_account_by_account_head/{id}','SubAccountController@getSubAccountByAccountHead');
-
+        Route::get('change_status/{id}/{active}', 'SubAccountController@changeStatus');
+        Route::get('edit/{id}', 'SubAccountController@edit');
+        Route::post('store', 'SubAccountController@store');
+        Route::patch('update/{id}', 'SubAccountController@update');
+        Route::delete('destroy/{id}', 'SubAccountController@destroy');
+        Route::get('get_sub_account_by_account_head/{id}', 'SubAccountController@getSubAccountByAccountHead');
     });
     Route::group(['prefix' => 'receipt'], function () {
-        Route::get('get_all','ReceiptController@getAll');
-        Route::get('edit/{id}','ReceiptController@edit');
-        Route::post('store','ReceiptController@store');
-        Route::patch('update/{id}','ReceiptController@update');
-        Route::delete('destroy/{id}','ReceiptController@destroy');    });
+        Route::get('get_all', 'ReceiptController@getAll');
+        Route::get('edit/{id}', 'ReceiptController@edit');
+        Route::post('store', 'ReceiptController@store');
+        Route::patch('update/{id}', 'ReceiptController@update');
+        Route::delete('destroy/{id}', 'ReceiptController@destroy');
+    });
     Route::group(['prefix' => 'payment'], function () {
-        Route::get('get_all','PaymentController@getAll');
-        Route::get('edit/{id}','PaymentController@edit');
-        Route::post('store','PaymentController@store');
-        Route::patch('update/{id}','PaymentController@update');
-        Route::delete('destroy/{id}','PaymentController@destroy');
+        Route::get('get_all', 'PaymentController@getAll');
+        Route::get('edit/{id}', 'PaymentController@edit');
+        Route::post('store', 'PaymentController@store');
+        Route::patch('update/{id}', 'PaymentController@update');
+        Route::delete('destroy/{id}', 'PaymentController@destroy');
     });
     Route::group(['prefix' => 'report'], function () {
-        Route::get('get_all_cashbook','AccountTransitionController@getAllCashbook');
-        Route::get('get_all_ledger','AccountTransitionController@getAllLedger');
-        Route::get('/daily_purchase_product_report/', ['App\Http\Controllers\PurchaseInvoiceController','getDailyPurchaseProductReport']);
-        Route::get('get_credit_payment_report',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport']);
-        Route::get('credit_payment_export',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport'])->name('credit_payment_export');
-        Route::get('get_purchase_outstanding',['App\Http\Controllers\PurchaseCollectionController','getPurchaseOutStanding']);
-        Route::get('purchase_outstanding_export',['App\Http\Controllers\PurchaseCollectionController','getPurchaseOutStanding'])->name('purchase_outstanding_export');
-        Route::get('get_sale_outstanding',['App\Http\Controllers\CollectionController','getSaleOutstanding']);
-        Route::get('sale_outstanding_export',['App\Http\Controllers\CollectionController','getSaleOutstanding'])->name('sale_outstanding_export');
-        Route::get('get_credit_collection',['App\Http\Controllers\CollectionController','getCreditCollectionReport']);
-        Route::get('credit_collection_export',['App\Http\Controllers\CollectionController','getCreditCollectionReport'])->name('credit_collection_export');
-        Route::get('get_valuation',['App\Http\Controllers\ProductTransitionController','getValuationReport']);
-        Route::get('profit_and_loss',['App\Http\Controllers\AccountTransitionController','getProfitAndLossReport']);
-        Route::get('export_p_and_l_pdf',['App\Http\Controllers\AccountTransitionController','getProfitAndLossReport'])->name('export_p_and_l_pdf');
+        Route::get('get_all_cashbook', 'AccountTransitionController@getAllCashbook');
+        Route::get('get_all_ledger', 'AccountTransitionController@getAllLedger');
+        Route::get('/daily_purchase_product_report/', ['App\Http\Controllers\PurchaseInvoiceController', 'getDailyPurchaseProductReport']);
+        Route::get('get_credit_payment_report', ['App\Http\Controllers\PurchaseCollectionController', 'getCreditPaymentReport']);
+        Route::get('credit_payment_export', ['App\Http\Controllers\PurchaseCollectionController', 'getCreditPaymentReport'])->name('credit_payment_export');
+
+        Route::get('get_purchase_outstanding', ['App\Http\Controllers\PurchaseCollectionController', 'getPurchaseOutStanding']);
+        Route::get('purchase_outstanding_export', ['App\Http\Controllers\PurchaseCollectionController', 'getPurchaseOutStanding'])->name('purchase_outstanding_export');
+        Route::get('purchase_outstanding_export_pdf', ['App\Http\Controllers\PurchaseCollectionController', 'getPurchaseOutstanding'])->name('purchase_outstanding_export_pdf'); //Kamlesh
+
+        Route::get('get_sale_outstanding', ['App\Http\Controllers\CollectionController', 'getSaleOutstanding']);
+        Route::get('sale_outstanding_export', ['App\Http\Controllers\CollectionController', 'getSaleOutstanding'])->name('sale_outstanding_export');
+        Route::get('sale_outstanding_export_pdf', ['App\Http\Controllers\CollectionController', 'getSaleOutstanding'])->name('sale_outstanding_export_pdf'); //kamlesh
+        Route::get('get_credit_collection', ['App\Http\Controllers\CollectionController', 'getCreditCollectionReport']);
+        Route::get('credit_collection_export', ['App\Http\Controllers\CollectionController', 'getCreditCollectionReport'])->name('credit_collection_export');
+        Route::get('get_valuation', ['App\Http\Controllers\ProductTransitionController', 'getValuationReport']);
+        Route::get('get_valuation_export_pdf', ['App\Http\Controllers\ProductTransitionController', 'getValuationReport'])->name('get_valuation_export_pdf'); //kamlesh
+        Route::get('profit_and_loss', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport']);
+        Route::get('export_p_and_l_pdf', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport'])->name('export_p_and_l_pdf');
     });
     Route::group(['prefix' => 'supplier_ob'], function () {
-        Route::get('',['\App\Http\Controllers\SupplierOpeningBalanceController','index']);
-        Route::get('edit/{id}',['\App\Http\Controllers\SupplierOpeningBalanceController','edit']);
-        Route::post('store',['\App\Http\Controllers\SupplierOpeningBalanceController','store']);
-        Route::patch('update/{id}',['\App\Http\Controllers\SupplierOpeningBalanceController','update']);
-        Route::delete('{id}/destroy',['\App\Http\Controllers\SupplierOpeningBalanceController','destroy']);
+        Route::get('', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'index']);
+        Route::get('edit/{id}', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'edit']);
+        Route::post('store', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'store']);
+        Route::patch('update/{id}', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'update']);
+        Route::delete('{id}/destroy', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'destroy']);
     });
     Route::group(['prefix' => 'customer_ob'], function () {
-        Route::get('',['\App\Http\Controllers\CustomerOpeningBalanceController','index']);
-        Route::get('edit/{id}',['\App\Http\Controllers\CustomerOpeningBalanceController','edit']);
-        Route::post('store',['\App\Http\Controllers\CustomerOpeningBalanceController','store']);
-        Route::patch('update/{id}',['\App\Http\Controllers\CustomerOpeningBalanceController','update']);
-        Route::delete('{id}/destroy',['\App\Http\Controllers\CustomerOpeningBalanceController','destroy']);
+        Route::get('', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'index']);
+        Route::get('edit/{id}', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'edit']);
+        Route::post('store', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'store']);
+        Route::patch('update/{id}', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'update']);
+        Route::delete('{id}/destroy', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'destroy']);
     });
-    Route::resource('inventory_adjustment','InventoryAdjustmentController');
-    Route::post('landed_costing/create','LandedCostingController@store');
-    Route::resource('landed_costing','LandedCostingController');
+    Route::resource('inventory_adjustment', 'InventoryAdjustmentController');
+    Route::post('landed_costing/create', 'LandedCostingController@store');
+    Route::resource('landed_costing', 'LandedCostingController');
 
     Route::resource('currency', 'CurrencyController');
     Route::get('/currency_status/{id}/{status}', 'CurrencyController@updateStatus');

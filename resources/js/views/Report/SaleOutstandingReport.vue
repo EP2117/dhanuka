@@ -175,23 +175,17 @@
 <!--                            <option value="DESC">Descending</option>-->
 <!--                        </select>-->
 <!--                    </div>-->
-
-                        <div class="text-right form-group mt-4" >
-                           <div class="text-right mb-2" v-if="out_count > 0">
-                               <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
-                           </div>
-                       </div>
-                   
-<!--                    <div class="text-right form-group mt-4" >-->
-<!--                        <div class="text-right mb-2" v-if="payments.length > 0">-->
-<!--                            <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-                <!-- end sort by -->
-                <!--<div class="text-right mb-2" v-if="sales.length > 0">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
-                </div>-->
+                <!-- Kamlesh Start -->
+                <div class="text-right form-group mt-4" >
+                    <div class="mb-2" v-if="out_count > 0" style="display:inline-block">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                        
+                    </div>
+                    <div class="mb-2 pl-2" v-if="out_count> 0" style="display:inline-block;">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
+                    </div>
+                </div>
+                <!-- Kamlesh End -->
                 <div class="table-responsive" v-if="out_count>0">
                     <table class="table table-bordered table-striped table_no" id="dataTable" width="100%" cellspacing="0">  <!--kamlesh-->
                         <thead>
@@ -682,6 +676,62 @@ export default {
             //window.open(baseurl+'/daily_sale_product_export?'+search);
             window.open(this.site_path+'/report/sale_outstanding_export?'+search);
         },
+
+         //Kamlesh Start
+         exportPdf() {   
+
+                let app = this;
+                if(this.search.from_date == "") {                  
+                    swal("Warning!", "From Date must be added!", "warning")
+                    return false;
+                } 
+                else {
+                    $("#loading").show();
+                }
+
+                var search =
+                "&from_date=" +
+                app.search.from_date +
+                "&to_date=" +
+                app.search.to_date +
+                "&due_date=" +
+                app.search.due_date +
+                "&invoice_no=" +
+                app.search.invoice_no +
+                "&branch_id=" +
+                app.search.branch_id +
+                "&sale_man_id=" +
+                app.search.sale_man_id +
+                "&product_name=" +
+                app.search.product_name +
+                "&invoice_type=" +
+                app.search.invoice_type +
+                "&currency_id=" +
+                app.search.currency_id +
+                "&sign=" +
+                app.sign+
+                "&customer_id=" +
+                app.search.customer_id +
+                "&brand_id=" +
+                app.search.branch_id +
+                "&state_id=" +
+                app.search.state_id +
+                "&township_id=" +
+                app.search.township_id; 
+                    
+
+                axios.get("/report/sale_outstanding_export_pdf?" + search, {responseType: 'blob'}).then(response => {
+                    $('#loading').hide();
+                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                    window.open(url);
+
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+
+            },
+        // Kamlesh End
 
         dateFormat(d) {
             return moment(d).format('YYYY-MM-DD');

@@ -444,6 +444,7 @@
                     "&sort_by=" +
                     app.search.sort_by;
 
+
                     axios.get("/product?page=" + page + search).then(function(response) {
                         $("#loading").hide();
                         let data = response.data.data;
