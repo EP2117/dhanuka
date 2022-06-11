@@ -537,8 +537,8 @@ trait Ledger
                 $total_credit =0;
                 $total_debit  =0;
                 foreach($ats as $k=>$at){
-                    $total_debit += $at->debit;
-                    $total_credit += $at->credit;
+                    $total_debit += abs($at->debit);
+                    $total_credit += abs($at->credit);
                 }
                 $ledger[$key]->total_credit=$total_credit;
                 $ledger[$key]->total_debit=$total_debit;

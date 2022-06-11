@@ -415,13 +415,17 @@ class CustomerController extends Controller
     }
 
     public function getCustomerWiseList(Request $request) {
+        ini_set('memory_limit','512M');
+        ini_set('max_execution_time', 240);
+         $data = DB::table("states")
+                    ->select(DB::raw("cus_category.*, townships.id as tsp_id, townships.township_name, states.state_name,cus_product.product_name,cus_product.product_id"))
 
-         $data = DB::table("townships")
-                    ->select(DB::raw("cus_category.*, townships.township_name, states.state_name,cus_product.product_name,cus_product.product_id"))                    
+                    ->leftjoin('townships', 'townships.state_id', '=', 'states.id') 
+
                     ->leftjoin(DB::raw("(SELECT customers.*, GROUP_CONCAT(cc.category_name) as category_name, GROUP_CONCAT(cc.category_id) as category_id, GROUP_CONCAT(cc.cat_product_id SEPARATOR '_') as cat_product_id FROM customers LEFT JOIN (SELECT cate.category_name, cate.cat_product_id, category_customer.customer_id, category_customer.category_id FROM category_customer LEFT JOIN (SELECT categories.*, GROUP_CONCAT(products.id) as cat_product_id FROM categories LEFT JOIN products ON products.category_id = categories.id GROUP BY products.category_id) as cate ON category_customer.category_id = cate.id) as cc ON cc.customer_id = customers.id GROUP BY customers.id) as cus_category"),function($join){
                             $join->on("cus_category.township_id","=","townships.id");
                         })
-                    ->leftjoin('states', 'states.id', '=', 'cus_category.state_id')
+                    //->leftjoin('states', 'states.id', '=', 'cus_category.state_id')
                     ->leftjoin(DB::raw("(SELECT product_customer.customer_id, GROUP_CONCAT(products.product_name) as product_name, GROUP_CONCAT(products.id) as product_id FROM product_customer LEFT JOIN products ON product_customer.product_id = products.id GROUP BY product_customer.customer_id) as cus_product"),function($join){
                             $join->on("cus_product.customer_id","=","cus_category.id");
                         });
@@ -509,8 +513,9 @@ class CustomerController extends Controller
         }
 
         $data = $data->whereNotNull('states.state_name');
-        $data = $data->whereNotNull('cus_category.id');
+        //$data = $data->whereNotNull('townships.township_name');
         $data = $data->orderBy('states.state_name')->orderBy('townships.township_name')->get();
+        //dd($data);
         return $data;
     }
 
@@ -532,8 +537,6 @@ class CustomerController extends Controller
     public function exportCustomerWiseReportPdf(Request $request)
     {
         $data = $this->getCustomerWiseList($request);
-
-
         $pdf = PDF::loadView('exports.customer_wise_pdf', compact('data','request'));
         $pdf->setPaper('a4' , 'portrait');
        // $output = $pdf->output();

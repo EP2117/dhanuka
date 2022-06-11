@@ -5,13 +5,13 @@
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/report'">Report</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Category Wise Contact Report</li>
+                <li class="breadcrumb-item active" aria-current="page">Category and Product Name Wise Report</li>
 
             </ol>
         </nav>
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h4 class="mb-0 text-gray-800">Category Wise Contact Report</h4>
+            <h4 class="mb-0 text-gray-800">Category and Product Name Wise Report</h4>
            <!-- <router-link to="/inventory/transfer/new" class="d-sm-inline-block btn btn-primary shadow-sm inventory">
                 <i class="fas fa-plus"></i> Add New Transfer
             </router-link>-->
@@ -110,7 +110,7 @@
         <!-- table start -->
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Category Wise Contact List</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Category and Product Name Wise Report</h6>
             </div>
             <div class="card-body">
                 <div class="text-right form-group" >
@@ -158,7 +158,7 @@
                                 <th class="text-center">No.</th>
                                 <th style="width:360px;">
                                  <div style="float:left;width:150px;padding:0;margin:0">Category</div>
-                                 <div style="float:left;width:150px;padding:0;margin:0">Product</div>
+                                 <div style="float:left;width:150px;padding:0;margin:0">Product Name/Model Name</div>
                                 </th>
                                 <!--<th class="text-center">Product</th>-->
                                 <th>Customer Code</th>
@@ -168,13 +168,13 @@
                         </thead>
                         <tbody :set="j=0">
                             <template v-for="c,i in results" >
-                                <tr v-if="i==0 || (c.state_id != results[i-1].state_id)">
+                                <tr v-if="i==0 || (c.state_name != results[i-1].state_name)">
                                     <td class="text-center" colspan="5" ><b>State - {{c.state_name}}</b></td>
                                 </tr>
-                                <tr v-if="i==0 || (c.township_id != results[i-1].township_id)">
+                                <tr v-if="i==0 || (c.township_name != results[i-1].township_name)">
                                     <td class="text-center" colspan="5" ><b>Township - {{c.township_name}}</b></td>
                                 </tr>
-                                <tr style="border:solid 1px #ccc">
+                                <tr style="border:solid 1px #ccc"  v-if="c.id != null" >
                                     <td class="text-right" v-if="c.id != null" style="vertical-align:middle; border-left:solid 2px #ccc;border-right:solid 1px #ccc;">{{j= j+1}}</td>
                                     <td v-else style="vertical-align:middle;border-left:solid 2px #ccc;border-right:solid 1px #ccc;"></td>
                                     
@@ -555,6 +555,7 @@
                 let app = this;
                 var categories = $("#categories").val().join(',');
                 var products = $("#products").val().join(',');
+                $("#loading").show();
               var search =
                     "&category_id=" +
                     app.search.category_id +

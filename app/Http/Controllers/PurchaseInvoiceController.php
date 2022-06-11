@@ -15,13 +15,17 @@ use App\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Exports\DailyPurchaseProductExport;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PurchaseInvoiceController extends Controller
 {
     use GetReport;
     use Ledger;
     public function index(Request  $request){
-        $data=PurchaseInvoice::where('is_opening',0);
+        $data=PurchaseInvoice::with('currency')->where('is_opening',0);
         if($request->invoice_no != ""){
             $data->where('invoice_no', $request->invoice_no);
         }
@@ -132,70 +136,140 @@ class PurchaseInvoiceController extends Controller
                 //EP Start
                 //get customer's sale advance
                 $supplier_advance = 0;
-                $advance = DB::table("purchase_advances")
+                $supplier_advance_fx = 0;
 
-                            ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
-                            ->where('supplier_id','=',$request->supplier_id)
-                            ->first();
-                if(!empty($advance)) {
-                    $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
-                    $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
-                    $supplier_advance = $in - $out;
-                }
+                if($request->currency_id == 1) {
+                    //Start For MMK Currency
+                    $advance = DB::table("purchase_advances")
 
-                if($supplier_advance == 0 || ($supplier_advance > 0 && $request->pay_amount == 0)) {
-                    // cashbook
-                    if($request->supplier_advance == 0) {
-                        if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
-                            AccountTransition::create([
-                                'sub_account_id' => $sub_account_id,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'credit' => $amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-                        }
-                        // end cashbook 
-
-                        // for ledger 
-                        $this->storePurchaseInLedger($p);
-                        // end ledger
-                    } else {
-                        AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+                                ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->first();
+                    if(!empty($advance)) {
+                        $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                        $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                        $supplier_advance = $in - $out;
                     }
-                }
-                else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
-                    AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+
+                    if($supplier_advance == 0 || ($supplier_advance > 0 && $request->pay_amount == 0)) {
+                        // cashbook
+                        if($request->supplier_advance == 0) {
+                            if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
+                                AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                            }
+                            // end cashbook 
+
+                            // for ledger 
+                            $this->storePurchaseInLedger($p);
+                            // end ledger
+                        } else {
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                        }
+                    }
+                    else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
+                        AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            $obj = new PurchaseAdvance;
+                            $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                            if($max_id) {
+                                $max_id = $max_id + 1;
+                            }else {
+                                $max_id = 1;
+                            }
+                            $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                            $obj->advance_no = $advance_no;
+                            $obj->advance_date = $request->invoice_date;
+                            $obj->supplier_id = $request->supplier_id;
+                            $obj->purchase_id = $p->id;
+                            $obj->amount = $request->pay_amount;
+                            $obj->advance_type = 'out';
+                            $obj->created_by = Auth::user()->id;
+                            $obj->save();
+                        
+                    }
+                    else if($supplier_advance < $request->pay_amount) {
+                        $paid_amt = $request->pay_amount - $supplier_advance;
+                        // add in cashbook
+                            AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            //add  in ledger
+
+                            AccountTransition::create([
+                                    'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
 
                         $obj = new PurchaseAdvance;
                         $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
@@ -208,81 +282,404 @@ class PurchaseInvoiceController extends Controller
 
                         $obj->advance_no = $advance_no;
                         $obj->advance_date = $request->invoice_date;
-                        $obj->supplier_id = $request->supplier_id;
+                        $obj->supplier_id = $p->supplier_id;
                         $obj->purchase_id = $p->id;
-                        $obj->amount = $request->pay_amount;
+                        $obj->amount = $supplier_advance;
                         $obj->advance_type = 'out';
                         $obj->created_by = Auth::user()->id;
                         $obj->save();
-                    
-                }
-                else if($supplier_advance < $request->pay_amount) {
-                    $paid_amt = $request->pay_amount - $supplier_advance;
-                    // add in cashbook
-                        AccountTransition::create([
-                                'sub_account_id' => $sub_account_id,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'credit' => $paid_amt,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+                        
+                    } else {
 
-                        //add  in ledger
-
-                        AccountTransition::create([
-                                'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'credit' => $paid_amt,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-
-                        AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-
-                    $obj = new PurchaseAdvance;
-                    $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
-                    if($max_id) {
-                        $max_id = $max_id + 1;
-                    }else {
-                        $max_id = 1;
                     }
-                    $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+                    //MMK end
+                }
+                else {
+                    //Foreign Currency Start
+                    $advance = DB::table("purchase_advances")
 
-                    $obj->advance_no = $advance_no;
-                    $obj->advance_date = $request->invoice_date;
-                    $obj->supplier_id = $p->supplier_id;
-                    $obj->purchase_id = $p->id;
-                    $obj->amount = $supplier_advance;
-                    $obj->advance_type = 'out';
-                    $obj->created_by = Auth::user()->id;
-                    $obj->save();
-                    
-                } else {
+                                ->select(DB::raw("SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='in' THEN amount_fx ELSE 0 END)  as advance_amount_in_fx, SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='out' THEN amount_fx ELSE 0 END)  as advance_amount_out_fx, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->first();
+                    if(!empty($advance)) {
+                        $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                        $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                        $supplier_advance = $in - $out;
 
+                        $in_fx = $advance->advance_amount_in_fx == NULL ? 0 : $advance->advance_amount_in_fx;
+                        $out_fx = $advance->advance_amount_out_fx == NULL ? 0 : $advance->advance_amount_out_fx;
+                        $supplier_advance_fx = $in_fx - $out_fx;
+                    }
+
+                    if($supplier_advance_fx == 0 || ($supplier_advance_fx > 0 && $request->pay_amount_fx == 0)) {
+                        // cashbook
+                        if($request->supplier_advance_fx == 0) {
+                            if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
+                                AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                            }
+                            // end cashbook 
+
+                            // for ledger 
+                            $this->storePurchaseInLedger($p);
+                            // end ledger
+                        } else {
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                        }
+                    }
+                    else if(($supplier_advance_fx > $request->pay_amount_fx) || $supplier_advance_fx == $request->pay_amount_fx) {
+                        AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);                       
+
+                            //Start => sale advance amount first in first out process and calculate gain/loss
+                            $p_adv = DB::table("purchase_advances")
+
+                                ->select(DB::raw("purchase_advances.*"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->where('balance','!=',0)
+                                ->orderBy('advance_date', 'ASC')                                
+                                ->get();
+                            if(!empty($p_adv)) {
+                                $payAmount = $request->pay_amount_fx;
+                                $payAmountFx = 0;
+                                foreach($p_adv as $pa) {
+                                    if($payAmount != 0) {
+                                        if($pa->balance < $payAmount) {
+
+                                            $p->advances()->attach($pa->id,['amount_fx' => $pa->balance]);
+                                            $payAmountFx = $payAmountFx + $pa->balance;
+                                            DB::table('purchase_advances')
+                                                ->where('id', $pa->id)
+                                                ->update(array('balance' => 0));
+                                            if($pa->currency_rate > $request->currency_rate) {
+                                                //loss
+                                                $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 80,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Loss Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'debit' => $loss_amt,
+                                                    'status'=>'loss',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]); 
+                                            }
+                                            if($pa->currency_rate < $request->currency_rate) {
+                                                //gain
+                                                $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 79,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Gain Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'credit' => $gain_amt,
+                                                    'status'=>'gain',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]);
+                                            }
+                                            $payAmount = $payAmount - $pa->balance;
+                                        } else {
+                                            // pa->balance >= $payAmount  process
+                                            $p->advances()->attach($pa->id,['amount_fx' => $payAmount]);
+                                            $payAmountFx = $payAmountFx + $payAmount;
+                                            DB::table('purchase_advances')
+                                                ->where('id', $pa->id)
+                                                ->update(array('balance' => $pa->balance - $payAmount));
+                                            if($pa->currency_rate > $request->currency_rate) {
+                                                //loss
+                                                $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 80,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Loss Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'debit' => $loss_amt,
+                                                    'status'=>'loss',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]); 
+                                            }
+                                            if($pa->currency_rate < $request->currency_rate) {
+                                                //gain
+                                                $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 79,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Gain Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'credit' => $gain_amt,
+                                                    'status'=>'gain',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]);
+                                            }
+                                            $payAmount = 0;
+                                            // end =>  pa->balance >= $payAmount  process
+                                        }
+
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            //End => sale advance amount first in first out process and calculate gain/loss
+
+                            $obj = new PurchaseAdvance;
+                            $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                            if($max_id) {
+                                $max_id = $max_id + 1;
+                            }else {
+                                $max_id = 1;
+                            }
+                            $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                            $obj->advance_no = $advance_no;
+                            $obj->advance_date = $request->invoice_date;
+                            $obj->supplier_id = $request->supplier_id;
+                            $obj->purchase_id = $p->id;
+                            //$obj->amount_fx = $request->pay_amount_fx;
+                            $obj->currency_rate = $request->currency_rate;
+                            $obj->amount_fx = $payAmountFx;
+                            $obj->amount = $request->pay_amount;
+                            $obj->advance_type = 'out';
+                            $obj->created_by = Auth::user()->id;
+                            $obj->save();
+                        
+                    }
+                    else if($supplier_advance_fx < $request->pay_amount_fx) {
+                        $paid_amt = $request->pay_amount - ($supplier_advance_fx * $request->currency_rate);
+                        // add in cashbook
+                            AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            //add  in ledger
+
+                            AccountTransition::create([
+                                    'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                        //Start => sale advance amount first in first out process and calculate gain/loss
+                        $p_adv = DB::table("purchase_advances")
+
+                            ->select(DB::raw("purchase_advances.*"))
+                            ->where('supplier_id','=',$request->supplier_id)
+                            ->where('balance','!=',0)
+                            ->orderBy('advance_date', 'ASC')                                
+                            ->get();
+                        if(!empty($p_adv)) {
+                            $payAmount = $request->pay_amount_fx;
+                            $payAmountFx = $supplier_advance_fx;
+                            foreach($p_adv as $pa) {
+                                if($payAmount > 0 && $payAmount != 0) {
+                                    if($pa->balance < $payAmount) {
+                                        $p->advances()->attach($pa->id,['amount_fx' => $pa->balance]);
+                                        //$payAmountFx = $payAmountFx + $pa->balance;
+                                        DB::table('purchase_advances')
+                                            ->where('id', $pa->id)
+                                            ->update(array('balance' => 0));
+                                        if($pa->currency_rate > $request->currency_rate) {
+                                            //loss
+                                            $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 80,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Loss Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'debit' => $loss_amt,
+                                                'status'=>'loss',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]); 
+                                        }
+                                        if($pa->currency_rate < $request->currency_rate) {
+                                            //gain
+                                            $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 79,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Gain Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'credit' => $gain_amt,
+                                                'status'=>'gain',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]);
+                                        }
+                                        $payAmount = $payAmount - $pa->balance;
+                                    } else {
+                                        // pa->balance >= $payAmount  process
+                                        $p->advances()->attach($pa->id,['amount_fx' => $payAmount]);
+                                        //$payAmountFx = $payAmountFx + $payAmount;
+                                        DB::table('purchase_advances')
+                                            ->where('id', $pa->id)
+                                            ->update(array('balance' => $pa->balance - $payAmount));
+                                        if($pa->currency_rate > $request->currency_rate) {
+                                            //loss
+                                            $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 80,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Loss Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'debit' => $loss_amt,
+                                                'status'=>'loss',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]); 
+                                        }
+                                        if($pa->currency_rate < $request->currency_rate) {
+                                            //gain
+                                            $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 79,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Gain Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'credit' => $gain_amt,
+                                                'status'=>'gain',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]);
+                                        }
+                                        $payAmount = 0;
+                                        // end =>  pa->balance >= $payAmount  process
+                                    }
+
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        //End => sale advance amount first in first out process and calculate gain/loss
+
+                        $obj = new PurchaseAdvance;
+                        $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                        if($max_id) {
+                            $max_id = $max_id + 1;
+                        }else {
+                            $max_id = 1;
+                        }
+                        $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                        $obj->advance_no = $advance_no;
+                        $obj->advance_date = $request->invoice_date;
+                        $obj->supplier_id = $p->supplier_id;
+                        $obj->purchase_id = $p->id;
+                        $obj->currency_id = $request->currency_rate;
+                        $obj->amount_fx = $payAmountFx;
+                        $obj->amount = $supplier_advance_fx * $request->currency_rate;
+                        //$obj->amount = $supplier_advance;
+                        $obj->advance_type = 'out';
+                        $obj->created_by = Auth::user()->id;
+                        $obj->save();
+                        
+                    } else {
+
+                    }
+                    //End Foreign Currency
                 }
                 //EP End
             }
@@ -438,8 +835,15 @@ class PurchaseInvoiceController extends Controller
             $this->updatePurchaseInLedger($p);***/
             //K End
             //EP Start
-                AccountTransition::where('purchase_id',$id)
+                /**AccountTransition::where('purchase_id',$id)
                                     ->where('status','purchase')
+                                    ->delete();**/
+                AccountTransition::where('purchase_id',$id)
+                                    ->where(function($query) {
+                                            $query->where('status','purchase')
+                                                  ->orWhere('status','gain')
+                                                  ->orWhere('status','loss');
+                                        })
                                     ->delete();
 
                 PurchaseAdvance::where('purchase_id',$id)
@@ -447,70 +851,138 @@ class PurchaseInvoiceController extends Controller
                             ->delete();
                 //get supplier's purchase advance
                 $supplier_advance = 0;
-                $advance = DB::table("purchase_advances")
+                $supplier_advance_fx = 0;
+                if($request->currency_id == 1) {
+                    $advance = DB::table("purchase_advances")
 
-                            ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
-                            ->where('supplier_id','=',$request->supplier_id)
-                            ->first();
-                if(!empty($advance)) {
-                    $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
-                    $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
-                    $supplier_advance = $in - $out;
-                }
-
-                if($supplier_advance == 0 || ($supplier_advance > 0 && $request->pay_amount == 0)) {
-                    // cashbook
-                    if($request->supplier_advance == 0) {
-                        if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
-                            AccountTransition::create([
-                                'sub_account_id' => $sub_account_id,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'credit' => $amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-                        }
-                        // end cashbook 
-
-                        // for ledger 
-                        $this->storePurchaseInLedger($p);
-                        // end ledger
-                    } else {
-                        AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+                                ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->first();
+                    if(!empty($advance)) {
+                        $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                        $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                        $supplier_advance = $in - $out;
                     }
-                }
-                else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
-                    AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+
+                    if($supplier_advance == 0 || ($supplier_advance > 0 && $request->pay_amount == 0)) {
+                        // cashbook
+                        if($request->supplier_advance == 0) {
+                            if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
+                                AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                            }
+                            // end cashbook 
+
+                            // for ledger 
+                            $this->storePurchaseInLedger($p);
+                            // end ledger
+                        } else {
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                        }
+                    }
+                    else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
+                        AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            $obj = new PurchaseAdvance;
+                            $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                            if($max_id) {
+                                $max_id = $max_id + 1;
+                            }else {
+                                $max_id = 1;
+                            }
+                            $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                            $obj->advance_no = $advance_no;
+                            $obj->advance_date = $request->invoice_date;
+                            $obj->supplier_id = $request->supplier_id;
+                            $obj->purchase_id = $p->id;
+                            $obj->amount = $request->pay_amount;
+                            $obj->advance_type = 'out';
+                            $obj->created_by = Auth::user()->id;
+                            $obj->save();
+                        
+                    }
+                    else if($supplier_advance < $request->pay_amount) {
+                        $paid_amt = $request->pay_amount - $supplier_advance;
+                        // add in cashbook
+                            AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            //add  in ledger
+
+                            AccountTransition::create([
+                                    'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
 
                         $obj = new PurchaseAdvance;
                         $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
@@ -523,81 +995,418 @@ class PurchaseInvoiceController extends Controller
 
                         $obj->advance_no = $advance_no;
                         $obj->advance_date = $request->invoice_date;
-                        $obj->supplier_id = $request->supplier_id;
+                        $obj->supplier_id = $p->supplier_id;
                         $obj->purchase_id = $p->id;
-                        $obj->amount = $request->pay_amount;
+                        $obj->amount = $supplier_advance;
                         $obj->advance_type = 'out';
                         $obj->created_by = Auth::user()->id;
                         $obj->save();
-                    
-                }
-                else if($supplier_advance < $request->pay_amount) {
-                    $paid_amt = $request->pay_amount - $supplier_advance;
-                    // add in cashbook
-                        AccountTransition::create([
-                                'sub_account_id' => $sub_account_id,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=>$description,
-                                'is_cashbook' => 1,
-                                'status'=>'purchase',
-                                'credit' => $paid_amt,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
+                        
+                    } else {
 
-                        //add  in ledger
-
-                        AccountTransition::create([
-                                'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'credit' => $paid_amt,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-
-                        AccountTransition::create([
-                                'sub_account_id' => config('global.purchase'),
-                                'transition_date' => $p->invoice_date,
-                                'purchase_id' => $p->id,
-                                'supplier_id'=>$p->supplier_id,
-                                'vochur_no'=>$invoice_no,
-                                'description'=> '',
-                                'is_cashbook' => 0,
-                                'status'=>'purchase',
-                                'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
-                                'created_by' => Auth::user()->id,
-                                'updated_by' => Auth::user()->id,
-                            ]);
-
-                    $obj = new PurchaseAdvance;
-                    $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
-                    if($max_id) {
-                        $max_id = $max_id + 1;
-                    }else {
-                        $max_id = 1;
                     }
-                    $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
-
-                    $obj->advance_no = $advance_no;
-                    $obj->advance_date = $request->invoice_date;
-                    $obj->supplier_id = $p->supplier_id;
-                    $obj->purchase_id = $p->id;
-                    $obj->amount = $supplier_advance;
-                    $obj->advance_type = 'out';
-                    $obj->created_by = Auth::user()->id;
-                    $obj->save();
-                    
                 } else {
+                    //for foreign currency
+                    //Reset advance and remove in purchase_advance_links
+                    $old_advance = DB::table("purchase_advance_links")
 
+                                ->select(DB::raw("purchase_advance_links.*, purchase_advances.balance,purchase_advances.id"))
+                                ->leftjoin('purchase_advances', 'purchase_advances.id', '=', 'purchase_advance_links.advance_id')
+                                ->where('purchase_advance_links.purchase_id','=',$p->id)
+                                ->get();
+                    if(!empty($old_advance)) {
+                        foreach($old_advance as $a) {
+                            $balance = $a->balance + $a->amount_fx;
+                            DB::table('purchase_advances')
+                                ->where('id', $a->id)
+                                ->update(array('balance' => $balance));   
+                        }
+                    }
+
+                    $p->advances()->detach();
+
+                    $advance = DB::table("purchase_advances")
+
+                                ->select(DB::raw("SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='in' THEN amount_fx ELSE 0 END)  as advance_amount_in_fx, SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='out' THEN amount_fx ELSE 0 END)  as advance_amount_out_fx, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->first();
+                    if(!empty($advance)) {
+                        $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
+                        $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
+                        $supplier_advance = $in - $out;
+
+                        $in_fx = $advance->advance_amount_in_fx == NULL ? 0 : $advance->advance_amount_in_fx;
+                        $out_fx = $advance->advance_amount_out_fx == NULL ? 0 : $advance->advance_amount_out_fx;
+                        $supplier_advance_fx = $in_fx - $out_fx;
+                    }
+
+                    if($supplier_advance_fx == 0 || ($supplier_advance_fx > 0 && $request->pay_amount_fx == 0)) {
+                        // cashbook
+                        if($request->supplier_advance_fx == 0) {
+                            if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
+                                AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                            }
+                            // end cashbook 
+
+                            // for ledger 
+                            $this->storePurchaseInLedger($p);
+                            // end ledger
+                        } else {
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+                        }
+                    }
+                    else if(($supplier_advance_fx > $request->pay_amount_fx) || $supplier_advance_fx == $request->pay_amount_fx) {
+                        AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);                       
+
+                            //Start => sale advance amount first in first out process and calculate gain/loss
+                            $p_adv = DB::table("purchase_advances")
+
+                                ->select(DB::raw("purchase_advances.*"))
+                                ->where('supplier_id','=',$request->supplier_id)
+                                ->where('balance','!=',0)
+                                ->orderBy('advance_date', 'ASC')                                
+                                ->get();
+                            if(!empty($p_adv)) {
+                                $payAmount = $request->pay_amount_fx;
+                                $payAmountFx = 0;
+                                foreach($p_adv as $pa) {
+                                    if($payAmount != 0) {
+                                        if($pa->balance < $payAmount) {
+
+                                            $p->advances()->attach($pa->id,['amount_fx' => $pa->balance]);
+                                            $payAmountFx = $payAmountFx + $pa->balance;
+                                            DB::table('purchase_advances')
+                                                ->where('id', $pa->id)
+                                                ->update(array('balance' => 0));
+                                            if($pa->currency_rate > $request->currency_rate) {
+                                                //loss
+                                                $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 80,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Loss Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'debit' => $loss_amt,
+                                                    'status'=>'loss',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]); 
+                                            }
+                                            if($pa->currency_rate < $request->currency_rate) {
+                                                //gain
+                                                $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 79,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Gain Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'credit' => $gain_amt,
+                                                    'status'=>'gain',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]);
+                                            }
+                                            $payAmount = $payAmount - $pa->balance;
+                                        } else {
+                                            // pa->balance >= $payAmount  process
+                                            $p->advances()->attach($pa->id,['amount_fx' => $payAmount]);
+                                            $payAmountFx = $payAmountFx + $payAmount;
+                                            DB::table('purchase_advances')
+                                                ->where('id', $pa->id)
+                                                ->update(array('balance' => $pa->balance - $payAmount));
+                                            if($pa->currency_rate > $request->currency_rate) {
+                                                //loss
+                                                $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 80,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Loss Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'debit' => $loss_amt,
+                                                    'status'=>'loss',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]); 
+                                            }
+                                            if($pa->currency_rate < $request->currency_rate) {
+                                                //gain
+                                                $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
+                                                AccountTransition::create([
+                                                    'sub_account_id' => 79,
+                                                    'transition_date' => $request->invoice_date,
+                                                    'purchase_id' => $p->id,
+                                                    'purchase_advance_id' => $pa->id,
+                                                    'supplier_id'=>$pa->supplier_id,
+                                                    'is_cashbook' => 0,
+                                                    'description'=>'Gain Amount',
+                                                    'vochur_no'=>$pa->advance_no,
+                                                    'credit' => $gain_amt,
+                                                    'status'=>'gain',
+                                                    'created_by' => Auth::user()->id,
+                                                    'updated_by' => Auth::user()->id,
+                                                ]);
+                                            }
+                                            $payAmount = 0;
+                                            // end =>  pa->balance >= $payAmount  process
+                                        }
+
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            //End => sale advance amount first in first out process and calculate gain/loss
+
+                            $obj = new PurchaseAdvance;
+                            $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                            if($max_id) {
+                                $max_id = $max_id + 1;
+                            }else {
+                                $max_id = 1;
+                            }
+                            $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                            $obj->advance_no = $advance_no;
+                            $obj->advance_date = $request->invoice_date;
+                            $obj->supplier_id = $request->supplier_id;
+                            $obj->purchase_id = $p->id;
+                            $obj->currency_rate = $request->currency_rate;
+                            $obj->amount_fx = $payAmountFx;
+                            $obj->amount = $request->pay_amount;
+                            $obj->advance_type = 'out';
+                            $obj->created_by = Auth::user()->id;
+                            $obj->save();
+                        
+                    }
+                    else if($supplier_advance_fx < $request->pay_amount_fx) {
+                        $paid_amt = $request->pay_amount - ($supplier_advance_fx * $request->currency_rate);
+                        // add in cashbook
+                            AccountTransition::create([
+                                    'sub_account_id' => $sub_account_id,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=>$description,
+                                    'is_cashbook' => 1,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            //add  in ledger
+
+                            AccountTransition::create([
+                                    'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'credit' => $paid_amt,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                            AccountTransition::create([
+                                    'sub_account_id' => config('global.purchase'),
+                                    'transition_date' => $p->invoice_date,
+                                    'purchase_id' => $p->id,
+                                    'supplier_id'=>$p->supplier_id,
+                                    'vochur_no'=>$invoice_no,
+                                    'description'=> '',
+                                    'is_cashbook' => 0,
+                                    'status'=>'purchase',
+                                    'debit' => (int)$p->pay_amount+ (int)$p->balance_amount,
+                                    'created_by' => Auth::user()->id,
+                                    'updated_by' => Auth::user()->id,
+                                ]);
+
+                        //Start => sale advance amount first in first out process and calculate gain/loss
+                        $p_adv = DB::table("purchase_advances")
+
+                            ->select(DB::raw("purchase_advances.*"))
+                            ->where('supplier_id','=',$request->supplier_id)
+                            ->where('balance','!=',0)
+                            ->orderBy('advance_date', 'ASC')                                
+                            ->get();
+                        if(!empty($p_adv)) {
+                            $payAmount = $request->pay_amount_fx;
+                            $payAmountFx = $supplier_advance_fx;
+                            foreach($p_adv as $pa) {
+                                if($payAmount > 0 && $payAmount != 0) {
+                                    if($pa->balance < $payAmount) {
+                                        $p->advances()->attach($pa->id,['amount_fx' => $pa->balance]);
+                                        //$payAmountFx = $payAmountFx + $pa->balance;
+                                        DB::table('purchase_advances')
+                                            ->where('id', $pa->id)
+                                            ->update(array('balance' => 0));
+                                        if($pa->currency_rate > $request->currency_rate) {
+                                            //loss
+                                            $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 80,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Loss Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'debit' => $loss_amt,
+                                                'status'=>'loss',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]); 
+                                        }
+                                        if($pa->currency_rate < $request->currency_rate) {
+                                            //gain
+                                            $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 79,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Gain Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'credit' => $gain_amt,
+                                                'status'=>'gain',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]);
+                                        }
+                                        $payAmount = $payAmount - $pa->balance;
+                                    } else {
+                                        // pa->balance >= $payAmount  process
+                                        $p->advances()->attach($pa->id,['amount_fx' => $payAmount]);
+                                        //$payAmountFx = $payAmountFx + $payAmount;
+                                        DB::table('purchase_advances')
+                                            ->where('id', $pa->id)
+                                            ->update(array('balance' => $pa->balance - $payAmount));
+                                        if($pa->currency_rate > $request->currency_rate) {
+                                            //loss
+                                            $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 80,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Loss Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'debit' => $loss_amt,
+                                                'status'=>'loss',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]); 
+                                        }
+                                        if($pa->currency_rate < $request->currency_rate) {
+                                            //gain
+                                            $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
+                                            AccountTransition::create([
+                                                'sub_account_id' => 79,
+                                                'transition_date' => $request->invoice_date,
+                                                'purchase_id' => $p->id,
+                                                'purchase_advance_id' => $pa->id,
+                                                'supplier_id'=>$pa->supplier_id,
+                                                'is_cashbook' => 0,
+                                                'description'=>'Gain Amount',
+                                                'vochur_no'=>$pa->advance_no,
+                                                'credit' => $gain_amt,
+                                                'status'=>'gain',
+                                                'created_by' => Auth::user()->id,
+                                                'updated_by' => Auth::user()->id,
+                                            ]);
+                                        }
+                                        $payAmount = 0;
+                                        // end =>  pa->balance >= $payAmount  process
+                                    }
+
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        //End => sale advance amount first in first out process and calculate gain/loss
+
+                        $obj = new PurchaseAdvance;
+                        $max_id = PurchaseAdvance::where('advance_type','out')->max('advance_no');
+                        if($max_id) {
+                            $max_id = $max_id + 1;
+                        }else {
+                            $max_id = 1;
+                        }
+                        $advance_no = str_pad($max_id,5,"0",STR_PAD_LEFT);
+
+                        $obj->advance_no = $advance_no;
+                        $obj->advance_date = $request->invoice_date;
+                        $obj->supplier_id = $p->supplier_id;
+                        $obj->purchase_id = $p->id;
+                        $obj->amount_fx = $payAmountFx;
+                        $obj->currency_rate = $request->currency_rate;
+                        $obj->amount = $supplier_advance_fx * $request->currency_rate;
+                        //$obj->amount = $supplier_advance;
+                        $obj->advance_type = 'out';
+                        $obj->created_by = Auth::user()->id;
+                        $obj->save();
+                        
+                    } else {
+
+                    }
                 }
                 //EP End
 
@@ -711,16 +1520,46 @@ class PurchaseInvoiceController extends Controller
             ->where('transition_type','in')
             ->where('transition_purchase_id', $id)
             ->delete();
-        $p->delete();
+        
         if($p->payment_type=='cash'){
             $sub_account_id=config('global.cash_purchase');
         }else{
             $sub_account_id=config('global.purchase_advance');
         }
-        AccountTransition::where([
+
+        //for foreign currency
+        //Reset advance and remove in purchase_advance_links
+        $old_advance = DB::table("purchase_advance_links")
+
+                    ->select(DB::raw("purchase_advance_links.*, purchase_advances.balance,purchase_advances.id"))
+                    ->leftjoin('purchase_advances', 'purchase_advances.id', '=', 'purchase_advance_links.advance_id')
+                    ->where('purchase_advance_links.purchase_id','=',$p->id)
+                    ->get();
+        if(!empty($old_advance)) {
+            foreach($old_advance as $a) {
+                $balance = $a->balance + $a->amount_fx;
+                DB::table('purchase_advances')
+                    ->where('id', $a->id)
+                    ->update(array('balance' => $balance));   
+            }
+        }
+
+        $p->advances()->detach();
+
+        $p->delete();
+
+        AccountTransition::where('purchase_id',$id)
+                ->where(function($query) {
+                        $query->where('status','purchase')
+                              ->orWhere('status','gain')
+                              ->orWhere('status','loss');
+                    })
+                ->delete();
+
+        /**AccountTransition::where([
             ['purchase_id',$id],
             ['status','purchase']
-        ])->delete();
+        ])->delete();**/
 
         DB::table('purchase_advances')
                 ->where('purchase_id', $id)
@@ -743,17 +1582,28 @@ class PurchaseInvoiceController extends Controller
 
         //get supplier's purchase advance
         $supplier_advance = 0;
+        $supplier_advance_fx = 0;
         $advance = DB::table("purchase_advances")
 
-                    ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out"))
+                    ->select(DB::raw("SUM(CASE  WHEN amount IS NOT NULL AND advance_type='in' THEN amount ELSE 0 END)  as advance_amount_in, SUM(CASE  WHEN amount IS NOT NULL AND advance_type='out' THEN amount ELSE 0 END)  as advance_amount_out, SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='in' THEN amount_fx ELSE 0 END)  as advance_amount_in_fx, SUM(CASE  WHEN amount_fx IS NOT NULL AND advance_type='out' THEN amount_fx ELSE 0 END)  as advance_amount_out_fx, currency_id"))
                     ->where('supplier_id','=',$id)
                     ->first();
         if(!empty($advance)) {
             $in = $advance->advance_amount_in == NULL ? 0 : $advance->advance_amount_in;
             $out = $advance->advance_amount_out == NULL ? 0 : $advance->advance_amount_out;
             $supplier_advance = $in - $out;
+
+            $in_fx = $advance->advance_amount_in_fx == NULL ? 0 : $advance->advance_amount_in_fx;
+            $out_fx = $advance->advance_amount_out_fx == NULL ? 0 : $advance->advance_amount_out_fx;
+            $supplier_advance_fx = $in_fx - $out_fx;
+
+            if($advance->currency_id != 1) {
+                $supplier_advance = $supplier_advance_fx;
+            } 
+
+            $currency_type = $advance->currency_id;
         }
-        return compact('previous_balance','supplier_advance');
+        return compact('previous_balance','supplier_advance','currency_type');
 
     }
     public function getDailyPurchaseProductReport(Request $request)
@@ -972,6 +1822,13 @@ class PurchaseInvoiceController extends Controller
 
         $html .= '<tr><td colspan ="10" style="text-align: right;"><strong>Total</strong></td><td class="text-right">'.number_format($total).'</td></tr>';
 
+        $route_name=Route::currentRouteName();
+        if($route_name=='daily_purchase_product_export'){
+            $export=new DailyPurchaseProductExport($data, $request);
+            $fileName = 'daily_purchase_product_'.Carbon::now()->format('Ymd').'.xlsx';
+            return Excel::download($export, $fileName);
+        }
+
         return response(compact('html'), 200);
     }
     public function getCreditPaymentReport(Request  $request){
@@ -993,6 +1850,20 @@ class PurchaseInvoiceController extends Controller
        // $previous_balance = $previous_balance - $return_amount;
 
         return view('exports.purchase_invoice_print', compact('purchase'));
+    }
+
+    public function generatePurchaseInvoiceCurrencyPDF($purchase_id)
+    {
+
+       // $data = ['title' => ''];
+       //$pdf = PDF::loadView('invoice_print', $data);
+
+        $purchase = PurchaseInvoice::with('currency','products','supplier','products.uom','products.selling_uoms')->find($purchase_id);        
+
+       // $previous_balance = $previous_balance - $return_amount;
+        $currency = $purchase->currency->sign;
+
+        return view('exports.purchase_invoice_currency_print', compact('purchase','currency'));
     }
 
 }

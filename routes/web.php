@@ -156,10 +156,12 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/sale_return_payment_report/', 'ReturnPaymentController@getSaleReturnPaymentReport');
     Route::get('/sale_return_payment_export/', 'ReturnPaymentController@exportSaleReturnPaymentReport');
 
-    Route::get('/sale_return_os_report/', 'SaleReturnController@getSaleReturnOSReport');
-    Route::get('/sale_return_os_export/', 'SaleReturnController@exportSaleReturnOSReport');
+    Route::get('/sale_analyst_report/', 'SaleController@getSaleAnalystReport');
+    Route::get('/sale_analyst_export/', 'SaleController@exportSaleAnalystReport');
+    Route::get('/sale_analyst_export_pdf/', 'SaleController@exportSaleAnalystReportPdf');
 
     Route::get('/product_export/', 'ProductController@exportProduct');
+    Route::get('/product_export_pdf/', 'ProductController@exportProductPdf');
     Route::get('/customer_export/', 'CustomerController@exportCustomer');
 
     Route::resource('sale_advance', 'SaleAdvanceController');
@@ -176,8 +178,10 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::post('/import/customer_type','CustomerTypeController@import');
     Route::post('/import/product_min_percentage_qty','ProductController@qtyImport');
     Route::get('/generate_purchase_invoice/{purchase_id}', 'PurchaseInvoiceController@generatePurchaseInvoicePDF');
+    Route::get('/generate_purchase_invoice_currency/{purchase_id}', 'PurchaseInvoiceController@generatePurchaseInvoiceCurrencyPDF');
     Route::get('/generate_sale_return/{return_id}', 'SaleReturnController@generateReturnPDF');
     Route::get('/generate_invoice/{sale_id}', 'SaleController@generateInvoicePDF');
+    Route::get('/generate_invoice_currency/{sale_id}', 'SaleController@generateInvoiceCurrencyPDF');
     Route::get('/generate_order/{order_id}', 'OrderController@generateOrderPDF');
     Route::group(['prefix'=>'supplier'],function() {
         Route::get('','SupplierController@index');
@@ -245,6 +249,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('get_all_cashbook','AccountTransitionController@getAllCashbook');
         Route::get('get_all_ledger','AccountTransitionController@getAllLedger');
         Route::get('/daily_purchase_product_report/', ['App\Http\Controllers\PurchaseInvoiceController','getDailyPurchaseProductReport']);
+        Route::get('daily_purchase_product_export',['App\Http\Controllers\PurchaseInvoiceController','getDailyPurchaseProductReport'])->name('daily_purchase_product_export');
         Route::get('get_credit_payment_report',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport']);
         Route::get('credit_payment_export',['App\Http\Controllers\PurchaseCollectionController','getCreditPaymentReport'])->name('credit_payment_export');
         Route::get('get_purchase_outstanding',['App\Http\Controllers\PurchaseCollectionController','getPurchaseOutStanding']);

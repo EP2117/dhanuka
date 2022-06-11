@@ -262,8 +262,14 @@
                                             </a>
 
                                             <a class="dropdown-item">
-                                                <a title="Print" class="text-primary" @click="generatePDF(sale.id)" v-if="sale_type == 1 && user_role != 'Country Head' && user_role != 'Local Supervisor' && user_role != 'office_order_user'">
-                                                    <i class="fas fa-print"></i>
+                                                <a title="Print MMK" class="text-primary" @click="generatePDF(sale.id)" v-if="sale_type == 1 && user_role != 'Country Head' && user_role != 'Local Supervisor' && user_role != 'office_order_user'">
+                                                    <i class="fas fa-print"></i> &nbsp;MMK
+                                                </a>          
+                                            </a>
+
+                                            <a class="dropdown-item">
+                                                <a :title="'Print '+sale.currency.sign" class="text-primary" @click="generateCurrencyPDF(sale.id)" v-if="sale.currency_id != 1 && sale_type == 1 && user_role != 'Country Head' && user_role != 'Local Supervisor' && user_role != 'office_order_user'">
+                                                    <i class="fas fa-print"></i> &nbsp;{{sale.currency.sign}}
                                                 </a>          
                                             </a>
 
@@ -797,6 +803,12 @@
             {
                 var baseurl = window.location.origin;
                 window.open(this.site_path+'/generate_invoice/'+sale_id);
+            },
+
+            generateCurrencyPDF(sale_id)
+            {
+                var baseurl = window.location.origin;
+                window.open(this.site_path+'/generate_invoice_currency/'+sale_id);
             },
 
             printSale(objName)

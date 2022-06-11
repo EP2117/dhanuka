@@ -219,11 +219,11 @@
           <td class="mm-txt" style="text-align: left;margin:0;padding:0;">{{$product->product_name}}</td>
           @if($product->pivot->uom_id == $product->uom_id)
           <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
-              {{$product->pivot->product_quantity}}
+              {{(int)$product->pivot->product_quantity}}
           </td>          
           @else
           <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
-              {{$product->pivot->product_quantity}} {{getUomName($product,$product->pivot->uom_id)}} x {{getUomRelation($product,$product->pivot->uom_id)}} {{getUomName($product,$product->uom_id)}}
+              {{(int)$product->pivot->product_quantity}} {{getUomName($product,$product->pivot->uom_id)}} x {{getUomRelation($product,$product->pivot->uom_id)}} {{getUomName($product,$product->uom_id)}}
           </td>
           @endif
           <!--<td class="mm-txt" style="margin:0;padding:0;">

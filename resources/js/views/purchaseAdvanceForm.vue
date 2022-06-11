@@ -61,7 +61,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate"> ) MMK</span></div>
+                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate" :readonly="rate_readonly"> ) MMK</span></div>
                             </div>
                         </div>
 
@@ -125,6 +125,7 @@ export default {
             isMMK: true,
             currency: [],
             sign: '',
+            rate_readonly: false,
         }
     },
     created() {
@@ -239,7 +240,10 @@ export default {
                 if(response.data.data.currency_id != 1) {
                     app.isMMK = false;
                     app.form.amount_fx = response.data.data.amount_fx;
-
+                    $("#currency_id").attr('disabled',true);                    
+                    if(response.data.data.used_count > 0) {
+                        app.rate_readonly = true;
+                    }
                     app.form.currency_rate = response.data.data.currency_rate;
                 } else{
                     app.isMMK = true;

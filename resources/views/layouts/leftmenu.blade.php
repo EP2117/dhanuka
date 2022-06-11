@@ -719,7 +719,7 @@
         <router-link  tag="li" to="/report/customer-wise-rpt" class="nav-item">
             <a class="nav-link" href="#">
                 <i class="fas fa-chart-bar"></i>
-                <span>Category Wise Contact Report</span>
+                <span>Category and Product Name Wise Report</span>
             </a>
         </router-link>
 
@@ -776,6 +776,14 @@
             <a class="nav-link" href="#">
                 <i class="fas fa-chart-bar"></i>
                 <span>Return OS Report</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/sale-analyst-rpt" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Sale Analyst Report</span>
             </a>
         </router-link>
 

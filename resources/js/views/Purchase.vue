@@ -221,8 +221,11 @@
                                                 </router-link>
                                             </a>
 
-                                            <a title="Print" class=" dropdown-item text-primary" @click="generatePDF(p.id)">
-                                                <i class="fas fa-print"></i>
+                                            <a title="Print MMK" class=" dropdown-item text-primary" @click="generatePDF(p.id)">
+                                                <i class="fas fa-print"></i> &nbsp;MMK
+                                            </a>
+                                            <a :title="'Print '+p.currency.sign" class=" dropdown-item text-primary" @click="generateCurrencyPDF(p.id)" v-if="p.currency_id != 1">
+                                                <i class="fas fa-print"></i> &nbsp;{{p.currency.sign}}
                                             </a>
                                             <a class="dropdown-item" v-if="(p.collection_amount==0 && p.payment_type=='credit') || p.payment_type=='cash' ">
                                                 <a title="Delete" class="text-danger" @click="removePurchase(p.id)" v-if="(user_role == 'system' || user_role == 'office_user') ">
@@ -586,6 +589,12 @@ export default {
         {
             var baseurl = window.location.origin;
             window.open(this.site_path+'/generate_purchase_invoice/'+purchase_id);
+        },
+
+        generateCurrencyPDF(purchase_id)
+        {
+            var baseurl = window.location.origin;
+            window.open(this.site_path+'/generate_purchase_invoice_currency/'+purchase_id);
         },
 
         printSale(objName)

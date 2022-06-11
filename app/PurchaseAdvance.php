@@ -14,4 +14,9 @@ class PurchaseAdvance extends Model
     {
         return $this->belongsTo('App\Currency', 'currency_id', 'id');
     }
+
+    public function purchases()
+    {
+        return $this->belongsToMany('App\PurchaseInvoice', 'purchase_advance_links', 'advance_id', 'purchase_id')->withPivot('amount_fx');
+    }
 }

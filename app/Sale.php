@@ -67,4 +67,9 @@ class Sale extends Model
     {
         return $this->belongsToMany('App\CustomerReturn', 'return_invoices','sale_id','customer_return_id')->withPivot('return_amount');
     }
+
+    public function advances()
+    {
+        return $this->belongsToMany('App\SaleAdvance', 'sale_advance_links', 'sale_id', 'advance_id')->withPivot('amount_fx');
+    }
 }

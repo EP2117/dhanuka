@@ -30,6 +30,6 @@ class CustomerWiseExport implements FromView, WithTitle
 
     public function title(): string
     {
-        return 'Category Wise Contact Report';
+        return 'Report';
     }
 }

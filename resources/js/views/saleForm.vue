@@ -332,7 +332,7 @@
                                             </td>-->
                                         </tr> 
                                         <tr class="total_row" v-if="!isMMK">
-                                            <td colspan="10" class="text-right">Tax</td>
+                                            <td colspan="11" class="text-right">Tax</td>
 
                                             <td class="p-0 m-0 pt-2">
                                                 <div style="display:inline-block;">
@@ -849,6 +849,7 @@
               total_colspan : 8,
               order_colspan : 9,
               prev_pay_amount: 0,
+              currency_type: 1,
             };
         },
 
@@ -964,14 +965,25 @@
                
                 if(app.prev_pay_amount != 0) {
                     var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
-                    if(currency_rate != 0) {
-                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
-                        //alert(prev_pay_amt_fx);
-                        app.form.pay_amount = app.prev_pay_amount;
-                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+
+                    if(app.currency_type == 1) {
+                        if(currency_rate != 0) {
+                            var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                        } else {
+                            app.form.pay_amount = app.prev_pay_amount;
+                            app.form.pay_amount_fx = 0;
+                        }
                     } else {
-                        app.form.pay_amount = app.prev_pay_amount;
-                        app.form.pay_amount_fx = 0;
+                        if(currency_rate != 0) {
+                            var prev_pay_amt_fx = app.prev_pay_amount;
+                            app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                            app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                        } else {
+                            app.form.pay_amount =0;
+                            app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                        }
                     }
                 } else {
                     app.form.pay_amount = 0;
@@ -1043,12 +1055,13 @@
                     app.form.previous_balance = response.data.previous_balance;
                     app.prev_pay_amount = response.data.customer_advance;
                     app.form.pay_amount = response.data.customer_advance;
+                    app.currency_type = response.data.currency_type;
 
                     var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
 
                     if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
                         if(app.prev_pay_amount != 0) {
-                            var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            /***var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
                             if(currency_rate != 0) {
                                 var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
                                 app.form.pay_amount = app.prev_pay_amount;
@@ -1056,6 +1069,26 @@
                             } else {
                                 app.form.pay_amount = app.prev_pay_amount;
                                 app.form.pay_amount_fx = 0;
+                            }***/
+
+                            if(app.currency_type == 1) {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                } else {
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    app.form.pay_amount_fx = 0;
+                                }
+                            } else {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = app.prev_pay_amount;
+                                    app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                } else {
+                                    app.form.pay_amount =0;
+                                    app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                                }
                             }
                         } else {
                             //app.form.pay_amount = app.prev_pay_amount;
@@ -1281,6 +1314,7 @@
                       
                     // To calculate the no. of days between two dates 
                     var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24); 
+                    //alert(Difference_In_Days);
                     app.form.credit_day = Difference_In_Days;
                     
                 });
@@ -2715,7 +2749,7 @@
                                    // t2.addEventListener('blur', function(){ app.checkQty(t2); });
                                     cell7.appendChild(t7);
 
-                                var cell8=row.insertCell(14);
+                                var cell8=row.insertCell(15);
                                 cell8.className = "text-center";
                                 if(app.user_role != 'admin' && response.data.sale.order_id == null)
                                 {
@@ -3182,7 +3216,7 @@
                 if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
                     var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
                     if(app.prev_pay_amount != 0) {                        
-                        if(currency_rate != 0) {
+                        /***if(currency_rate != 0) {
                             var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
                             app.form.pay_amount = app.prev_pay_amount;
                             pay_amount = app.form.pay_amount;
@@ -3193,6 +3227,34 @@
                             pay_amount = app.form.pay_amount;
                             app.form.pay_amount_fx = 0;
                             pay_amount_fx = app.form.pay_amount_fx;
+                        }****/
+
+                        if(app.currency_type == 1) {
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = 0;
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            }
+                        } else {
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = app.prev_pay_amount;
+                                app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            } else {
+                                app.form.pay_amount =0;
+                                pay_amount = app.form.pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                                pay_amount_fx = app.form.pay_amount_fx;
+                            }
                         }
                     } else {
                         //app.form.pay_amount = app.prev_pay_amount;
@@ -3244,7 +3306,7 @@
                     if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
                             var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
                             if(app.prev_pay_amount != 0) {                        
-                                if(currency_rate != 0) {
+                                /***if(currency_rate != 0) {
                                     var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
                                     app.form.pay_amount = app.prev_pay_amount;
                                     pay_amount = app.form.pay_amount;
@@ -3255,6 +3317,34 @@
                                     pay_amount = app.form.pay_amount;
                                     app.form.pay_amount_fx = 0;
                                     pay_amount_fx = app.form.pay_amount_fx;
+                                }***/
+
+                                if(app.currency_type == 1) {
+                                    if(currency_rate != 0) {
+                                        var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        pay_amount = app.form.pay_amount;
+                                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                        pay_amount_fx = app.form.pay_amount_fx;
+                                    } else {
+                                        app.form.pay_amount = app.prev_pay_amount;
+                                        pay_amount = app.form.pay_amount;
+                                        app.form.pay_amount_fx = 0;
+                                        pay_amount_fx = app.form.pay_amount_fx;
+                                    }
+                                } else {
+                                    if(currency_rate != 0) {
+                                        var prev_pay_amt_fx = app.prev_pay_amount;
+                                        app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                                        pay_amount = app.form.pay_amount;
+                                        app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                        pay_amount_fx = app.form.pay_amount_fx;
+                                    } else {
+                                        app.form.pay_amount =0;
+                                        pay_amount = app.form.pay_amount;
+                                        app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                                        pay_amount_fx = app.form.pay_amount_fx;
+                                    }
                                 }
                             } else {
                                 //app.form.pay_amount = app.prev_pay_amount;
@@ -3342,7 +3432,7 @@
                     if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
                         var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
                         if(app.prev_pay_amount != 0) {                        
-                            if(currency_rate != 0) {
+                            /****if(currency_rate != 0) {
                                 var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
                                 app.form.pay_amount = app.prev_pay_amount;
                                 pay_amount = app.form.pay_amount;
@@ -3353,6 +3443,34 @@
                                 pay_amount = app.form.pay_amount;
                                 app.form.pay_amount_fx = 0;
                                 pay_amount_fx = app.form.pay_amount_fx;
+                            }***/
+
+                            if(app.currency_type == 1) {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                } else {
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = 0;
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                }
+                            } else {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = app.prev_pay_amount;
+                                    app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                } else {
+                                    app.form.pay_amount =0;
+                                    pay_amount = app.form.pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                                    pay_amount_fx = app.form.pay_amount_fx;
+                                }
                             }
                         } else {
                             //app.form.pay_amount = app.prev_pay_amount;

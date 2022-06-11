@@ -51,11 +51,35 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-group row">
-                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount</label>
+
+                        <div class="row form-group ">
+                            <label class="col-lg-3 text-right col-form-label form-control-label">Currency</label>
+                            <div class="col-md-4">
+                                <select class="form-control"
+                                        name="currency_id" id="currency_id" style="min-width:100px;" v-model="form.currency_id"
+                                >
+                                    <option v-for="c in currency" :value="c.id" :data-sign="c.sign">{{c.name}}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="currency_div" v-if="!isMMK"> <label class="sign">{{sign}}</label> 1 = ( <input type="text" style="width:100px;display:inline-block;" class="form-control decimal_no" id="currency_rate" name="currency_rate" v-model="form.currency_rate" :readonly="rate_readonly"> ) MMK</span></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group row"  v-if="!isMMK">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount ({{sign}})</label>
                             <div class="col-lg-6">
                                 <input class="form-control" type="number"
-                                       id="amount" name="amount"
+                                       id="amount_fx" name="amount_fx"
+                                       v-model="form.amount_fx" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Amount (MMK)</label>
+                            <div class="col-lg-6">
+                                <input class="form-control" type="number"
+                                       id="amount" name="amount" :readonly="!isMMK"
                                        v-model="form.amount" autocomplete="off">
                             </div>
                         </div>
@@ -87,6 +111,9 @@ export default {
                 advance_no:'',
                 customer_id:'',
                 amount:'',
+                currency_id: 1,
+                currency_rate: '',
+                amount_fx: '',
             }),
             isEdit:false,
             customers:[],
@@ -96,6 +123,10 @@ export default {
             user_role:'',
             storage_path:'',
             user_year:'',
+            isMMK: true,
+            currency: [],
+            sign: '',
+            rate_readonly: false,
         }
     },
     created() {
@@ -121,6 +152,23 @@ export default {
     mounted() {
         let app=this;
         app.initCustomers();
+
+        app.initCurrency();
+
+        $("#currency_id").on("select2:select", function(e) {            
+            var data = e.params.data;
+            app.form.currency_id = data.id;
+            var sign = e.target.options[e.target.options.selectedIndex].dataset.sign;
+            if(data.id != 1) {
+                app.isMMK = false;
+                app.form.amount_fx = '';
+            } else{
+                app.isMMK = true;
+            }
+
+            app.sign = sign;
+            
+        });
 
         $("#customer_id").select2();
         $("#customer_id").on("select2:select", function(e) {
@@ -157,10 +205,27 @@ export default {
             app.form.date = formatedValue;
         });
 
+        $(document).on('blur','#currency_rate, #amount_fx',function(e) {
+            var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
+            $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+        });
 
+        $(document).on('keyup','#amount_fx',function(e) {
+            var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
+            var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
+            $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+        });
 
     },
     methods:{
+
+        initCurrency() {
+            axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
+            $("#currency_id").select2();
+
+        },
+
         initCustomers() {
             axios.get("/customers").then(({ data }) => (this.customers = data.data));
             $("#customer_id").select2();
@@ -171,6 +236,22 @@ export default {
                 console.log(response.data);
                
                 app.form.advance_no=response.data.data.advance_no;
+
+                app.form.currency_id = response.data.data.currency_id;
+                $("#currency_id").val(app.form.currency_id).trigger('change'); 
+                app.sign = response.data.data.currency.sign;               
+                if(response.data.data.currency_id != 1) {
+                    app.isMMK = false;
+                    app.form.amount_fx = response.data.data.amount_fx;
+                    $("#currency_id").attr('disabled',true);                    
+                    if(response.data.data.used_count > 0) {
+                        app.rate_readonly = true;
+                    }
+                    app.form.currency_rate = response.data.data.currency_rate;
+                } else{
+                    app.isMMK = true;
+                }
+
                 app.form.amount=response.data.data.amount;
                // app.check_collection=r.collection_amount;
                 app.form.customer_id=response.data.data.customer_id;
@@ -180,6 +261,8 @@ export default {
         },
         onSubmit:function (event){
             var app = this;
+            app.form.amount = $("#amount").val();
+            //alert(app.form.amount);
             $("#loading").show();
             if (!this.isEdit) {
                 this.form.post('/sale_advance').then(function (data){

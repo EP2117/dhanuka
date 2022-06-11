@@ -107,7 +107,7 @@
                                             </router-link>
                                         </a>
 
-                                        <a class="dropdown-item">
+                                        <a class="dropdown-item" v-if="advance.used_count == 0">
                                             <a title="Delete" class="text-danger" @click="removeAdvance(advance.id)">
                                                 <i class="fas fa-trash"></i>
                                             </a>&nbsp;

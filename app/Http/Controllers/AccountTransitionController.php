@@ -483,7 +483,7 @@ class AccountTransitionController extends Controller
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
           $q->whereId($ae->id);
       })->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');*/
-      $c_gain->selectRaw('*, sum(credit) as amount, sum(debit) as db_amount')->groupBy('sub_account_id');
+      $c_gain->selectRaw('*, sum(abs(credit)) as amount, sum(abs(debit)) as db_amount')->groupBy('sub_account_id');
       $c_gain=$c_gain->first();
         /** end currency gain **/
 
@@ -506,7 +506,7 @@ class AccountTransitionController extends Controller
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
           $q->whereId($ae->id);
       })->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');*/
-      $c_loss->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');
+      $c_loss->selectRaw('*, sum(abs(debit)) as amount, sum(abs(credit)) as cr_amount')->groupBy('sub_account_id');
       $c_loss=$c_loss->first();
         /** end currency loss **/
         

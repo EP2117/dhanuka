@@ -145,7 +145,7 @@
                                        v-model="form.reorder_level" required >
                             </div>
                         </div>
-                        <!--<div class="form-group row">
+                        <div class="form-group row">
                             <label class="col-lg-3 col-form-label text-right form-control-label">Image Upload</label>
                             <div class="col-lg-6">
                                 <form action="/product/image/upload" class="dropzone" enctype="multipart/form-data" id="frmTarget">
@@ -156,7 +156,7 @@
                                   </div>
                               </form>
                             </div>
-                        </div>-->
+                        </div>
 
                         <div class="form-group row" v-if="isEdit && photos.length > 0">
                             <label class="col-lg-3 col-form-label text-right form-control-label">&nbsp; </label>
@@ -433,15 +433,15 @@
                     // success hook
                     this.removeFile(file);
                 },
-                complete: function(file, response){
+                queuecomplete: function(file, response){
                     console.log(response);
                     swal({
                             title: "Success!",
-                            text: 'Customer Saved.',
+                            text: 'Image Saved.',
                             icon: "success",
                             button: true
                         }).then(function() {
-                            location.reload();
+                            //location.reload();
                            
 
                         });
@@ -717,7 +717,7 @@
                             console.log(data);
                             if(data.status == "success") {
                                 $('#hid_product_id').val(data.product_id);
-                                //app.dz.processQueue();
+                                app.dz.processQueue();
                                 //reset form data
                                 app.temp_selling_uom = [];
                                 event.target.reset();
@@ -827,7 +827,7 @@
                           .then(function(data) {
 
                             $('#hid_product_id').val(app.product_id);
-                           // app.dz.processQueue();
+                            app.dz.processQueue();
                             console.log(data);
                             //reset form data
                                 app.temp_selling_uom = [];

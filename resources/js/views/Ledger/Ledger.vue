@@ -188,16 +188,16 @@
                                             By {{c.cus_name }} For Inv {{c.vochur_no}} Invoice</td>
                                         </template> -->
                                         <template v-if="type=='customer'">
-                                            <td class="text-center" >{{c.debit != '' && c.credit != null  ? decimalFormat(c.credit) : ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' && c.debit != null  ? decimalFormat(c.debit) : ''}}</td>
+                                            <td class="text-center" >{{c.debit != '' && c.credit != null  ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' && c.debit != null  ? decimalFormat(Math.abs(c.debit)) : ''}}</td>
                                         </template>
                                         <template v-if="type=='supplier'">
-                                            <td class="text-center">{{c.debit !='' &&  c.credit != null ? decimalFormat(c.credit) : ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' &&  c.debit != null ? decimalFormat(c.debit) : ''}} </td>
+                                            <td class="text-center">{{c.debit !='' &&  c.credit != null ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' &&  c.debit != null ? decimalFormat(Math.abs(c.debit)) : ''}} </td>
                                         </template>
                                          <template v-if="type=='other'">
-                                            <td class="text-center">{{c.debit !='' && c.debit != null ? decimalFormat(c.debit) : ''}} </td>
-                                            <td class="text-center" >{{c.credit !='' && c.credit != null ? decimalFormat(c.credit) : ''}} </td>
+                                            <td class="text-center">{{c.debit !='' && c.debit != null ? decimalFormat(Math.abs(c.debit)) : ''}} </td>
+                                            <td class="text-center" >{{c.credit !='' && c.credit != null ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
                                         </template>
                                         <!-- <td class="text-center">{{c.debit !='' && c.debit != null ?c.debit: ''}} </td> -->
                                         <!-- <td class="text-center" v-show="this.type=='customer'">{{c.credit !='' ?c.credit: ''}} </td> -->

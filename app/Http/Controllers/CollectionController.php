@@ -247,7 +247,7 @@ class CollectionController extends Controller
                         'sub_account_id' => 79,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'supplier_id'=>$collection->customer_id,
+                        'customer_id'=>$collection->customer_id,
                         'is_cashbook' => 0,
                         'description'=>'Gain Amount',
                         'vochur_no'=>$s->invoice_no,
@@ -484,7 +484,7 @@ class CollectionController extends Controller
                         'sub_account_id' => 79,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
-                        'supplier_id'=>$collection->customer_id,
+                        'customer_id'=>$collection->customer_id,
                         'is_cashbook' => 0,
                         'description'=>'Gain Amount',
                         'vochur_no'=>$sale->invoice_no,
@@ -710,7 +710,7 @@ class CollectionController extends Controller
         // return $credit_collection;
     }
 
-    public function getCurrencyGainLoss(Request $request)
+    public function getCurrencyGainLossOld(Request $request)
     {
         ini_set('memory_limit','512M');
         ini_set('max_execution_time', 240);
@@ -816,6 +816,160 @@ class CollectionController extends Controller
             $net_gain = $net_gain == 0 ? '' : floatval($net_gain);
             $net_loss = $net_loss == 0 ? '' : floatval($net_loss);
             $html .= '<tr><td colspan="8" class="text-right">Net Total</td><td class="text-right">'.$net_gain.'</td><td class="text-right">'.$net_loss.'</td></tr>';
+
+        }
+
+        //return $html;
+        return array($data,$html);
+    }
+
+
+    public function getCurrencyGainLoss(Request $request)
+    {
+        ini_set('memory_limit','512M');
+        ini_set('max_execution_time', 240);
+        //$data = PurchaseCollection::with('purchases','supplier','currency');
+        $data = DB::table("account_transitions")
+                ->select(DB::raw("account_transitions.*,sales.invoice_no,sales.invoice_date,sc.sale_invoice_no,sc.sale_invoice_date,sc.sale_currency_rate,s_col_currency.sign as sale_currency_sign,sc.collection_date,sc.collection_no,customers.cus_name as customer_name,sales.currency_rate as inv_currency_rate,inv_currency.sign as inv_currency_sign,inv_currency.name as inv_currency_name,adv_currency.sign as adv_currency_sign,adv_currency.name as adv_currency_name,col_currency.name as col_currency_name,col_currency.sign as col_currency_sign,sale_advances.currency_rate as adv_currency_rate,sc.currency_rate as col_currency_rate,sale_advances.advance_no,sale_advances.advance_date"))
+                
+                ->leftjoin('sales', 'sales.id', '=', 'account_transitions.sale_id')
+                //->leftjoin('collection_purchase', 'collection_purchase.purchase_collection_id', '=', 'account_transitions.purchase_id')
+                //->leftjoin('credit_purchase_collections', 'credit_purchase_collections.id', '=', 'account_transitions.purchase_id')
+
+                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, collections.*,sales.invoice_no as sale_invoice_no, sales.invoice_date as sale_invoice_date, sales.currency_id as sale_currency_id, sales.currency_rate as sale_currency_rate FROM `account_transitions` JOIN collection_sale ON collection_sale.collection_id = account_transitions.sale_id AND collection_sale.gain_amount = coalesce(account_transitions.credit,0.000) AND collection_sale.loss_amount = coalesce(account_transitions.debit,0.000) LEFT JOIN collections ON collections.id = account_transitions.sale_id LEFT JOIN sales ON sales.id = collection_sale.sale_id GROUP BY collection_sale.sale_id) as sc"),function($join){
+
+                            $join->on("sc.transition_id","=","account_transitions.id");
+
+                        })
+                ->leftjoin('sale_advances', 'sale_advances.id', '=', 'account_transitions.sale_advance_id')
+                ->leftjoin('customers', 'customers.id', '=', 'account_transitions.customer_id')
+                ->leftjoin('currencies as inv_currency', 'inv_currency.id', '=', 'sale_advances.currency_id')
+                ->leftjoin('currencies as adv_currency', 'adv_currency.id', '=', 'sale_advances.currency_id')
+                ->leftjoin('currencies as col_currency', 'col_currency.id', '=', 'sc.currency_id')
+                ->leftjoin('currencies as s_col_currency', 's_col_currency.id', '=', 'sc.sale_currency_id');
+
+        $data = $data->where(function($query) {
+                        $query->where('account_transitions.status','gain')
+                              ->orWhere('account_transitions.status','loss');
+                    });
+        $data = $data->whereNotNull('account_transitions.sale_id');
+
+        if($request->invoice_no != "") {
+            // $data->where('invoice_no', 'LIKE','%'.$request->invoice_no.'%');
+            $data->where(function($query) use($request) {
+                        $query->where('invoice_no', 'LIKE','%'.$request->invoice_no.'%')
+                              ->orWhere('sale_invoice_no', 'LIKE','%'.$request->invoice_no.'%');
+                    });
+        }
+        $from_date=$to_date="";
+        if($request->from_date != '' && $request->to_date != '')
+        {
+            //$data->whereBetween('invoice_date', array($request->from_date, $request->to_date));
+            $data->where(function($query) use($request) {
+                        $query->whereBetween('invoice_date', array($request->from_date, $request->to_date))
+                              ->orWhereBetween('sale_invoice_date', array($request->from_date, $request->to_date));
+                    });
+
+        } else if($request->from_date != '') {
+            //$data->whereDate('invoice_date', '>=', $request->from_date);
+            $data->where(function($query) use($request) {
+                        $query->whereDate('invoice_date', '>=', $request->from_date)
+                              ->orWhereDate('sale_invoice_date', '>=', $request->from_date);
+                    });
+
+        }else if($request->to_date != '') {
+            //$data->whereDate('invoice_date', '<=', $request->to_date);
+            $data->where(function($query) use($request) {
+                        $query->whereDate('invoice_date', '<=', $request->to_date)
+                              ->orWhereDate('sale_invoice_date', '<=', $request->to_date);
+                    });
+        } else {}
+
+        if($request->c_from_date != '' && $request->c_to_date != '')
+        {            
+            $data->whereBetween('collection_date', array($request->c_from_date, $request->c_to_date));
+        } else if($request->c_from_date != '') {
+            $data->whereDate('collection_date', '>=', $request->c_from_date);
+
+        }else if($request->c_to_date != '') {
+             $data->whereDate('collection_date', '<=', $request->c_to_date);
+        } else {
+            //$data->whereBetween('collection_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+
+        if(isset($request->collection_no) && $request->collection_no != "") {
+            $data->where('collection_no','LIKE','%'.$request->collection_no.'%');
+        }
+        /**if($request->supplier_id != "") {
+            $data->where('landed_costings.supplier_id', $request->supplier_id);
+        }**/
+
+        /**if($request->product_name != "") {
+            //$products->where('products.product_name', 'LIKE', "%$request->product_name%");
+            //$binds = array(strtolower($request->product_name));
+            $data->whereRaw('lower(products.product_name) like lower(?)', ["%{$request->product_name}%"]);
+            $data->where('products.product_name', 'LIKE', "%$request->product_name%");
+        }**/
+
+        $data    =  $data->orderBy('transition_date', 'DESC')->get();
+        //dd($data);
+       // $sale_arr = $data->pluck('sale_id')->toArray();
+
+        $html = ''; $i=0;$gain =$loss=0;
+        foreach($data as $p) {
+            $i++;
+            $html .= '<tr>';
+            $html .= '<td>'.$i.'</td>';
+            $html .= '<td class="text-center">'.$p->advance_no.'</td>';
+            $html .= '<td class="text-center">'.$p->advance_date.'</td>';
+            if(!empty($p->advance_no)) {
+                $html .= '<td class="text-center">1'.$p->adv_currency_sign.' = '.floatval($p->adv_currency_rate).'MMK</td>'; 
+            }else {
+                $html .= '<td class="text-center"></td>'; 
+            }           
+            if(empty($p->advance_no)) {
+                $html .= '<td class="text-center">'.$p->sale_invoice_no.'</td>';
+                $html .= '<td class="text-center">'.$p->sale_invoice_date.'</td>';
+                $html .= '<td class="text-center">1'.$p->sale_currency_sign.' = '.floatval($p->sale_currency_rate).'MMK</td>';
+            }
+            else {
+                $html .= '<td class="text-center">'.$p->invoice_no.'</td>';
+                $html .= '<td class="text-center">'.$p->invoice_date.'</td>';
+                $html .= '<td class="text-center">1'.$p->inv_currency_sign.' = '.floatval($p->inv_currency_rate).'MMK</td>';
+            }
+
+            $html .= '<td style="text-align:center;">'.$p->collection_no.'</td>';
+            $html .= '<td style="text-align:center; ">'.$p->collection_date.'</td>';
+            if(empty($p->advance_no)) {
+                $html .= '<td style="text-align:center;">1'.$p->col_currency_sign.' = '.floatval($p->col_currency_rate).'MMK</td>';
+            } else {
+                $html .= '<td></td>';
+            }
+            $html .= '<td style="text-align:center;">'.$p->col_currency_name.'</td>';
+
+            $gain_amount = empty($p->credit) ? '' : floatval(abs($p->credit));
+            $loss_amount = empty($p->debit) ? '' : floatval(abs($p->debit));
+            $html .= '<td class="text-right">'.$gain_amount .'</td>';
+            $html .= '<td class="text-right">'.$loss_amount .'</td>';
+
+            $html .= '</tr>';
+            $credit = !empty($p->credit) ? $p->credit : 0;
+            $debit = !empty($p->debit) ? $p->debit : 0;
+            $gain += abs($credit);
+            $loss += abs($debit);
+        } 
+        $net_gain = $net_loss = 0;
+        if(!empty($data)) {
+            $html .= '<tr><td colspan="11" class="text-right">Total</td><td class="text-right">'.floatval($gain) .'</td><td class="text-right">'.floatval($loss) .'</td></tr>';
+
+            if($gain > $loss) {
+                $net_gain = $gain - $loss;
+            } else {
+                $net_loss = $loss - $gain;
+            }
+            $net_gain = $net_gain == 0 ? '' : floatval($net_gain);
+            $net_loss = $net_loss == 0 ? '' : floatval($net_loss);
+            $html .= '<tr><td colspan="11" class="text-right">Net Total</td><td class="text-right">'.$net_gain.'</td><td class="text-right">'.$net_loss.'</td></tr>';
 
         }
 

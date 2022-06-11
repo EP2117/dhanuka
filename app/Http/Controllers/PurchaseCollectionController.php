@@ -710,12 +710,19 @@ class PurchaseCollectionController extends Controller
         }
     }
 
-    public function getCurrencyGainLoss(Request $request)
+    public function getCurrencyGainLossOld(Request $request)
     {
         ini_set('memory_limit','512M');
         ini_set('max_execution_time', 240);
 
          $data = PurchaseCollection::with('purchases','supplier','currency');
+         $data = $data->selectRaw('credit_purchase_collections.*');
+         $data = $data->leftjoin(DB::raw("(SELECT * FROM account_transitions ) as advance"),function($join){
+
+                            $join->on("adv.transition purchase_id","=","credit_purchase_collections.id");
+
+                        });
+
 
         if($request->invoice_no != "") {
              $data->whereHas('purchases',function($q)use($request){
@@ -815,6 +822,163 @@ class PurchaseCollectionController extends Controller
             $net_gain = $net_gain == 0 ? '' : floatval($net_gain);
             $net_loss = $net_loss == 0 ? '' : floatval($net_loss);
             $html .= '<tr><td colspan="8" class="text-right">Net Total</td><td class="text-right">'.$net_gain.'</td><td class="text-right">'.$net_loss.'</td></tr>';
+
+        }
+
+        //return $html;
+        return array($data,$html);
+    }
+
+    public function getCurrencyGainLoss(Request $request)
+    {
+        ini_set('memory_limit','512M');
+        ini_set('max_execution_time', 240);
+        //$data = PurchaseCollection::with('purchases','supplier','currency');
+        $data = DB::table("account_transitions")
+                ->select(DB::raw("account_transitions.*,purchase_invoices.invoice_no,purchase_invoices.invoice_date,pc.purchase_invoice_no,pc.purchase_invoice_date,pc.purchase_currency_rate,p_col_currency.sign as purchase_currency_sign,pc.collection_date,pc.collection_no,suppliers.name as supplier_name,purchase_invoices.currency_rate as inv_currency_rate,inv_currency.sign as inv_currency_sign,inv_currency.name as inv_currency_name,adv_currency.sign as adv_currency_sign,adv_currency.name as adv_currency_name,col_currency.name as col_currency_name,col_currency.sign as col_currency_sign,purchase_advances.currency_rate as adv_currency_rate,pc.currency_rate as col_currency_rate,purchase_advances.advance_no,purchase_advances.advance_date"))
+                ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'account_transitions.purchase_id')
+                //->leftjoin('collection_purchase', 'collection_purchase.purchase_collection_id', '=', 'account_transitions.purchase_id')
+                //->leftjoin('credit_purchase_collections', 'credit_purchase_collections.id', '=', 'account_transitions.purchase_id')
+                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, credit_purchase_collections.*,purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM `account_transitions` JOIN collection_purchase ON collection_purchase.purchase_collection_id = account_transitions.purchase_id AND collection_purchase.gain_amount = coalesce(account_transitions.credit,0.000)AND collection_purchase.loss_amount = coalesce(account_transitions.debit,0.000) LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = account_transitions.purchase_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id GROUP BY collection_purchase.purchase_id) as pc"),function($join){
+
+                            $join->on("pc.transition_id","=","account_transitions.id");
+
+                        })
+                /*->leftjoin(DB::raw("(SELECT credit_purchase_collections.*, purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM collection_purchase LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = collection_purchase.purchase_collection_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id WHERE purchase_invoices.currency_id != 1 GROUP BY credit_purchase_collections.id 
+                            ) as pc"),function($join){
+
+                            $join->on("pc.id","=","account_transitions.purchase_id");
+
+                        }) */
+                ->leftjoin('purchase_advances', 'purchase_advances.id', '=', 'account_transitions.purchase_advance_id')
+                ->leftjoin('suppliers', 'suppliers.id', '=', 'account_transitions.supplier_id')
+                ->leftjoin('currencies as inv_currency', 'inv_currency.id', '=', 'purchase_advances.currency_id')
+                ->leftjoin('currencies as adv_currency', 'adv_currency.id', '=', 'purchase_advances.currency_id')
+                ->leftjoin('currencies as col_currency', 'col_currency.id', '=', 'pc.currency_id')
+                ->leftjoin('currencies as p_col_currency', 'p_col_currency.id', '=', 'pc.purchase_currency_id');
+
+        $data = $data->where(function($query) {
+                        $query->where('account_transitions.status','gain')
+                              ->orWhere('account_transitions.status','loss');
+                    });
+        $data = $data->whereNotNull('account_transitions.purchase_id');
+
+        if($request->invoice_no != "") {
+            // $data->where('invoice_no', 'LIKE','%'.$request->invoice_no.'%');
+            $data->where(function($query) use($request) {
+                        $query->where('invoice_no', 'LIKE','%'.$request->invoice_no.'%')
+                              ->orWhere('purchase_invoice_no', 'LIKE','%'.$request->invoice_no.'%');
+                    });
+        }
+        $from_date=$to_date="";
+        if($request->from_date != '' && $request->to_date != '')
+        {
+            //$data->whereBetween('invoice_date', array($request->from_date, $request->to_date));
+            $data->where(function($query) use($request) {
+                        $query->whereBetween('invoice_date', array($request->from_date, $request->to_date))
+                              ->orWhereBetween('purchase_invoice_date', array($request->from_date, $request->to_date));
+                    });
+
+        } else if($request->from_date != '') {
+            //$data->whereDate('invoice_date', '>=', $request->from_date);
+            $data->where(function($query) use($request) {
+                        $query->whereDate('invoice_date', '>=', $request->from_date)
+                              ->orWhereDate('purchase_invoice_date', '>=', $request->from_date);
+                    });
+
+        }else if($request->to_date != '') {
+            //$data->whereDate('invoice_date', '<=', $request->to_date);
+            $data->where(function($query) use($request) {
+                        $query->whereDate('invoice_date', '<=', $request->to_date)
+                              ->orWhereDate('purchase_invoice_date', '<=', $request->to_date);
+                    });
+        } else {}
+
+        if($request->c_from_date != '' && $request->c_to_date != '')
+        {            
+            $data->whereBetween('collection_date', array($request->c_from_date, $request->c_to_date));
+        } else if($request->c_from_date != '') {
+            $data->whereDate('collection_date', '>=', $request->c_from_date);
+
+        }else if($request->c_to_date != '') {
+             $data->whereDate('collection_date', '<=', $request->c_to_date);
+        } else {
+            //$data->whereBetween('collection_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+
+        if(isset($request->collection_no) && $request->collection_no != "") {
+            $data->where('collection_no','LIKE','%'.$request->collection_no.'%');
+        }
+        /**if($request->supplier_id != "") {
+            $data->where('landed_costings.supplier_id', $request->supplier_id);
+        }**/
+
+        /**if($request->product_name != "") {
+            //$products->where('products.product_name', 'LIKE', "%$request->product_name%");
+            //$binds = array(strtolower($request->product_name));
+            $data->whereRaw('lower(products.product_name) like lower(?)', ["%{$request->product_name}%"]);
+            $data->where('products.product_name', 'LIKE', "%$request->product_name%");
+        }**/
+
+        $data    =  $data->orderBy('transition_date', 'DESC')->get();
+
+       // $sale_arr = $data->pluck('sale_id')->toArray();
+
+        $html = ''; $i=0;$gain =$loss=0;
+        foreach($data as $p) {
+            $i++;
+            $html .= '<tr>';
+            $html .= '<td>'.$i.'</td>';
+            $html .= '<td class="text-center">'.$p->advance_no.'</td>';
+            $html .= '<td class="text-center">'.$p->advance_date.'</td>';
+            if(!empty($p->advance_no)) {
+                $html .= '<td class="text-center">1'.$p->adv_currency_sign.' = '.floatval($p->adv_currency_rate).'MMK</td>'; 
+            }else {
+                $html .= '<td class="text-center"></td>'; 
+            }           
+            if(empty($p->advance_no)) {
+                $html .= '<td class="text-center">'.$p->purchase_invoice_no.'</td>';
+                $html .= '<td class="text-center">'.$p->purchase_invoice_date.'</td>';
+                $html .= '<td class="text-center">1'.$p->purchase_currency_sign.' = '.floatval($p->purchase_currency_rate).'MMK</td>';
+            }
+            else {
+                $html .= '<td class="text-center">'.$p->invoice_no.'</td>';
+                $html .= '<td class="text-center">'.$p->invoice_date.'</td>';
+                $html .= '<td class="text-center">1'.$p->inv_currency_sign.' = '.floatval($p->inv_currency_rate).'MMK</td>';
+            }
+
+            $html .= '<td style="text-align:center;">'.$p->collection_no.'</td>';
+            $html .= '<td style="text-align:center; ">'.$p->collection_date.'</td>';
+            if(empty($p->advance_no)) {
+                $html .= '<td style="text-align:center;">1'.$p->col_currency_sign.' = '.floatval($p->col_currency_rate).'MMK</td>';
+            } else {
+                $html .= '<td></td>';
+            }
+            $html .= '<td style="text-align:center;">'.$p->col_currency_name.'</td>';
+
+            $gain_amount = empty($p->credit) ? '' : floatval(abs($p->credit));
+            $loss_amount = empty($p->debit) ? '' : floatval(abs($p->debit));
+            $html .= '<td class="text-right">'.$gain_amount .'</td>';
+            $html .= '<td class="text-right">'.$loss_amount .'</td>';
+
+            $html .= '</tr>';
+            $credit = !empty($p->credit) ? $p->credit : 0;
+            $debit = !empty($p->debit) ? $p->debit : 0;
+            $gain += abs($credit);
+            $loss += abs($debit);
+        } 
+        $net_gain = $net_loss = 0;
+        if(!empty($data)) {
+            $html .= '<tr><td colspan="11" class="text-right">Total</td><td class="text-right">'.floatval($gain) .'</td><td class="text-right">'.floatval($loss) .'</td></tr>';
+
+            if($gain > $loss) {
+                $net_gain = $gain - $loss;
+            } else {
+                $net_loss = $loss - $gain;
+            }
+            $net_gain = $net_gain == 0 ? '' : floatval($net_gain);
+            $net_loss = $net_loss == 0 ? '' : floatval($net_loss);
+            $html .= '<tr><td colspan="11" class="text-right">Net Total</td><td class="text-right">'.$net_gain.'</td><td class="text-right">'.$net_loss.'</td></tr>';
 
         }
 

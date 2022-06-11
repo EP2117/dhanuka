@@ -39,13 +39,13 @@ class CategoryController extends Controller
 
     public function allCategories()
     {
-        $data = Category::with('brand')->orderBy('category_name', 'ASC')->get();
+        $data = Category::with('brand')->where('is_active',1)->orderBy('category_name', 'ASC')->get();
         return response(compact('data'), 200);
     }
 
     public function getCategoriesByBrand($brand_id)
     {
-        $data = Category::with('brand')->where('brand_id',$brand_id)->orderBy('category_name', 'ASC')->get();
+        $data = Category::with('brand')->where('brand_id',$brand_id)->where('is_active',1)->orderBy('category_name', 'ASC')->get();
         return response(compact('data'), 200);
     }
 

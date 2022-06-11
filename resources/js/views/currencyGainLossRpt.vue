@@ -113,6 +113,9 @@
                         <thead class="costing_rpt">
                             <tr>
                                 <th class="text-center costing_th">No.</th>
+                                <th class="text-center costing_th">Advance No.</th>
+                                <th class="text-center costing_th">Advance Date</th>
+                                <th class="text-center costing_th">Advance <br />Currency Rate</th>
                                 <th class="text-center costing_th">Invoice No.</th>
                                 <th class="text-center costing_th">Invoice Date</th>
                                 <th class="text-center costing_th">Invoice <br />Currency Rate</th>

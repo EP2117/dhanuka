@@ -31,7 +31,7 @@
   }
   .mm-txt{
     font-family: 'Pyidaungsu' !important;  
-    font-size:16px;
+    font-size:12px;
   }
   .box {
     float:left;
@@ -42,7 +42,7 @@
 
   table#t01 {
     width:100%;
-   font-size:16px;
+   font-size:12px;
    /* margin-top:20px; */
   } 
   table#t01 tr.tr_heigh td{
@@ -104,7 +104,7 @@
        thead {display: table-header-group;},
       
       @page {
-          margin: 0 0 10px 0px;
+          /**margin: 0 0 10px 0px;**/
       }
      }
   </style>
@@ -148,6 +148,7 @@
     </div>
   </div>-->
   <!--<div>-->
+    <div style="margin-left:17px;margin-right: 17px;margin-top:20px;">
     <table id="t01" cellpadding="0" cellspacing="0" style="border:none;width:100%;">
       <thead>
         <tr style="border:none;">
@@ -158,10 +159,9 @@
             <div style="width:100%; text-align: center;">
               <div style="text-align: center;height: auto;float:left;margin-right: 10px;"><img src="{{url('storage/image/print_logo.jpg')}}" width="100" /></div>
               <div style="vertical-align: middle; text-align: center;float:left">
-                  <b><u><font style="font-size: 20px">DHANUKA INTERNATIONAL CO.,LTD</font></u></b>
+                  <b><u><font style="font-size: 18px">DHANUKA INTERNATIONAL CO.,LTD</font></u></b>
                   <br />No(60),29th Street, Pabedan Township, Yangon, Myanmar.
-                  <br />Office phone :01-250067, 09-954990290, 09-954990291,
-                  <br />09-954990292, 09-954990293, 09-954990294
+                  <br />Office phone :018-250067, 018-391901, 018-39190209-954990290, <br />09-954990291, 09-940737000. Complain No. : 09-979201727 
               </div>
               <div style="clear:both"></div>
             </div>
@@ -176,7 +176,7 @@
         <tr>
           <td colspan="9" style="border:none;">
             <div>
-              <div style="float:left;" class="mm-txt"><b>ဝယ်သူအမည်</b>&nbsp; &nbsp; &nbsp;&nbsp; {{$sale->customer->cus_name}}</div>
+              <div style="float:left;" class="mm-txt"><b>ဝယ်သူအမည်</b>&nbsp; {{$sale->customer->cus_name}}</div>
               <div style="float:right" class="mm-txt"><b>ရက်စွဲ</b>&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php
                         $date_arr = explode('-',$sale->invoice_date);
                       ?>
@@ -184,8 +184,11 @@
               </div>
             </div>
             <div style="clear: both;">
-              <div style="float:left;" class="mm-txt"><b>လိပ်စာ/Ph. No.</b>&nbsp;&nbsp;&nbsp;{{$sale->customer->cus_shipping_address}} / {{$sale->customer->cus_phone}}</div>
+              <div style="float:left;" class="mm-txt"><b>လိပ်စာ</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;{{$sale->customer->cus_shipping_address}}</div>
               <div style="float:right" class="mm-txt"><b>ဘောက်ချာ နံပါတ်</b>&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;{{$sale->invoice_no}}</div>
+            </div>
+            <div style="clear: both;">
+              <div style="float:left;" class="mm-txt"><b>Ph. No.</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;{{$sale->customer->cus_phone}}</div>
             </div>
             <!--<table cellpadding="0" cellspacing="0" style="border:none; width:100%;">
                 <tr>
@@ -248,11 +251,11 @@
           <td style="text-align: right;line-height: 1px;margin:0;padding:0;">{{!empty($product->pivot->ctn) ? $product->pivot->ctn : ''}}</td>
           @if($product->pivot->uom_id == $product->uom_id)
           <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
-              {{$product->pivot->product_quantity}}
+              {{(int)$product->pivot->product_quantity}}
           </td>          
           @else
           <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
-              {{$product->pivot->product_quantity}} {{getUomName($product,$product->pivot->uom_id)}} x {{getUomRelation($product,$product->pivot->uom_id)}} {{getUomName($product,$product->uom_id)}}
+              {{(int)$product->pivot->product_quantity}} {{getUomName($product,$product->pivot->uom_id)}} x {{getUomRelation($product,$product->pivot->uom_id)}} {{getUomName($product,$product->uom_id)}}
           </td>
           @endif
           <!--<td class="mm-txt" style="margin:0;padding:0;">
@@ -301,7 +304,7 @@
       <tr class="tr_heigh">
         <td colspan="4" rowspan="6" style="vertical-align: top;" class="mm-txt">
           Sales Man: {{$sale->sale_man->sale_man}} <br />
-          @if($sale->payment_type == 'credit')
+          @if($sale->payment_type == 'credit' && !empty($sale->due_date))
           Due Date: <?php
             $date=date_create($sale->due_date);
           ?>{{date_format($date,'dMY')}} <br />
@@ -310,7 +313,7 @@
           Notes:<br /><br />
           <div>
               <div style="float:left" class="mm-txt">User ID: {{ Auth::user()->name }}</div>
-              <div style="float:right" class="mm-txt">Signature: .............</div>
+              <div style="float:right" class="mm-txt">Signature: ........................</div>
           </div>           
         </td>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Total Amount(MMK)</td>
@@ -331,14 +334,14 @@
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Paid Amount(MMK)</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($sale->paid_amount) ? number_format($sale->paid_amount) : '0'}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($sale->pay_amount) ? number_format($sale->pay_amount) : '0'}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Balance Amount(MMK)</td>
         <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->balance_amount)}}</td>
       </tr>
       <tr>
-        <td colspan="9" style="height:70px;vertical-align: top" class="mm-txt">Bank Details:</td>
+        <td colspan="9" style="height:60px;vertical-align: top" class="mm-txt">Bank Details:</td>
       </tr>
       <!--<tfoot>
         <tr style="border:none;">
@@ -348,6 +351,7 @@
         </tr>
       </tfoot>-->
     </table>
+  </div>
     <script >
       $(document).ready(function(){
        setTimeout(function(){

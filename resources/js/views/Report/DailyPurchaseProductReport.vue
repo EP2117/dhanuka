@@ -415,7 +415,7 @@ export default {
                 "&sort_by=" +
                 app.search.sort_by;
 
-            /*axios.get("/daily_sales_export?" + search)
+            /*axios.get("/report/daily_sales_export?" + search)
             .then(function(response) {
               console.log(response);
             })
@@ -426,7 +426,7 @@ export default {
 
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
-            window.open(this.site_path+'/daily_sale_product_export?'+search);
+            window.open(this.site_path+'/report/daily_purchase_product_export?'+search);
         },
 
         dateFormat(d) {

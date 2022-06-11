@@ -74,7 +74,7 @@
                 <td>{{$suom->pivot->per_warehouse_uom_price}}</td>
                 <td>{{$product->minimum_qty}}</td>
                 <td>{{$product->percentage_qty}}</td>
-                <td>{{empty($product->is_active) ? 'Ínactive' : 'Active'}}</td>
+                <td>{{empty($product->is_active) ? 'Inactive' : 'Active'}}</td>
             </tr>
             @else
             <tr>

@@ -135,6 +135,7 @@ import SaleReturnRpt from "./views/saleReturnRpt";
 import SaleReturnProductRpt from "./views/saleReturnProductRpt";
 import SaleReturnPaymentRpt from "./views/saleReturnPaymentRpt";
 import ReturnOsRpt from "./views/returnOsRpt";
+import SaleAnalystRpt from "./views/report/saleAnalystRpt";
 
 const routes = [
     {
@@ -688,6 +689,10 @@ const routes = [
   {
       path: '/report/return-os-rpt',
       component: ReturnOsRpt,
+  },
+  {
+      path: '/report/sale-analyst-rpt',
+      component: SaleAnalystRpt,
   },
   
 ];

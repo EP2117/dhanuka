@@ -124,9 +124,14 @@
                                 <option value="DESC">Descending</option>
                             </select>
                         </div>
-                        <div class="text-right form-group mt-4">
-                            <label style="height:10px;">&nbsp;</label>
-                            <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                        <div class="text-right form-group mt-4" >
+                            <div class="mb-2" style="display:inline-block">
+                                <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                            </div>
+
+                            <div class="mb-2 pl-2" style="display:inline-block;">
+                                <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
+                            </div>
                         </div>
                     </div>
 
@@ -140,7 +145,7 @@
                                 <th class="text-center">Brand</th>
                                 <th class="text-center">Category</th>
                                 <th class="text-center">Warehouse UOM</th>
-                                <!--<th class="text-center">Photo</th>-->
+                                <th class="text-center">Photo</th>
                                 <th class="text-center">Status</th>                                
                                 <th class="text-center">Action</th>
                             </tr>
@@ -153,7 +158,7 @@
                                 <th class="text-center">Brand</th>
                                 <th class="text-center">Category</th>
                                 <th class="text-center">Warehouse UOM</th>
-                                <!--<th class="text-center">Photo</th>-->
+                                <th class="text-center">Photo</th>
                                 <th class="text-center">Status</th>                                
                                 <th class="text-center">Action</th>
                             </tr>
@@ -167,12 +172,12 @@
                                 <td>{{product.category_name}}</td>
                                 <td>{{product.uom_name}}</td>
 
-                                <!--<td v-if="product.photos != null && product.photos.length > 0">
+                                <td v-if="product.photos != null && product.photos.length > 0">
                                     <template v-for="p,i in product.photos">
                                     <a href="#" @click="showPhoto(p.photo)">Photo{{i+1}}</a><span v-if="i != product.photos.length-1">, </span>
                                     </template>
                                 </td>
-                                <td v-else></td>-->
+                                <td v-else></td>
 
                                 <td v-if="product.is_active == 1">
                                     <span class="badge badge-success">Active</span>
@@ -510,6 +515,52 @@
                     $("#loading").hide();
                 });*/
 
+            },
+
+            exportPdf() {   
+                 $("#loading").show();
+                let app = this;
+                 var search =
+                    "&brand_id=" +
+                    app.search.brand_id +
+                    "&category_id=" +
+                    app.search.category_id +
+                    "&product_code=" +
+                    app.search.product_code +
+                    "&product_name=" +
+                    app.search.product_name +
+                    "&status=" +
+                    app.search.status +
+                    "&order=" +
+                    app.search.order +
+                    "&sort_by=" +
+                    app.search.sort_by;
+
+
+                axios.get("/product_export_pdf?" + search, {responseType: 'blob'}).then(response => {
+                    $('#loading').hide();
+                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                    window.open(url);
+
+                    /*const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'daily_sale_rpt.pdf'); //or any other extension
+                    document.body.appendChild(link);
+                    link.click();*/
+
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+
+                /*axios.get("/daily_sale_export_pdf?" + search).then(response => {
+                  $("#loading").hide();
+
+                  let blob = new Blob([response.data], { type: 'application/pdf' }),
+                    url = window.URL.createObjectURL(blob)
+
+                  window.open(url) // Mostly the same, I was just experimenting with different approaches, tried link.click, iframe and other solutions
+                });*/
             },
 
             exportExcel() {
