@@ -70,9 +70,17 @@
                 <h6 class="m-0 font-weight-bold text-primary">Product List</h6>
             </div>
             <div class="card-body">
-                <!-- <div class="text-right mb-2">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="printPDF()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
-                </div> -->
+                <!-- Kamlesh Start -->
+                <div class="text-right form-group mt-4" >
+                    <!-- <div class="mb-2" v-if="out_count > 0" style="display:inline-block">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                        
+                    </div> -->
+                    <div class="mb-2 pl-2" v-if="products.length> 0" style="display:inline-block;">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
+                    </div>
+                </div>
+                <!-- Kamlesh End -->
                <div class="table-responsive" v-if="products.length > 0">
                     <table class="table table-bordered table-striped table_num" id="dataTable" width="100%" cellspacing="0">
                         <thead>
@@ -302,7 +310,11 @@
                 axios.get("/report/get_valuation?" + search)
                 .then(function(response) {
                     app.products = response.data.data;   
-                    app.total_valuation = response.data.total_valuation;   
+                    app.total_valuation = response.data.total_valuation;
+                    // response.data.data.forEach(dt => {
+                    //     console.log(dt.brand_name); 
+                    // })
+                   
                     // app.op_products = response.data.op_data;
                     // app.order_products = response.data.order_data;
                     // console.log(app.op_products);
@@ -339,32 +351,70 @@
 
             },
 
-            exportExcel() {
+            // exportExcel() {
+
+            //     let app = this;
+            //     if(this.search.from_date == "") {
+            //         swal("Warning!", "From Date must be added!", "warning")
+            //         return false;
+            //     }
+
+            //   var search =
+            //     "&from_date=" +
+            //     app.search.from_date +
+            //     "&to_date=" +
+            //     app.search.to_date +
+            //     "&warehouse_id=" +
+            //     app.search.warehouse_id +
+            //     "&branch_id=" +
+            //     app.search.branch_id +
+            //     "&brand_id=" +
+            //     app.search.brand_id +
+            //     "&product_name=" +
+            //     app.search.product_name;
+
+            //     var baseurl = window.location.origin;
+            //     //window.open(baseurl+'/inventory_export?'+search);
+            //     window.open(this.site_path+'/inventory_export?'+search);
+            // },
+             //Kamlesh Start
+         exportPdf() {   
 
                 let app = this;
-                if(this.search.from_date == "") {
+                if(this.search.from_date == "") {                  
                     swal("Warning!", "From Date must be added!", "warning")
                     return false;
+                } 
+                else {
+                    $("#loading").show();
                 }
 
-              var search =
-                "&from_date=" +
-                app.search.from_date +
-                "&to_date=" +
-                app.search.to_date +
-                "&warehouse_id=" +
-                app.search.warehouse_id +
-                "&branch_id=" +
-                app.search.branch_id +
-                "&brand_id=" +
-                app.search.brand_id +
-                "&product_name=" +
-                app.search.product_name;
+                var search =
+                 "&date=" +
+                    app.search.date +
+                    "&category_id=" +
+                    app.search.category_id +
+                    "&brand_id=" +
+                    app.search.brand_id +
+                    "&product_code=" +
+                    app.search.product_code+
+                    "&product_name=" +
+                    app.search.product_name;
 
-                var baseurl = window.location.origin;
-                //window.open(baseurl+'/inventory_export?'+search);
-                window.open(this.site_path+'/inventory_export?'+search);
+                    
+
+                axios.get("/report/get_valuation_export_pdf?" + search, {responseType: 'blob'}).then(response => {
+                    $('#loading').hide();
+                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                    window.open(url);
+
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+
             },
+        // Kamlesh End
 
             dateFormat(d) {
                 return moment(d).format('YYYY-MM-DD');

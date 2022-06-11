@@ -149,9 +149,18 @@
 <!--                    </div>-->
 <!--                </div>-->
                 <!-- end sort by -->
-                <div class="text-right mb-2" v-if="out_count > 0">
-                    <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                <!-- Kamlesh Start -->
+                <div class="text-right form-group mt-4" >
+                    <div class="mb-2" v-if="out_count > 0" style="display:inline-block">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
+                        
+                    </div>
+                    <div class="mb-2 pl-2" v-if="out_count> 0" style="display:inline-block;">
+                        <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
+                    </div>
                 </div>
+                <!-- Kamlesh End -->
+                    
                 <!--<div class="text-right mb-2" v-if="sales.length > 0">
                     <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                 </div>-->
@@ -487,6 +496,8 @@ export default {
             if(this.search.from_date == "") {
                 swal("Warning!", "From Date must be added!", "warning")
                 return false;
+            }else {
+                $("#loading").show();
             }
 
             var search =
@@ -523,7 +534,55 @@ export default {
             var baseurl = window.location.origin;
             //window.open(baseurl+'/daily_sale_product_export?'+search);
             window.open(this.site_path+'/report/purchase_outstanding_export?'+search);
+            $('#loading').hide();
         },
+        //Kamlesh Start
+         exportPdf() {   
+
+                let app = this;
+                if(this.search.from_date == "") {                  
+                    swal("Warning!", "From Date must be added!", "warning")
+                    return false;
+                } 
+                else {
+                    $("#loading").show();
+                }
+
+                var search =
+                   "&from_date=" +
+                    app.search.from_date +
+                    "&to_date=" +
+                    app.search.to_date +
+                    "&invoice_no=" +
+                    app.search.invoice_no +
+                    "&branch_id=" +
+                    app.search.branch_id +
+                    "&supplier_id=" +
+                    app.search.supplier_id +
+                    "&brand_id=" +
+                    app.search.branch_id +
+                    "&currency_id=" +
+                    app.search.currency_id +
+                    "&sign=" +
+                    app.sign+
+                    "&state_id=" +
+                    app.search.state_id +
+                    "&township_id=" +
+                    app.search.township_id;
+                    
+
+                axios.get("/report/purchase_outstanding_export_pdf?" + search, {responseType: 'blob'}).then(response => {
+                    $('#loading').hide();
+                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                    window.open(url);
+
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+
+            },
+        // Kamlesh End
 
         dateFormat(d) {
             return moment(d).format('YYYY-MM-DD');
