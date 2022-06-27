@@ -220,8 +220,8 @@
             {{getUomName($product,$product->pivot->uom_id)}}
           </td>-->
           @if($product->pivot->is_foc == 0)
-            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->price_fx)}}</td>
-            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->total_amount_fx)}}</td>
+            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->price_fx,3)}}</td>
+            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->total_amount_fx,3)}}</td>
             <!--<td style="text-align: right;">{{!empty($product->pivot->other_discount) ? number_format($product->pivot->other_discount).'%' : '0'}}</td>
             <td style="text-align: right;">{{number_format($product->pivot->total_amount)}}</td>-->
           @else
@@ -258,19 +258,19 @@
                    
         </td>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Total Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->total_amount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->total_amount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Cash Discount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->discount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->discount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Paid Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($purchase->pay_amount_fx) ? number_format($purchase->pay_amount_fx) : '0'}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($purchase->pay_amount_fx) ? number_format($purchase->pay_amount_fx,3) : '0'}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Balance Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->balance_amount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($purchase->balance_amount_fx,3)}}</td>
       </tr>
       <!--<tr>
         <td colspan="9" style="height:70px;vertical-align: top" class="mm-txt">Bank Details:</td>

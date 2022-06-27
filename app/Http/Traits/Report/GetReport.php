@@ -463,11 +463,11 @@ trait GetReport
                                 $invoices[$k]->type="paid";
                         }**/
                     if ($i->currency_id == 1) {
-                        if (($i->collection_amount + $i->discount) != $i->balance_amount) {
+                        if (($i->collection_amount) != $i->balance_amount) {
                             $invoices[$k]->type = "paid";
                         }
                     } else {
-                        if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                        if (($i->collection_amount_fx) != $i->balance_amount_fx) {
                             $invoices[$k]->type = "paid";
                         }
                     }
@@ -748,7 +748,7 @@ trait GetReport
                                     }
                                     //$per_gain_loss_amt+=$gain_loss;
                                     $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->return_amount + $i->customer_return_amount;
-                                    $per_bal_amt += $i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount);
+                                    $per_bal_amt += ($i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount) + $gain_amt) - $loss_amt;
                                 }
                             }
                         }

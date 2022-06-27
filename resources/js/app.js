@@ -111,6 +111,7 @@ import InventoryAdjustment from "./views/Inventory/InventoryAdjustment";
 import InventoryAdjustmentForm from "./views/Inventory/InventoryAdjustmentForm";
 import InventoryValuation from "./views/Report/InventoryValuationReport";
 import ProfitAndLoss from "./views/Report/ProfitAndLossReport";
+import BalanceSheet from "./views/Report/balanceSheetRpt";
 import CustomerBlackListRpt from "./views/customerBlackListRpt";
 import CustomerWiseRpt from "./views/customerWiseRpt";
 import ProductCostingRpt from "./views/productCostingRpt";
@@ -582,6 +583,11 @@ const routes = [
    name:'profit_and_loss',
    path:'/report/profit_and_loss',
    component:ProfitAndLoss,
+ },
+ {
+   name:'balance_sheet',
+   path:'/report/balance_sheet',
+   component:BalanceSheet,
  },
  {
       name:'sale_advance',

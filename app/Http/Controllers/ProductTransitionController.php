@@ -401,7 +401,7 @@ class ProductTransitionController extends Controller
 
 
         if ($request->sort_by != "") {
-            if ($request->sort_by == "product_name") {
+            if ($request->sort_by == "name") {
                 $data  =  $products->orderBy('product_name', $order)->get();
             } else if ($request->sort_by == "code") {
                 $data  =  $products->orderBy('product_code', $order)->get();

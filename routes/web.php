@@ -298,6 +298,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('get_valuation_export_pdf', ['App\Http\Controllers\ProductTransitionController', 'getValuationReport'])->name('get_valuation_export_pdf'); //kamlesh
         Route::get('profit_and_loss', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport']);
         Route::get('export_p_and_l_pdf', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport'])->name('export_p_and_l_pdf');
+        Route::get('balance_sheet', ['App\Http\Controllers\AccountTransitionController', 'getBalanceSheetReport']);
     });
     Route::group(['prefix' => 'supplier_ob'], function () {
         Route::get('', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'index']);

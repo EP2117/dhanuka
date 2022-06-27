@@ -234,8 +234,8 @@
           <td class='mm-txt' style="text-align: center;font-weight: bold;">CTN</td>
           <td class='mm-txt' style="text-align: center;font-weight: bold;">PCS</td>
           <td class='mm-txt' style="text-align: center;font-weight: bold;width:150px;">ဈေးနှုန်း<br />({{$currency}})</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">လျှော့ငွေ<br />($currency}})</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">သင့်ငွေ<br />($currency}})</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">လျှော့ငွေ<br />({{$currency}})</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">သင့်ငွေ<br />({{$currency}})</td>
         </tr>
       </thead>
       <?php
@@ -262,9 +262,9 @@
             {{getUomName($product,$product->pivot->uom_id)}}
           </td>-->
           @if($product->pivot->is_foc == 0)
-            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->rate_fx)}}</td>
-            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{!empty($product->pivot->discount_fx) ? number_format($product->pivot->discount_fx).'%' : '0'}}</td>
-            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->total_amount_fx)}}</td>
+            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->rate_fx,3)}}</td>
+            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{!empty($product->pivot->discount_fx) ? number_format($product->pivot->discount_fx,3).'%' : '0'}}</td>
+            <td style="text-align: right;margin:0;padding:0;">{{$currency}} &nbsp;&nbsp;&nbsp; {{number_format($product->pivot->total_amount_fx,3)}}</td>
             <!--<td style="text-align: right;">{{!empty($product->pivot->other_discount) ? number_format($product->pivot->other_discount).'%' : '0'}}</td>
             <td style="text-align: right;">{{number_format($product->pivot->total_amount)}}</td>-->
           @else
@@ -303,7 +303,7 @@
 
       <tr class="tr_heigh">
         <td colspan="4" rowspan="6" style="vertical-align: top;" class="mm-txt">
-          Sales Man: {{$sale->sale_man->sale_man}} <br />
+          Sales Man: {{empty($sale->sale_man->sale_man) ? '' : $sale->sale_man->sale_man}} <br />
           @if($sale->payment_type == 'credit' && !empty($sale->due_date))
           Due Date: <?php
             $date=date_create($sale->due_date);
@@ -317,28 +317,28 @@
           </div>           
         </td>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Total Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->total_amount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->total_amount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Cash Discount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->cash_discount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->cash_discount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Net Total({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->net_total_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->net_total_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Tax({{$currency}})</td>
         <!--<td>{{!empty($sale->tax) ? number_format($sale->tax).'%':''}}</td>-->
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->tax_amount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->tax_amount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Paid Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($sale->pay_amount_fx) ? number_format($sale->pay_amount_fx) : '0'}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($sale->pay_amount_fx) ? number_format($sale->pay_amount_fx,3) : '0'}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Balance Amount({{$currency}})</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->balance_amount_fx)}}</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->balance_amount_fx,3)}}</td>
       </tr>
       <tr>
         <td colspan="9" style="height:60px;vertical-align: top" class="mm-txt">Bank Details:</td>

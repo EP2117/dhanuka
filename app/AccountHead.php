@@ -18,4 +18,8 @@ class AccountHead extends Model
     // public function sub_accounts(){
     //     return $this->hasMany(SubAccount::class,'sub_account_id');
     // }
+
+    public function sub_accounts(){
+        return $this->hasMany(SubAccount::class);
+    }
 }
