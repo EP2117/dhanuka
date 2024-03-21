@@ -36,10 +36,17 @@ class CustomerOpeningBalanceController extends Controller
         }else{
             $no=$latest->id;
         }
+
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
+
         $invoice_no = "OBP".str_pad((int)$no + 1,5,"0",STR_PAD_LEFT);
         $customer_ob= new Sale();
         $customer_ob->invoice_no=$invoice_no;
-        $customer_ob->branch_id = Auth::user()->branch_id;
+        $customer_ob->branch_id = $branch_id;
         $customer_ob->warehouse_id = Auth::user()->warehouse_id;
         $customer_ob->invoice_date=$request->opening_date;
         $customer_ob->is_opening=1;
@@ -83,9 +90,14 @@ class CustomerOpeningBalanceController extends Controller
         $validatedData = $request->validate([
             'invoice_no' => 'max:255|unique:sales,invoice_no,' . $id,
         ]);
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
         $customer_ob=Sale::find($id);
         $customer_ob->invoice_no=$request->invoice_no;
-        $customer_ob->branch_id = Auth::user()->branch_id;
+        $customer_ob->branch_id = $branch_id;
         $customer_ob->warehouse_id = Auth::user()->warehouse_id;
         $customer_ob->invoice_date=$request->opening_date;
         $customer_ob->is_opening=1;

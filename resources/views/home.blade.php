@@ -250,6 +250,30 @@
                             </div>
                             @endif
 
+                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system')
+                            <div class="col-lg-4 col-md-4">
+                             <div class="card-5 carhover">
+                                 <a href="{{url('/reminder')}}">
+                                 <div class="main-col">
+                                     <div class="col1-1">
+                                         <h3>Reminder</h3>
+                                         <ul>
+                                            @if(Auth::user()->role->id != 18)
+                                             <li><i class="fas fa-scroll"></i>Sale Over Due</li>
+                                             <li><i class="fas fa-scroll"></i>Purchase Over Due</li>
+                                            @endif
+                                             <li><i class="fas fa-scroll"></i>Sale Order Pending</li>
+                                         </ul>
+                                     </div>
+                                     <div class="col1-2 report">
+                                        <i class="fas fa-paste"></i>
+                                     </div>
+                                 </div>
+                                 </a>
+                             </div>
+                             </div>
+                            @endif
+
                             @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'office_user')
                             <div class="col-lg-4 col-md-4">
                                 <div class="card-5 carhover">

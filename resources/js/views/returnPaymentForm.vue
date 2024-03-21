@@ -84,6 +84,25 @@
                             </div>
                         </div>
 
+                        <div class="row mt-3" >
+                             <div class="form-group col-md-4">
+                                <label for="">Payment Method</label>
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="">&nbsp;</label>
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="row mt-4">
                             <div class="col-md-12">
                                 <span class="d-none d-sm-inline-block btn-sm btn-primary shadow-sm bg-blue"><i class="fas fa-list text-white"></i> Return Invoice Details</span>
@@ -107,7 +126,7 @@
                                             <td>{{sreturn.return_no}}</td>
                                             <td>{{sreturn.return_date}}</td>
                                             <td>
-                                                <input type="text" :id="'total_return_amt'+sreturn.id" class="form-control num_txt total_return_amt" readonly :value="sreturn.total_amount" />
+                                                <input type="text" :id="'total_return_amt'+sreturn.id" class="form-control num_txt total_return_amt" readonly :value="parseInt(sreturn.total_amount) - parseInt(sreturn.discount)" />
                                             </td>
                                             <td>
                                                 <input type="text" :id="'prev_amt'+sreturn.id" class="form-control num_txt prev_amt" readonly :value="sreturn.total_payment_amount" />
@@ -116,7 +135,7 @@
                                                 <input type="text" :id="'return_amt'+sreturn.id" class="form-control num_txt" @blur="calcBalance(sreturn.id)" />
                                             </td>
                                             <td>
-                                                <input type="text" :id="'balance_amt'+sreturn.id" class="form-control num_txt balance_amt" :value="parseInt(sreturn.total_amount) - parseInt(sreturn.total_payment_amount)"  :data-id="sreturn.id" readonly />
+                                                <input type="text" :id="'balance_amt'+sreturn.id" class="form-control num_txt balance_amt" :value="(parseInt(sreturn.total_amount) - parseInt(sreturn.discount)) - parseInt(sreturn.total_payment_amount)"  :data-id="sreturn.id" readonly />
                                             </td>
                                         </tr>
                                         </template>
@@ -156,7 +175,9 @@
                 return_id: "", 
                 return_amount: '', 
                 payment_type:'', 
-                branch_id: '',           
+                branch_id: '',
+                account_group: "",
+                cash_bank_account: '',            
               }),
               isEdit: false,
               isReadonly: true,
@@ -172,6 +193,8 @@
               branches: [],
               site_path: '',
               storage_path: '',
+              account_group: [],
+              cash_bank_accounts: [],
             };
         },
 
@@ -210,6 +233,7 @@
             let app = this;
             app.initCustomers();
             app.initBranches();
+            app.initAccountGroup();
             $("#branch_id").on("select2:select", function(e) {
                 var data = e.params.data;
                 app.form.branch_id = data.id;
@@ -284,6 +308,16 @@
         },
 
         methods: {
+            initAccountGroup(){
+                axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+                // $("#financial_type2_id").select2();
+            },
+
+            changeAccountGroup(id) {
+                var ag_id = this.form.account_group;
+                axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+            },
+
             sale_invoice_date(date){
                return moment(date).format('DD/MM/YY');
             },
@@ -329,6 +363,12 @@
                     app.form.branch_id = response.data.payment.branch.id;
                     $('#branch_id').val(app.form.branch_id).trigger('change');
 
+                    app.form.account_group = response.data.payment.account_group_id;             
+                    if(response.data.payment.account_group_id != '' && response.data.payment.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.payment.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.payment.sub_account_id;
+
                     app.form.return_id = response.data.payment.return_id;
 
                     var newOption = new Option(response.data.payment.sale_return.return_no, response.data.payment.sale_return.id, true, true);
@@ -344,14 +384,14 @@
 
                     html += '<td>'+value.return_no+'</td><td>'+value.return_date+'</td>';
 
-                    html += '<td><input type="text" id="total_return_amt'+app.form.return_id+'" class="form-control num_txt total_amt" readonly value="'+value.total_amount+'" /></td>';
+                    html += '<td><input type="text" id="total_return_amt'+app.form.return_id+'" class="form-control num_txt total_amt" readonly value="'+(parseInt(value.total_amount) - parseInt(value.discount))+'" /></td>';
 
                     var $prev_amt = parseInt(value.total_payment_amount) - parseInt(response.data.payment.total_amount);
                     html += '<td><input type="text" id="prev_amt'+app.form.return_id+'" class="form-control num_txt prev_amt" readonly value="'+$prev_amt+'" /></td>';
 
                     html += '<td><input type="text" id="return_amt'+app.form.return_id+'" class="form-control num_txt return_amt" value="'+response.data.payment.total_amount+'" /></td>';
 
-                    var $bal_amt = parseInt(value.total_amount) - ($prev_amt + parseInt(response.data.payment.total_amount));
+                    var $bal_amt = (parseInt(value.total_amount) - parseInt(value.discount)) - ($prev_amt + parseInt(response.data.payment.total_amount));
                     html += '<td><input type="text" id="balance_amt'+app.form.return_id+'" class="form-control num_txt balance_amt" readonly value="'+$bal_amt+'" /></td>';
 
                     html += '</tr>';

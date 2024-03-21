@@ -59,8 +59,8 @@
                 $html .= '<td class="text-center">'.$r->return_date.'</td>';
 
                 $html .= '<td class="text-center mm-txt">'.$r->customer->cus_name.'</td>';
-                $html .= '<td style="text-align:right">'.number_format($r->total_amount).'</td>';
-                $total += $r->total_amount;
+                $html .= '<td style="text-align:right">'.number_format($r->total_amount - $r->discount).'</td>';
+                $total += ($r->total_amount - $r->discount);
                 $html .= '</tr>';
 
             } 

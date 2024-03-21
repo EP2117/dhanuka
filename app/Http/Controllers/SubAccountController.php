@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\AccountHead;
 use App\AccountType;
 use App\SubAccount;
+use App\AccountGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +13,7 @@ class SubAccountController extends Controller
 {
     public function getAll(Request $request){
 //        dd($request->all());
-        $sub_account=SubAccount::orderBy('sub_account_name','asc');
+        $sub_account=SubAccount::with('account_group')->orderBy('sub_account_name','asc');
 //        $sub_account=SubAccount::paginate(1);
         if($request->sub_account_name!=''){
             $sub_account->where('sub_account_name', 'LIKE', '%'.$request->sub_account_name.'%');
@@ -21,6 +22,8 @@ class SubAccountController extends Controller
             $sub_account->where('account_head_id',$request->account_head);
         }if($request->account_type!=''){
             $sub_account->where('account_type_id',$request->account_type);
+        }if($request->account_group!=''){
+            $sub_account->where('account_group_id',$request->account_group);
         }
         $sub_account=$sub_account->paginate(30);
         return response(compact('sub_account'),200);
@@ -44,6 +47,7 @@ class SubAccountController extends Controller
     public function store(Request  $request){
         SubAccount::create([
             'sub_account_name'=>$request->sub_account_name,
+            'account_group_id'=>$request->account_group,
             'account_head_id'=>$request->account_head,
             'account_type_id'=>$request->account_type,
             'created_by'=>Auth::user()->id,
@@ -57,6 +61,7 @@ class SubAccountController extends Controller
     public function update($id,Request  $request){
         SubAccount::whereId($id)->update([
             'sub_account_name'=>$request->sub_account_name,
+            'account_group_id'=>$request->account_group,
             'account_head_id'=>$request->account_head,
             'account_type_id'=>$request->account_type,
             'updated_by'=>Auth::user()->id,
@@ -89,5 +94,15 @@ class SubAccountController extends Controller
         }
 //        dd($sub_account);
         return compact('sub_account');
+    }
+
+    public function getAccountGroup(){
+        $account_group=AccountGroup::orderBy('id','asc')->where('is_active',1)->get();
+        return compact('account_group');
+    }
+
+    public function getByAccountGroup($id){
+        $sub_accounts=SubAccount::where('account_group_id',$id)->where('is_active',1)->orderBy('sub_account_name','asc')->get();
+        return compact('sub_accounts');
     }
 }

@@ -60,10 +60,10 @@
                 <th class="text-center">Date</th>
                 <th class="text-center">Supplier</th>
                 <th class="text-center">Supplier Code</th>
-                <th class="text-center">Invoice Amount</th>
-                <th class="text-center">Paid Amount</th>
-                <th class="text-center">Currency Gain/Loss</th>
-                <th class="text-center">Balance Amount</th>
+                <th class="text-center">Invoice Amount ({{$request->sign}})</th>
+                <th class="text-center">Paid Amount ({{$request->sign}})</th>
+                <th class="text-center">Currency Gain/Loss ({{$request->sign}})</th>
+                <th class="text-center">Balance Amount ({{$request->sign}})</th>
             </tr>
         </thead>
         <tbody>

@@ -10,6 +10,7 @@ use App\Product;
 use App\ProductTransition;
 use App\PurchaseInvoice;
 use App\PurchaseAdvance;
+use App\PurchaseCreditNote;
 use App\User;
 use App\Supplier;
 use Illuminate\Http\Request;
@@ -65,6 +66,12 @@ class PurchaseInvoiceController extends Controller
                     'reference_no' => 'max:255|unique:purchase_invoices',
                 ]);
             }
+
+            foreach (Auth::user()->branches as $k => $b) {
+                if ($k == 0) {
+                    $branch_id = $b->id;
+                }
+            }
             $p = new PurchaseInvoice();
             //auto generate invoice no;
             $latest = PurchaseInvoice::orderBy('id','desc')->first();
@@ -75,7 +82,7 @@ class PurchaseInvoiceController extends Controller
             }
             $invoice_no = "PI".str_pad((int)$no + 1,5,"0",STR_PAD_LEFT);
             $p->invoice_no = $invoice_no;
-            $p->branch_id = Auth::user()->branch_id;
+            $p->branch_id = $branch_id;
             $p->reference_no = $request->reference_no;
             $p->invoice_date = $request->invoice_date;
             $p->warehouse_id = Auth::user()->warehouse_id;
@@ -108,6 +115,10 @@ class PurchaseInvoiceController extends Controller
                 $p->discount_fx = $request->discount_fx;
                 $p->balance_amount_fx = $request->balance_amount_fx;
             }
+
+            $p->account_group_id = $request->account_group;
+            $p->sub_account_id = $request->cash_bank_account;
+
             $p->created_by = Auth::user()->id;
             $p->updated_by = Auth::user()->id;
             $p->save();
@@ -158,6 +169,8 @@ class PurchaseInvoiceController extends Controller
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
                                     'transition_date' => $p->invoice_date,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
                                     'vochur_no'=>$invoice_no,
@@ -178,6 +191,8 @@ class PurchaseInvoiceController extends Controller
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
                                     'transition_date' => $p->invoice_date,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
                                     'vochur_no'=>$invoice_no,
@@ -193,6 +208,8 @@ class PurchaseInvoiceController extends Controller
                     else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
                         AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -229,6 +246,8 @@ class PurchaseInvoiceController extends Controller
                         // add in cashbook
                             AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -245,6 +264,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -259,6 +280,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -317,6 +340,8 @@ class PurchaseInvoiceController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -337,6 +362,8 @@ class PurchaseInvoiceController extends Controller
                         } else {
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -353,6 +380,8 @@ class PurchaseInvoiceController extends Controller
                     else if(($supplier_advance_fx > $request->pay_amount_fx) || $supplier_advance_fx == $request->pay_amount_fx) {
                         AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -390,6 +419,8 @@ class PurchaseInvoiceController extends Controller
                                                 $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -408,6 +439,8 @@ class PurchaseInvoiceController extends Controller
                                                 $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -434,6 +467,8 @@ class PurchaseInvoiceController extends Controller
                                                 $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -452,6 +487,8 @@ class PurchaseInvoiceController extends Controller
                                                 $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -503,6 +540,8 @@ class PurchaseInvoiceController extends Controller
                         // add in cashbook
                             AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -519,6 +558,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -533,6 +574,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -569,6 +612,8 @@ class PurchaseInvoiceController extends Controller
                                             $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -587,6 +632,8 @@ class PurchaseInvoiceController extends Controller
                                             $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -613,6 +660,8 @@ class PurchaseInvoiceController extends Controller
                                             $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -631,6 +680,8 @@ class PurchaseInvoiceController extends Controller
                                             $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -715,7 +766,7 @@ class PurchaseInvoiceController extends Controller
                 $obj->transition_type       = "in";
                 $obj->transition_purchase_id   = $p->id;
                 $obj->transition_product_pivot_id = $pivot_id;
-                $obj->branch_id  = Auth::user()->branch_id;
+                $obj->branch_id  = $branch_id;
                 $obj->warehouse_id          = Auth::user()->warehouse_id;
                 $obj->transition_date       = $request->invoice_date;
                 $obj->transition_product_uom_id        = $request->uom[$i];
@@ -767,6 +818,13 @@ class PurchaseInvoiceController extends Controller
                 'reference_no' => 'max:255|unique:purchase_invoices,reference_no,'.$id,
             ]);
         }
+
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
+
         $p = PurchaseInvoice::find($id);
         $old_sub_account_id=$p->payment_type=='credit' ? config('global.purchase_advance') :config('global.cash_purchase');
         //$p->invoice_no = $request->invoice_no;
@@ -803,6 +861,9 @@ class PurchaseInvoiceController extends Controller
             $p->discount_fx = $request->discount_fx;
             $p->balance_amount_fx = $request->balance_amount_fx;
         }
+
+        $p->account_group_id = $request->account_group;
+        $p->sub_account_id = $request->cash_bank_account;
 
         $p->updated_at = time();
         $p->updated_by = Auth::user()->id;
@@ -870,6 +931,8 @@ class PurchaseInvoiceController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -891,6 +954,8 @@ class PurchaseInvoiceController extends Controller
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
                                     'transition_date' => $p->invoice_date,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
                                     'vochur_no'=>$invoice_no,
@@ -906,6 +971,8 @@ class PurchaseInvoiceController extends Controller
                     else if(($supplier_advance > $request->pay_amount) || $supplier_advance == $request->pay_amount) {
                         AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -942,6 +1009,8 @@ class PurchaseInvoiceController extends Controller
                         // add in cashbook
                             AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -958,6 +1027,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -972,6 +1043,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1046,6 +1119,8 @@ class PurchaseInvoiceController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1066,6 +1141,8 @@ class PurchaseInvoiceController extends Controller
                         } else {
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1082,6 +1159,8 @@ class PurchaseInvoiceController extends Controller
                     else if(($supplier_advance_fx > $request->pay_amount_fx) || $supplier_advance_fx == $request->pay_amount_fx) {
                         AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1119,6 +1198,8 @@ class PurchaseInvoiceController extends Controller
                                                 $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -1137,6 +1218,8 @@ class PurchaseInvoiceController extends Controller
                                                 $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -1163,6 +1246,8 @@ class PurchaseInvoiceController extends Controller
                                                 $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -1181,6 +1266,8 @@ class PurchaseInvoiceController extends Controller
                                                 $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $p->account_group_id,
+                                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                                     'transition_date' => $request->invoice_date,
                                                     'purchase_id' => $p->id,
                                                     'purchase_advance_id' => $pa->id,
@@ -1231,6 +1318,8 @@ class PurchaseInvoiceController extends Controller
                         // add in cashbook
                             AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1247,6 +1336,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1261,6 +1352,8 @@ class PurchaseInvoiceController extends Controller
 
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
+                                    'account_group_id' => $p->account_group_id,
+                                    'cash_bank_sub_account_id' => $p->sub_account_id,
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -1297,6 +1390,8 @@ class PurchaseInvoiceController extends Controller
                                             $loss_amt = ($pa->currency_rate - $request->currency_rate) * $pa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -1315,6 +1410,8 @@ class PurchaseInvoiceController extends Controller
                                             $gain_amt = ($request->currency_rate - $pa->currency_rate) * $pa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -1341,6 +1438,8 @@ class PurchaseInvoiceController extends Controller
                                             $loss_amt = ($pa->currency_rate - $request->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -1359,6 +1458,8 @@ class PurchaseInvoiceController extends Controller
                                             $gain_amt = ($request->currency_rate - $pa->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $p->account_group_id,
+                                                'cash_bank_sub_account_id' => $p->sub_account_id,
                                                 'transition_date' => $request->invoice_date,
                                                 'purchase_id' => $p->id,
                                                 'purchase_advance_id' => $pa->id,
@@ -1496,7 +1597,7 @@ class PurchaseInvoiceController extends Controller
                 $obj->transition_type       = "in";
                 $obj->transition_purchase_id   = $id;
                 $obj->transition_product_pivot_id   = $pivot_id;
-                $obj->branch_id  = Auth::user()->branch_id;
+                $obj->branch_id  = $branch_id;
                // $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
                 $obj->warehouse_id          = $warehouse_id;
                 $obj->transition_date       = $request->invoice_date;
@@ -1664,8 +1765,14 @@ class PurchaseInvoiceController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $purchases->where('purchase_invoices.branch_id',$branch);
+                /*$branch = Auth::user()->branch_id;
+                $purchases->where('purchase_invoices.branch_id',$branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $purchases->whereIn('purchase_invoices.branch_id',$branch_arr);
             }
         }
         if($request->supplier_id != "") {
@@ -1864,6 +1971,69 @@ class PurchaseInvoiceController extends Controller
         $currency = $purchase->currency->sign;
 
         return view('exports.purchase_invoice_currency_print', compact('purchase','currency'));
+    }
+
+    public function getPurchaseInvoiceByCreditNoteType($credit_type, Request $request)
+    {
+        ini_set('memory_limit', '-1');
+        // dd('a');
+        // dd($request->all());
+        /*if ($request->supplier_id != null && $request->branch_id != '') {
+            if ($credit_type == 0) {
+                $data = PurchaseInvoice::with('products')->orderBy('invoice_date', 'ASC')
+                    ->where('supplier_id', $request->supplier_id)
+                    ->where('payment_type', 'cash')
+                    ->where('branch_id', $request->branch_id)
+                    ->get();
+            } else if ($credit_type == 1 || $credit_type == 2) {
+                $data = PurchaseInvoice::with('products')->orderBy('invoice_date', 'ASC')
+                    ->where('supplier_id', $request->supplier_id)
+                    ->where('payment_type', 'credit')
+                    ->where('branch_id', $request->branch_id)
+                    ->whereRaw('(total_amount-(pay_amount + collection_amount)) > 0')
+                    ->get();
+            }
+
+        } else {
+            $data = '';
+        }
+        return response(compact('data'), 200);*/
+        $cn_amount = 0;
+        $inv_bal = 0;
+        if (isset($request->cn_id) && $request->cn_id != "") {
+            $cn = PurchaseCreditNote::with('products')->find($request->cn_id);
+            foreach ($cn->products as $cp) {
+                $cn_amount += $cp->pivot->total_amount;
+            }
+            $data = PurchaseInvoice::with('products', 'products.selling_uoms')->orderBy('invoice_date', 'ASC')
+                ->where('id', $cn->purchase_id)
+                ->get();
+            foreach ($data as $key => $s) {
+                $inv_bal = $s->total_amount - ($s->discount == NULL ? 0 : $s->discount + $s->collection_amount + $s->pay_amount + $s->credit_note_amount);
+            }
+            $inv_bal = $inv_bal + $cn_amount;
+        } else {
+            if ($request->supplier_id != null && $request->branch_id != '') {
+                if ($credit_type == 0) {
+                    $data = PurchaseInvoice::with('products', 'products.selling_uoms')->orderBy('invoice_date', 'ASC')
+                        ->where('supplier_id', $request->supplier_id)
+                        ->where('payment_type', 'cash')
+                        ->where('branch_id', $request->branch_id)
+                        ->get();
+                } else if ($credit_type == 1 || $credit_type == 2) {
+                    $data = PurchaseInvoice::with('products', 'products.selling_uoms')->orderBy('invoice_date', 'ASC')
+                        ->where('supplier_id', $request->supplier_id)
+                        ->where('payment_type', 'credit')
+                        ->where('branch_id', $request->branch_id)
+                        ->whereRaw('(total_amount-(IFNULL(discount,0) + pay_amount + collection_amount + credit_note_amount)) > 0')
+                        ->get();
+                }
+            } else {
+                $data = '';
+            }
+        }
+        // dd($data);
+        return response(compact('data', 'inv_bal', 'cn_amount'), 200);
     }
 
 }

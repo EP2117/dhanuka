@@ -70,8 +70,14 @@ class OrderController extends Controller
             } else {
                 //other roles can access only one branch
                 if(Auth::user()->role->id != 1) { //system can access all branches
-                    $branch = Auth::user()->branch_id;
-                    $data->where('branch_id',$branch);
+                    /*$branch = Auth::user()->branch_id;
+                    $data->where('branch_id',$branch);*/
+                    $branches = Auth::user()->branches;
+                    $branch_arr = array();
+                    foreach($branches as $branch) {
+                        array_push($branch_arr, $branch->id);
+                    }
+                    $data->whereIn('branch_id',$branch_arr);
                 }
             }
         }
@@ -133,13 +139,19 @@ class OrderController extends Controller
         } else {
             $max_id = 1;
         }
+
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
             
         $order_no = "SO".str_pad($max_id,5,"0",STR_PAD_LEFT);
 
         $order->order_no = $order_no;
         $order->order_date = $request->order_date;
         //$order->warehouse_id = Auth::user()->warehouse_id;
-        $order->branch_id = Auth::user()->branch_id;
+        $order->branch_id = $branch_id;
         $order->customer_id = $request->customer_id;
         $order->remark = $request->remark;
 
@@ -464,8 +476,14 @@ class OrderController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $products->where('orders.branch_id',$branch);
+                /*$branch = Auth::user()->branch_id;
+                $products->where('orders.branch_id',$branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $products->whereIn('orders.branch_id',$branch_arr);
             }
         }
 

@@ -5,7 +5,7 @@
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/master'">Master</a></li>
-                <li class="breadcrumb-item"><router-link tag="span" to="/receipt" class="font-weight-normal"><a href="#">Category</a></router-link></li>
+                <li class="breadcrumb-item"><router-link tag="span" to="/receipt" class="font-weight-normal"><a href="#">Account</a></router-link></li>
                 <li class="breadcrumb-item active" aria-current="page">Receipt Form</li>
 
             </ol>

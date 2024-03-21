@@ -93,6 +93,9 @@
                                 <th class="text-center">Warehouse UOM</th>
                                 <th class="text-center">Balance Qty </th>
                                 <th class="text-center">Valuation Amount</th>
+                                <th class="text-center">Adjustment In <br />Valuation Amount</th>
+                                <th class="text-center">Adjustment Out <br />Valuation Amount</th>
+                                <th class="text-center">Before Adjustment <br />Valuation Amount</th>
                                 <!-- <th class="text-center">Stock <br />Receive</th> -->
                                 <!-- <th class="text-center">Stock <br />Transfer</th> -->
 <!--                                <th class="text-center">Sale Order</th>-->
@@ -119,6 +122,9 @@
                                     <td class="text-center">{{product.balance}}</td>
                                     <!-- <td class="text-center">{{product.valuation_amount==null? 0 : product.p_valuation_amount}}</td> -->
                                     <td class="text-center">{{product.t_valuation_amount}}</td>
+                                    <td class="text-center">{{product.adj_in_cost_price}}</td>
+                                    <td class="text-center">{{product.adj_out_cost_price}}</td>
+                                    <td class="text-center">{{(parseInt(product.t_valuation_amount) + parseInt(product.adj_out_cost_price)) - parseInt(product.adj_in_cost_price)}}</td>
                                     <!-- <td>
                                         {{(parseInt(product.product_opening) + parseInt(product.inQqty)+ parseInt(product.receiveQty) +parseInt(product.add_qty)  )-(parseInt(product.saleQty)  + parseInt(product.transferQty))}}
                                     </td> -->
@@ -129,6 +135,15 @@
                                    <td colspan ="7" style="text-align: right;"><strong>Total Amt</strong></td>
                                    <td class="text-center">
                                        {{this.total_valuation}}
+                                   </td>
+                                   <td class="text-center">
+                                       {{this.total_adj_in}}
+                                   </td>
+                                   <td class="text-center">
+                                       {{this.total_adj_out}}
+                                   </td>
+                                   <td class="text-center">
+                                       {{this.total_after_valuation}}
                                    </td>
                                </tr>
                             <!-- <template v-else>
@@ -183,6 +198,9 @@
                 site_path: '',
                 storage_path: '',
                 total_valuation:'',
+                total_adj_in: '',
+                total_adj_out: '',
+                total_after_valuation: ''
             };
         },
 
@@ -311,6 +329,9 @@
                 .then(function(response) {
                     app.products = response.data.data;   
                     app.total_valuation = response.data.total_valuation;
+                    app.total_adj_in = response.data.total_adj_in;
+                    app.total_adj_out = response.data.total_adj_out;
+                    app.total_after_valuation = response.data.total_after_valuation;
                     // response.data.data.forEach(dt => {
                     //     console.log(dt.brand_name); 
                     // })

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\AccountTransition;
+use App\SubAccount;
 use App\Http\Traits\AccountReport\Ledger;
 use App\Recepit;
 use Illuminate\Http\Request;
@@ -53,9 +54,13 @@ class ReceiptController extends Controller
             'created_by'=>Auth::user()->id,
             'updated_by'=>Auth::user()->id,
         ]);
+        $ag = SubAccount::find($request->debit);
+        $ag_id = $ag->account_group_id;
         if($receipt){
             AccountTransition::create([
                 'sub_account_id'=>$receipt->credit->id,
+                'account_group_id' => $ag_id,
+                'cash_bank_sub_account_id' => $request->debit,
                 'transition_date'=>$receipt->date,
                 'receipt_id'=>$receipt->id,
                 'is_cashbook'=>1,
@@ -117,10 +122,14 @@ class ReceiptController extends Controller
         ]);
         $receipt=Recepit::whereId($id)->first();
         if($receipt){
+            $ag = SubAccount::find($receipt->debit->id);
+            $ag_id = $ag->account_group_id;
             AccountTransition::where('receipt_id',$id)
                 ->where('is_cashbook',1)
                 ->update([
                 'sub_account_id'=>$receipt->credit->id,
+                'account_group_id' => $ag_id,
+                'cash_bank_sub_account_id' => $receipt->debit->id,
                 'transition_date'=>$receipt->date,
                 'vochur_no'=>$receipt->cash_receipt_no,
                 'receipt_id'=>$receipt->id,

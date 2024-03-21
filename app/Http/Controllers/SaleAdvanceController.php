@@ -64,12 +64,16 @@ class SaleAdvanceController extends Controller
             $obj->balance = $request->amount_fx;
         }
         $obj->amount = $request->amount;
+        $obj->account_group_id = $request->account_group;
+        $obj->sub_account_id = $request->cash_bank_account;
         $obj->advance_type = 'in';
         $obj->created_by = Auth::user()->id;
         $obj->save();
 
         AccountTransition::create([
             'sub_account_id' => 9, //sale advance account
+            'account_group_id' => $request->account_group,
+            'cash_bank_sub_account_id' => $request->cash_bank_account,
             'transition_date' => $request->date,
             'sale_advance_id' => $obj->id,
             'customer_id'=>$request->customer_id,
@@ -82,6 +86,8 @@ class SaleAdvanceController extends Controller
 
         AccountTransition::create([
             'sub_account_id' => 9, //sale advance account
+            'account_group_id' => $request->account_group,
+            'cash_bank_sub_account_id' => $request->cash_bank_account,
             'transition_date' => $request->date,
             'sale_advance_id' => $obj->id,
             'customer_id'=>$request->customer_id,
@@ -165,6 +171,8 @@ class SaleAdvanceController extends Controller
             $obj->amount = $request->amount;
             $obj->advance_type = 'in';
             $obj->currency_id = $request->currency_id;
+            $obj->account_group_id = $request->account_group;
+            $obj->sub_account_id = $request->cash_bank_account;
             if($request->currency_id != 1) {
                 $obj->currency_rate = $request->currency_rate;
                 $obj->amount_fx = $request->amount_fx;
@@ -187,6 +195,8 @@ class SaleAdvanceController extends Controller
                 ['sale_advance_id',$id],
                 ['is_cashbook',0]])->update([
                 'transition_date' => $request->date,
+                'account_group_id' => $request->account_group,
+                'cash_bank_sub_account_id' => $request->cash_bank_account,
                 'customer_id'=>$request->customer_id,
                 'debit' => $request->amount,
                 'updated_by' => Auth::user()->id,
@@ -197,6 +207,8 @@ class SaleAdvanceController extends Controller
                 ['sale_advance_id',$id],
                 ['is_cashbook',1]])->update([
                 'transition_date' => $request->date,
+                'account_group_id' => $request->account_group,
+                'cash_bank_sub_account_id' => $request->cash_bank_account,
                 'customer_id'=>$request->customer_id,
                 'debit' => $request->amount,
                 'updated_by' => Auth::user()->id,

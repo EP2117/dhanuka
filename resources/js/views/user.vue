@@ -33,6 +33,17 @@
                         </select>
                     </div> 
 
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label for="status">Status</label>
+                        <select id="status" class="form-control mm-txt"
+                            name="status" v-model="search.status" style="width:100%" 
+                        >
+                            <option value="">Select One</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+
                     <div class="form-group col-md-3 col-lg-2">
                         <label class="small" for="search">&nbsp;</label>
                         <button
@@ -59,6 +70,7 @@
                                 <th class="text-center">Email</th>
                                 <th class="text-center">Role</th>
                                 <th class="text-center">Phone</th>
+                                <th class="text-center">Online Status</th>
                                  <th class="text-center">Status</th>
                                 <th class="text-center"></th>
                             </tr>
@@ -70,7 +82,8 @@
                                 <th class="text-center">Email</th>
                                 <th class="text-center">Role</th>
                                 <th class="text-center">Phone</th>
-                                <th class="text-center">Status</th>
+                                <th class="text-center">Online Status</th>
+                                 <th class="text-center">Status</th>
                                 <th class="text-center"></th>
                             </tr>
                         </tfoot>
@@ -85,6 +98,10 @@
                                     <span class="btn btn-success btn-sm">Online</span>
                                 </td>
                                 <td class="text-center" v-else><span class="btn btn-secondary btn-sm">Offline</span></td>
+                                <td class="text-center">
+                                    <span class="badge badge-success" v-if="user.is_active == 1">Active</span>
+                                    <span class="badge badge-danger" v-else>Inactive</span>
+                                </td>
                                 <td class="text-center">
                                     <!--<router-link tag="span" :to="'/user/edit/' + user.id" >
                                         <a href="#" title="Edit/View" class="">
@@ -108,10 +125,15 @@
                                                     </a>&nbsp;
                                                 </router-link>
                                             </a>
-                                            <a class="dropdown-item">
+                                            <a class="dropdown-item" v-if="user_role == 'system' && user.online_status == 1">
                                                 <button type="button" title="Offline" class="btn btn-secondary btn-sm" @click="offUser(user.id)" v-if="user_role == 'system' && user.online_status == 1">
                                                     Offline
                                                 </button>&nbsp;
+                                            </a>
+
+                                            <a class="dropdown-item" v-if="user_role == 'system'">
+                                                <a class="btn btn-primary btn-sm text-white"  @click="changeStatus(user.id,'inactive')" v-if="user.is_active == 1">Inactive</a>
+                                                <a class="btn btn-primary btn-sm text-white" @click="changeStatus(user.id,'active')" v-else>Active</a>  
                                             </a>
                                         </div>
                                     </div>
@@ -145,6 +167,7 @@
             return {
                 search: {
                     role_id: "",
+                    status: "",
                 },
                 roles: [],
                 users: [],
@@ -194,6 +217,7 @@
                 let app = this;
 
                 var search =
+                    "&status="+app.search.status+
                     "&role_id=" +
                     app.search.role_id;
 
@@ -201,6 +225,36 @@
                     .then(function() {
                         $("#loading").hide();
                     });
+            },
+
+            changeStatus(id,status) {
+                let app = this;
+                var active = status;
+                var user_id = id;
+
+                swal({
+                    title: "Are you sure to "+active+"?",
+                    text: "",
+                    icon: "warning",
+                    buttons: true,
+                    dangerMode: true
+                }).then(willDelete => {
+                    if (willDelete) {
+                        $("#loading").show();
+                        axios
+                        .get("/user_status/" + user_id + "/" + active)
+                        .then(function(response) {
+                            $("#loading").hide();
+                            app.getUsers(app.currentPage);
+                            swal("Success! User has been updated as " + active+".", {
+                            icon: "success"
+                          });
+                        });
+                        
+                    } else {
+                       
+                    }
+                });
             },
 
             offUser(id) {

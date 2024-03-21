@@ -43,6 +43,14 @@
                                     <option v-for="at in account_type" :value="at.id"  >{{at.name}}</option>
                                 </select>
                             </div>
+                            <div class="form-group col-md-4 col-lg-3">
+                                <label>Account Group</label>
+                                <select id="account_group_id" class="form-control" 
+                                        v-model="form.account_group" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
                             <div class="form-group  row text-right pt-3">
                                 <label class="col-lg-3 col-form-label form-control-label"></label>
                                 <div class="col-lg-12">
@@ -74,12 +82,14 @@ export default {
         return{
             form:new Form({
                 sub_account_name:'',
+                account_group: '',
                 account_head:'',
                 account_type:'',
             }),
             sub_account_id:'',
             account_head:[],
             account_type:[],
+            account_group:[],
             isEdit:false,
         }
     },
@@ -104,12 +114,17 @@ export default {
         var vm=this;
         vm.initAccountHead();
         vm.initAccountType();
+        vm.initAccountGroup();
     },
     methods:{
         initAccountHead(){
             axios.get('/sub_account/get_account_head').then(({data})=>(this.account_head=data.account_head));
             // $("#type1_id").select2();
 
+        },
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
         },
         initAccountType(){
             axios.get('/sub_account/get_account_type').then(({data})=>(this.account_type=data.account_type));
@@ -121,6 +136,7 @@ export default {
                 var sa=response.data.sub_account;
                 app.form.sub_account_name=sa.sub_account_name;
                 app.form.account_head=sa.account_head_id;
+                app.form.account_group=sa.account_group_id;
                 $('#account_head_id').val(app.form.account_head).trigger('change');
                 app.form.account_type=sa.account_type_id;
                 $('#account_type_id').val(app.form.account_type).trigger('change');

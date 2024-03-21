@@ -36,6 +36,14 @@
                             <option v-for="s in sub_account" :value="s.id"  >{{s.sub_account_name}}</option>
                         </select>
                     </div>
+                    <div class="form-group col-md-8 col-lg-8">
+                        <label for="account_group_id">Account Group</label>
+                        <select id="account_group_id" multiple class="form-control account_groups" required
+                                v-model="search.account_group" style="width:100%">
+                            <option value="">Select One</option>
+                            <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-3 col-lg-2">
                         <label class="small">&nbsp;</label>
                         <button
@@ -61,6 +69,7 @@
                             <th class="text-center">Vochur</th>
                             <th class="text-center">Date</th>
                             <th class="text-center">Description</th>
+                            <th class="text-center">Payment Method</th>
                             <th class="text-center">Account</th>
                             <th class="text-center">Debit</th>
                             <th class="text-center">Credit</th>
@@ -72,6 +81,7 @@
                             <th class="text-center">Vochur</th>
                             <th class="text-center">Date</th>
                             <th class="text-center">Description</th>
+                            <th class="text-center">Payment Method</th>
                             <th class="text-center" >Account</th>
                             <th class="text-center">Debit</th>
                             <th class="text-center">Credit</th>
@@ -81,7 +91,7 @@
 
                         <template v-for="(at ,index) in cashbook">
                             <tr class="total_row"   v-if="at.opening_balance != 0 && !at.hide " >
-                                <td colspan="5" class="text-right mm-txt"><strong>Opening Balance</strong></td>
+                                <td colspan="6" class="text-right mm-txt"><strong>Opening Balance</strong></td>
                                 <td class="text-center" colspan="1" v-if="at.opening_balance > 0 ">
                                     {{decimalFormat(at.opening_balance)}}
                                 </td>
@@ -100,6 +110,8 @@
                                     <td class="text-center">{{c.transition_date}}</td>
                                     <!--                            <td class="text-center">{{c.vochur_no}}</td>-->
                                     <td class="text-center">{{c.description}}</td>
+                                    <td class="text-center" v-if="c.cash_bank_subaccount != null">{{c.cash_bank_subaccount.sub_account_name}}</td>
+                                    <td v-else></td>
                                     <td class="text-center" style="right: 4px ">{{c.sub_account.sub_account_name}}</td>
                                     <td class="text-center">{{c.debit!='' && c.debit != null ? decimalFormat(c.debit) : ''}} </td>
                                     <td class="text-center">{{c.credit!='' && c.credit != null? decimalFormat(c.credit) : ''}} </td>
@@ -115,7 +127,7 @@
                             </template>
                             
                             <tr class="total_row"    v-if="at.cashbook_list.length>0 && !at.hide">
-                                <td colspan="5" class="text-right mm-txt"><strong>DailyTotal</strong></td>
+                                <td colspan="6" class="text-right mm-txt"><strong>DailyTotal</strong></td>
                                 <td class="text-center" colspan="1">
                                     {{decimalFormat(at.total_debit)}}
                                 </td>
@@ -125,7 +137,7 @@
 
                             </tr>
                             <tr class="total_row" v-if="!at.hide">
-                                <td colspan="5" class="text-right mm-text"><strong>Closing Balance</strong></td>
+                                <td colspan="6" class="text-right mm-text"><strong>Closing Balance</strong></td>
                                 <td class="text-center " colspan="1" v-if="at.closing_balance>0">
                                     {{decimalFormat(at.closing_balance)}}
                                     <!--                                121222-->
@@ -193,6 +205,7 @@ export default {
         return{
             search:{
                 sub_account:'',
+                account_group: [],
                 from_date:'',
                 to_date:'',
                 vochur_no:'',
@@ -206,6 +219,8 @@ export default {
                 next_page_url:""
             },
             sub_account:[],
+            account_group: [],
+            temp_account_group: [],
             opening_balance:'',
             closing_balance:'',
             cashbook:[],
@@ -238,6 +253,32 @@ export default {
         $("#loading").hide();
         var app=this;
         app.initSubAccount();
+
+        app.initAccountGroup();
+
+        $(".account_groups").select2();
+        $(".account_groups").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.temp_account_group.push(data.id);
+            var unique_arr = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
+            app.temp_account_group = unique_arr;
+            console.log(app.temp_account_group);
+
+            $('.account_groups').val(app.temp_account_group).trigger('change');
+        });
+
+        $(".account_groups").on("select2:unselect", function(e) {
+            var data = e.params.data;
+            var unique_arr = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
+            app.temp_account_group = unique_arr;
+            const index = app.temp_account_group.indexOf(data.id);
+            if (index > -1) {
+              app.temp_account_group.splice(index, 1);
+            }
+            $('.account_groups').val(app.temp_account_group).trigger('change');
+
+        });
+
         $("#from_date")
             .datetimepicker({
                 icons: {
@@ -302,6 +343,11 @@ export default {
     },
     methods:{
 
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
+        },
+
         decimalFormat(num)
         {
            var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(2);
@@ -313,6 +359,7 @@ export default {
         },
         getCashbook(page=1){
             let app = this;
+            app.search.account_group = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
             if(this.search.from_date == "") {
                 swal("Warning!", "From Date must be added!", "warning")
                 return false;
@@ -331,6 +378,8 @@ export default {
             var search =
                 "&sub_account=" +
                 app.search.sub_account +
+                "&account_group=" +
+                app.search.account_group +
                 "&vochur_no=" +
                 app.search.vochur_no +
                 "&from_date=" +

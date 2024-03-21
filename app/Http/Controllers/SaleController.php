@@ -20,8 +20,11 @@ use App\Exports\DailySaleExport;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Traits\Report\GetReport;
+use Illuminate\Support\Facades\Route;
 use App\Exports\DailySaleProductExport;
 use App\Exports\SaleAnalystExport;
+use App\Exports\DeliveryPendingExport;
+use App\Exports\SaleOrderPendingExport;
 use App\Http\Traits\AccountReport\Ledger;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
@@ -88,7 +91,7 @@ class SaleController extends Controller
                 ->where('created_by', Auth::user()->id)
                 ->pluck('id')->toArray();
             //get specific order invoics
-            $data = Sale::with('currency','order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','branch')
+            $data = Sale::with('currency','order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','sale_returns','branch')
                         ->where('warehouse_id',Auth::user()->warehouse_id)
                         ->where('sale_type', $request->sale_type)->where('is_opening',0);
             //$data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
@@ -146,14 +149,20 @@ class SaleController extends Controller
             } else {
                 //other roles can access only one branch
                 if (Auth::user()->role->id != 1) { //system can access all branches
-                    $branch = Auth::user()->branch_id;
-                    $data->where('branch_id', $branch);
+                    /*$branch = Auth::user()->branch_id;
+                    $data->where('branch_id', $branch);*/
+                    $branches = Auth::user()->branches;
+                    $branch_arr = array();
+                    foreach ($branches as $branch) {
+                        array_push($branch_arr, $branch->id);
+                    }
+                    $data->whereIn('branch_id', $branch_arr);
                 }
             }
 
             $data = $data->orderBy('id', 'DESC')->paginate($limit);
         } else {
-            $data = Sale::with('currency','order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','branch')
+            $data = Sale::with('currency','order','sale_man','products','collections','products.uom', 'warehouse','customer','products.selling_uoms','deliveries','sale_returns','branch')
                     ->where('sale_type', $request->sale_type)->where('is_opening',0);
 
             if ($request->invoice_no == "" && $request->invoice_type == "" && $request->delivery_approve == "" && $request->from_date == "" && $request->to_date == "" && $request->customer_id  == "" && $request->warehouse_id  == "" && $request->office_sale_man_id == "" && $request->ref_no == ""  && $request->sale_man_id == "") {
@@ -272,8 +281,14 @@ class SaleController extends Controller
             } else {
                 //other roles can access only one branch
                 if (Auth::user()->role->id != 1) { //system can access all branches
-                    $branch = Auth::user()->branch_id;
-                    $data->where('branch_id', $branch);
+                    /*$branch = Auth::user()->branch_id;
+                    $data->where('branch_id', $branch);*/
+                    $branches = Auth::user()->branches;
+                    $branch_arr = array();
+                    foreach ($branches as $branch) {
+                        array_push($branch_arr, $branch->id);
+                    }
+                    $data->whereIn('branch_id', $branch_arr);
                 }
             }
             $data = $data->orderBy('id', 'DESC')->paginate($limit);
@@ -297,18 +312,25 @@ class SaleController extends Controller
         }**/
         DB::beginTransaction();
         try {
+
+            foreach (Auth::user()->branches as $k => $b) {
+                if ($k == 0) {
+                    $branch_id = $b->id;
+                }
+            }
             $sale = new Sale;
             //auto generate invoice no;
-            $max_id = Sale::where('sale_type', $request->sale_type)->max('id');
+           /* $max_id = Sale::where('sale_type', $request->sale_type)->max('id');
             if ($max_id) {
                 $max_id = $max_id + 1;
             } else {
                 $max_id = 1;
-            }
-            $invoice_no = "SI" . str_pad($max_id, 5, "0", STR_PAD_LEFT);
-            $sale->invoice_no = $invoice_no;
+            }*/
+            //$invoice_no = "SI" . str_pad($max_id, 5, "0", STR_PAD_LEFT);
+            //$sale->invoice_no = $invoice_no;
+            $sale->invoice_no = 'SI';
             $sale->invoice_type = $request->invoice_type;
-            $sale->branch_id = Auth::user()->branch_id;
+            $sale->branch_id = $branch_id;
             $sale->reference_no = $request->reference_no;
             $sale->invoice_date = $request->invoice_date;
             $sale->warehouse_id = Auth::user()->warehouse_id;
@@ -321,11 +343,28 @@ class SaleController extends Controller
             $sale->pay_amount = $request->pay_amount;
             $sale->sale_type  = $request->sale_type;
             $sale->total_amount = $request->sub_total;
-            $sale->cash_discount = $request->cash_discount;
+            //$sale->cash_discount = $request->cash_discount;
+
+            $sale->discount_type = $request->discount_type;
+            if($request->discount_type == 'amount') {
+                $sale->cash_discount = $request->cash_discount;
+                $sale->discount_percentage = NULL; 
+            } else {
+                $sale->discount_percentage = $request->cash_discount; 
+                if(!empty($request->cash_discount)) {
+                    $sale->cash_discount = ($request->cash_discount/100) * $request->sub_total; 
+                } else {
+                    $sale->cash_discount = NULL;
+                }
+            }
+
             $sale->net_total = $request->net_total;
             $sale->tax = $request->tax;
             $sale->tax_amount = $request->tax_amount;
             $sale->balance_amount = $request->balance_amount;
+
+            $sale->account_group_id = $request->account_group;
+            $sale->sub_account_id = $request->cash_bank_account;
             // if($request->cash_discount!=null || $request->cash_discount!= 0){
             //     $discount_allowed_sub_account_id=config('global.discount_allowed');     /*sub account_id for Discount allowed*/
             // }else{
@@ -352,7 +391,19 @@ class SaleController extends Controller
                 $sale->currency_rate = $request->currency_rate;
                 $sale->pay_amount_fx = $request->pay_amount_fx == '' ? 0 : $request->pay_amount_fx;
                 $sale->total_amount_fx = $request->sub_total_fx == '' ? 0 : $request->sub_total_fx;
-                $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx;
+               // $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx;
+                if($request->discount_type == 'amount') {
+                    $sale->cash_discount_fx = $request->cash_discount_fx;
+                    $sale->discount_percentage_fx = NULL; 
+                } else {
+                    $sale->discount_percentage_fx = $request->cash_discount_fx; 
+                    if(!empty($request->cash_discount_fx)) {
+                        $sale->cash_discount_fx = ($request->cash_discount_fx/100) * $request->sub_total_fx; 
+                    } else {
+                        $sale->cash_discount_fx = NULL;
+                    }
+                }
+
                 $sale->net_total_fx = $request->net_total_fx == '' ? 0 : $request->net_total_fx;
                 $sale->tax_fx = $request->tax_fx == '' ? 0 : $request->tax_fx;
                 $sale->tax_amount_fx = $request->tax_amount_fx == '' ? 0 : $request->tax_amount_fx;
@@ -362,6 +413,7 @@ class SaleController extends Controller
                 $sale->pay_amount_fx = 0;
                 $sale->total_amount_fx = 0;
                 $sale->cash_discount_fx = 0;
+                $sale->discount_percentage_fx = 0;
                 $sale->net_total_fx = 0;
                 $sale->tax_fx = 0;
                 $sale->tax_amount_fx = 0;
@@ -369,6 +421,10 @@ class SaleController extends Controller
             }
             $sale->created_by = Auth::user()->id;
             $sale->updated_by = Auth::user()->id;
+            $sale->save();
+
+            $invoice_no = "SI" . str_pad($sale->id, 5, "0", STR_PAD_LEFT);
+            $sale->invoice_no = $invoice_no;
             $sale->save();
 
             $description = $sale->invoice_no . ", Date " . $sale->invoice_date . " by " . $sale->customer->cus_name;
@@ -394,6 +450,8 @@ class SaleController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'customer_id' => $sale->customer_id,
                                     'sale_id' => $sale->id,
@@ -414,6 +472,8 @@ class SaleController extends Controller
                         } else {
                             AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -433,6 +493,8 @@ class SaleController extends Controller
                     else if(($customer_advance > $request->pay_amount) || $customer_advance == $request->pay_amount) {
                         AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -472,6 +534,8 @@ class SaleController extends Controller
                             
                             AccountTransition::create([
                                 'sub_account_id' => $sub_account_id,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -487,6 +551,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -505,6 +571,8 @@ class SaleController extends Controller
                             AccountTransition::create([
                                 //'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -564,6 +632,8 @@ class SaleController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'customer_id' => $sale->customer_id,
                                     'sale_id' => $sale->id,
@@ -585,6 +655,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -605,6 +677,8 @@ class SaleController extends Controller
                     {
                         AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -644,6 +718,8 @@ class SaleController extends Controller
                                                 $loss_amt = ($sa->currency_rate - $request->currency_rate) * $sa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -662,6 +738,8 @@ class SaleController extends Controller
                                                 $gain_amt = ($request->currency_rate - $sa->currency_rate) * $sa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -688,6 +766,8 @@ class SaleController extends Controller
                                                 $loss_amt = ($sa->currency_rate - $request->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -706,6 +786,8 @@ class SaleController extends Controller
                                                 $gain_amt = ($request->currency_rate - $sa->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -757,6 +839,8 @@ class SaleController extends Controller
                             
                             AccountTransition::create([
                                 'sub_account_id' => $sub_account_id,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -773,6 +857,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -791,6 +877,8 @@ class SaleController extends Controller
                             AccountTransition::create([
                                 //'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -829,6 +917,8 @@ class SaleController extends Controller
                                             $loss_amt = ($sa->currency_rate - $request->currency_rate) * $sa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $request->account_group,
+                                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                 'transition_date' => $request->invoice_date,
                                                 'sale_id' => $sale->id,
                                                 'sale_advance_id' => $sa->id,
@@ -847,6 +937,8 @@ class SaleController extends Controller
                                             $gain_amt = ($request->currency_rate - $sa->currency_rate) * $sa->balance;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $request->account_group,
+                                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                 'transition_date' => $request->invoice_date,
                                                 'sale_id' => $sale->id,
                                                 'sale_advance_id' => $sa->id,
@@ -873,6 +965,8 @@ class SaleController extends Controller
                                             $loss_amt = ($sa->currency_rate - $request->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 80,
+                                                'account_group_id' => $request->account_group,
+                                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                 'transition_date' => $request->invoice_date,
                                                 'sale_id' => $sale->id,
                                                 'sale_advance_id' => $sa->id,
@@ -891,6 +985,8 @@ class SaleController extends Controller
                                             $gain_amt = ($request->currency_rate - $sa->currency_rate) * $payAmount;
                                             AccountTransition::create([
                                                 'sub_account_id' => 79,
+                                                'account_group_id' => $request->account_group,
+                                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                 'transition_date' => $request->invoice_date,
                                                 'sale_id' => $sale->id,
                                                 'sale_advance_id' => $sa->id,
@@ -1037,7 +1133,7 @@ class SaleController extends Controller
                 $obj->transition_type       = "out";
                 $obj->transition_sale_id   = $sale_id;
                 $obj->transition_product_pivot_id   = $pivot_id;
-                $obj->branch_id  = Auth::user()->branch_id;
+                $obj->branch_id  = $branch_id;
                 $obj->warehouse_id          = Auth::user()->warehouse_id;
                 $obj->transition_date       = $request->invoice_date;
                 $obj->cost_price            = $cost_price * $request->qty[$i] * $relation_val;
@@ -1079,6 +1175,12 @@ class SaleController extends Controller
         DB::beginTransaction();
 
         try {
+
+            foreach (Auth::user()->branches as $k => $b) {
+                if ($k == 0) {
+                    $branch_id = $b->id;
+                }
+            }
             $sale = Sale::find($id);
             $old_sub_account_id = $sale->payment_type == 'credit' ? config('global.sale_advance') : config('global.cash_sale');
             if ($sale->payment_type == 'cash') {
@@ -1088,7 +1190,7 @@ class SaleController extends Controller
             $sale->invoice_no = $request->invoice_no;
             $sale->invoice_type = $request->invoice_type;
             $sale->customer_id = $request->customer_id;
-            $sale->branch_id = Auth::user()->branch_id;
+            $sale->branch_id = $branch_id;
             $sale->reference_no = $request->reference_no;
             $sale->invoice_date = $request->invoice_date;
             //$sale->warehouse_id = Auth::user()->warehouse_id;
@@ -1104,11 +1206,27 @@ class SaleController extends Controller
             $sale->sale_type  = $request->sale_type;
 
             $sale->total_amount = $request->sub_total;
-            $sale->cash_discount = $request->cash_discount;
+            //$sale->cash_discount = $request->cash_discount;
+            $sale->discount_type = $request->discount_type;
+            if($request->discount_type == 'amount') {
+                $sale->cash_discount = $request->cash_discount;
+                $sale->discount_percentage = NULL; 
+            } else {
+                $sale->discount_percentage = $request->cash_discount; 
+                if(!empty($request->cash_discount)) {
+                    $sale->cash_discount = ($request->cash_discount/100) * $request->sub_total; 
+                } else {
+                    $sale->cash_discount = NULL;
+                }
+            }
+
             $sale->net_total = $request->net_total;
             $sale->tax = $request->tax;
             $sale->tax_amount = $request->tax_amount;
             $sale->balance_amount = $request->balance_amount;
+
+            $sale->account_group_id = $request->account_group;
+            $sale->sub_account_id = $request->cash_bank_account;
 
             if ($request->payment_type == 'credit') {
                 $sub_account_id = config('global.sale_advance');     /*sub account_id for sale advance*/
@@ -1130,7 +1248,19 @@ class SaleController extends Controller
                 $sale->currency_rate = $request->currency_rate;
                 $sale->pay_amount_fx = $request->pay_amount_fx == '' ? 0 : $request->pay_amount_fx;
                 $sale->total_amount_fx = $request->sub_total_fx == '' ? 0 : $request->sub_total_fx;
-                $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx;
+               // $sale->cash_discount_fx = $request->cash_discount_fx == '' ? 0 : $request->cash_discount_fx;
+                $sale->discount_type = $request->discount_type;
+                if($request->discount_type == 'amount') {
+                    $sale->cash_discount_fx = $request->cash_discount_fx;
+                    $sale->discount_percentage_fx = NULL; 
+                } else {
+                    $sale->discount_percentage_fx = $request->cash_discount_fx; 
+                    if(!empty($request->cash_discount_fx)) {
+                        $sale->cash_discount_fx= ($request->cash_discount_fx/100) * $request->sub_total_fx; 
+                    } else {
+                        $sale->cash_discount_fx = NULL;
+                    }
+                }
                 $sale->net_total_fx = $request->net_total_fx == '' ? 0 : $request->net_total_fx;
                 $sale->tax_fx = $request->tax_fx == '' ? 0 : $request->tax_fx;
                 $sale->tax_amount_fx = $request->tax_amount_fx == '' ? 0 : $request->tax_amount_fx;
@@ -1140,6 +1270,7 @@ class SaleController extends Controller
                 $sale->pay_amount_fx = 0;
                 $sale->total_amount_fx = 0;
                 $sale->cash_discount_fx = 0;
+                $sale->discount_percentage_fx =0;
                 $sale->net_total_fx = 0;
                 $sale->tax_fx = 0;
                 $sale->tax_amount_fx = 0;
@@ -1191,6 +1322,8 @@ class SaleController extends Controller
                             if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount != 0)) {
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'status'=>'sale',
@@ -1211,6 +1344,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -1230,6 +1365,8 @@ class SaleController extends Controller
                     else if(($customer_advance > $request->pay_amount) || $customer_advance == $request->pay_amount) {
                         AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -1268,6 +1405,8 @@ class SaleController extends Controller
                         // add in cashbook
                             AccountTransition::create([
                                 'sub_account_id' => $sub_account_id,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'status'=>'sale',
@@ -1282,6 +1421,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -1299,6 +1440,8 @@ class SaleController extends Controller
 
                             AccountTransition::create([
                                 'sub_account_id' => config('global.sale'),
+                                'account_group_id' => $request->account_group,
+                                'cash_bank_sub_account_id' => $request->cash_bank_account,
                                 'transition_date' => $sale->invoice_date,
                                 'sale_id' => $sale->id,
                                 'customer_id' => $sale->customer_id,
@@ -1375,11 +1518,13 @@ class SaleController extends Controller
                                 if ($request->payment_type == 'cash' || ($request->payment_type == 'credit' && $request->pay_amount_fx != 0)) {
                                     AccountTransition::create([
                                         'sub_account_id' => $sub_account_id,
+                                        'account_group_id' => $request->account_group,
+                                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                                         'transition_date' => $sale->invoice_date,
                                         'customer_id' => $sale->customer_id,
                                         'sale_id' => $sale->id,
                                         'status'=>'sale',
-                                        'vochur_no'=>$invoice_no,
+                                        'vochur_no'=>$sale->invoice_no,
                                         'description'=>$description,
                                         'is_cashbook' => 1,
                                         'debit' => $amount,
@@ -1396,6 +1541,8 @@ class SaleController extends Controller
 
                                 AccountTransition::create([
                                     'sub_account_id' => config('global.sale'),
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'customer_id' => $sale->customer_id,
@@ -1415,6 +1562,8 @@ class SaleController extends Controller
                         else if(($customer_advance_fx > $request->pay_amount_fx) || $customer_advance_fx == $request->pay_amount_fx) {
                             AccountTransition::create([
                                     'sub_account_id' => config('global.sale'),
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'customer_id' => $sale->customer_id,
@@ -1454,6 +1603,8 @@ class SaleController extends Controller
                                                     $loss_amt = ($sa->currency_rate - $request->currency_rate) * $sa->balance;
                                                     AccountTransition::create([
                                                         'sub_account_id' => 80,
+                                                        'account_group_id' => $request->account_group,
+                                                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                         'transition_date' => $request->invoice_date,
                                                         'sale_id' => $sale->id,
                                                         'sale_advance_id' => $sa->id,
@@ -1472,6 +1623,8 @@ class SaleController extends Controller
                                                     $gain_amt = ($request->currency_rate - $sa->currency_rate) * $sa->balance;
                                                     AccountTransition::create([
                                                         'sub_account_id' => 79,
+                                                        'account_group_id' => $request->account_group,
+                                                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                         'transition_date' => $request->invoice_date,
                                                         'sale_id' => $sale->id,
                                                         'sale_advance_id' => $sa->id,
@@ -1498,6 +1651,8 @@ class SaleController extends Controller
                                                     $loss_amt = ($sa->currency_rate - $request->currency_rate) * $payAmount;
                                                     AccountTransition::create([
                                                         'sub_account_id' => 80,
+                                                        'account_group_id' => $request->account_group,
+                                                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                         'transition_date' => $request->invoice_date,
                                                         'sale_id' => $sale->id,
                                                         'sale_advance_id' => $sa->id,
@@ -1516,6 +1671,8 @@ class SaleController extends Controller
                                                     $gain_amt = ($request->currency_rate - $sa->currency_rate) * $payAmount;
                                                     AccountTransition::create([
                                                         'sub_account_id' => 79,
+                                                        'account_group_id' => $request->account_group,
+                                                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                         'transition_date' => $request->invoice_date,
                                                         'sale_id' => $sale->id,
                                                         'sale_advance_id' => $sa->id,
@@ -1567,11 +1724,13 @@ class SaleController extends Controller
                                 
                                 AccountTransition::create([
                                     'sub_account_id' => $sub_account_id,
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'customer_id' => $sale->customer_id,
                                     'status'=>'sale',
-                                    'vochur_no'=>$invoice_no,
+                                    'vochur_no'=>$sale->invoice_no,
                                     'description'=>$description,
                                     'is_cashbook' => 1,
                                     'debit' => $paid_amt,
@@ -1583,6 +1742,8 @@ class SaleController extends Controller
 
                                 AccountTransition::create([
                                     'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'customer_id' => $sale->customer_id,
@@ -1601,6 +1762,8 @@ class SaleController extends Controller
                                 AccountTransition::create([
                                     //'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
                                     'sub_account_id' => config('global.sale'),
+                                    'account_group_id' => $request->account_group,
+                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                     'transition_date' => $sale->invoice_date,
                                     'sale_id' => $sale->id,
                                     'customer_id' => $sale->customer_id,
@@ -1639,6 +1802,8 @@ class SaleController extends Controller
                                                 $loss_amt = ($sa->currency_rate - $request->currency_rate) * $sa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -1657,6 +1822,8 @@ class SaleController extends Controller
                                                 $gain_amt = ($request->currency_rate - $sa->currency_rate) * $sa->balance;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -1683,6 +1850,8 @@ class SaleController extends Controller
                                                 $loss_amt = ($sa->currency_rate - $request->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 80,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -1701,6 +1870,8 @@ class SaleController extends Controller
                                                 $gain_amt = ($request->currency_rate - $sa->currency_rate) * $payAmount;
                                                 AccountTransition::create([
                                                     'sub_account_id' => 79,
+                                                    'account_group_id' => $request->account_group,
+                                                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                                                     'transition_date' => $request->invoice_date,
                                                     'sale_id' => $sale->id,
                                                     'sale_advance_id' => $sa->id,
@@ -1881,7 +2052,7 @@ class SaleController extends Controller
                     $obj->transition_type       = "out";
                     $obj->transition_sale_id   = $id;
                     $obj->transition_product_pivot_id   = $pivot_id;
-                    $obj->branch_id  = Auth::user()->branch_id;
+                    $obj->branch_id  = $branch_id;
                     $obj->warehouse_id          = $warehouse_id;
                     $obj->transition_date       = $request->invoice_date;
                     $obj->transition_product_uom_id = $request->uom[$i];
@@ -1915,7 +2086,7 @@ class SaleController extends Controller
     public function show($id)
     {
         $access_brands = array();
-        $sale = Sale::with('currency', 'products', 'collections', 'deliveries', 'warehouse', 'customer', 'products.brand', 'products.category', 'products.uom', 'products.selling_uoms', 'order', 'sale_man', 'branch')->find($id);
+        $sale = Sale::with('currency', 'products', 'collections', 'deliveries', 'sale_returns', 'warehouse', 'customer', 'products.brand', 'products.category', 'products.uom', 'products.selling_uoms', 'order', 'sale_man', 'branch')->find($id);
         if (Auth::user()->role->id == 6) {
             //for Country Head User
             foreach (Auth::user()->brands as $brand) {
@@ -1938,50 +2109,69 @@ class SaleController extends Controller
             $previous_balance  = $chk_balance->previous_balance;
         }*/
         $previous_balance = 0;
-        $chk_balance = DB::table("sales")
+        if($sale->currency_id == 1) {
+            $chk_balance = DB::table("sales")
 
-            ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
-            ->where('customer_id', '=', $customer_id)
-            ->where('id', '!=', $id)
-            ->where('payment_type', '=', 'credit')
-            ->groupBy('customer_id')
-            ->first();
-        if ($chk_balance) {
-            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
-            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance, SUM(CASE  WHEN extra_return_amount IS NOT NULL THEN extra_return_amount ELSE 0 END)  as total_extra_return_amount"))
+                ->where('customer_id', '=', $customer_id)
+                ->where('id', '!=', $id)
+                ->where('currency_id', '=', 1)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = ($chk_balance->total_balance  + $chk_balance->total_extra_return_amount) - $chk_balance->total_collection_amount;
+            }
+
+            $chk_return = DB::table("sale_returns")
+
+                ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+                ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+                ->where('sale_returns.customer_id', '=', $customer_id)
+                ->where('sales.payment_type', '!=', 'cash')
+                ->where('sales.id', '!=', $id)
+                ->groupBy('sale_returns.customer_id')
+                ->first();
+            if ($chk_return) {
+                $return_amount = $chk_return->return_payment;
+            }
+
+            $cus_return_amount = 0;
+            $chk_cus_return = DB::table("return_invoices")
+
+                ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+                ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+                ->where('customer_returns.customer_id', '=', $customer_id)
+                ->where('return_invoices.sale_id', '!=', $id)
+                ->groupBy('customer_returns.customer_id')
+                ->first();
+            if ($chk_cus_return) {
+                $cus_return_amount = $chk_cus_return->cus_return_amount;
+            }
+
+            $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+        } else {
+            //other currency
+            $chk_balance = DB::table("sales")
+
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount_fx IS NOT NULL THEN collection_amount_fx  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount_fx IS NOT NULL THEN discount_fx  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount_fx IS NOT NULL THEN balance_amount_fx ELSE 0 END)  as total_balance"))
+                ->where('customer_id', '=', $customer_id)
+                ->where('id', '!=', $id)
+                ->where('currency_id', '=', $sale->currency_id)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+            }
+            //end other currency
         }
-
-        $chk_return = DB::table("sale_returns")
-
-            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
-            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
-            ->where('sale_returns.customer_id', '=', $customer_id)
-            ->where('sales.payment_type', '!=', 'cash')
-            ->where('sales.id', '!=', $id)
-            ->groupBy('sale_returns.customer_id')
-            ->first();
-        if ($chk_return) {
-            $return_amount = $chk_return->return_payment;
-        }
-
-        $cus_return_amount = 0;
-        $chk_cus_return = DB::table("return_invoices")
-
-            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
-            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
-            ->where('customer_returns.customer_id', '=', $customer_id)
-            ->where('return_invoices.sale_id', '!=', $id)
-            ->groupBy('customer_returns.customer_id')
-            ->first();
-        if ($chk_cus_return) {
-            $cus_return_amount = $chk_cus_return->cus_return_amount;
-        }
-
-        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
         return compact('sale', 'access_brands', 'previous_balance');
     }
 
-    public function getCustomerPreviousBalance($id)
+    public function getCustomerPreviousBalance($id,$currency_id)
     {
 
         $previous_balance = 0;
@@ -1995,43 +2185,71 @@ class SaleController extends Controller
         if($chk_balance) {
             $previous_balance  = $chk_balance->previous_balance;
         }**/
-        $chk_balance = DB::table("sales")
+        if($currency_id == 1) 
+        {
+            $chk_balance = DB::table("sales")
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance, SUM(CASE  WHEN extra_return_amount IS NOT NULL THEN extra_return_amount ELSE 0 END)  as total_extra_return_amount"))
 
-            ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
-            ->where('customer_id', '=', $id)
-            ->where('payment_type', '=', 'credit')
-            ->groupBy('customer_id')
-            ->first();
-        if ($chk_balance) {
-            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
-            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+                /*->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance, SUM(CASE  WHEN extra_return_amount IS NOT NULL THEN extra_return_amount ELSE 0 END)  as total_extra_return_amount,cs.gain_amt,cs.loss_amt"))
+                ->leftjoin(DB::raw("(SELECT sale_id, SUM(gain_amount) as gain_amt, SUM(ABS(loss_amount)) as loss_amt FROM collection_sale LEFT JOIN sales ON sales.id = collection_sale.sale_id Where sales.customer_id = ".$id. " GROUP BY collection_sale.sale_id
+
+                            ) as cs"), function ($join) {
+
+                    $join->on("cs.sale_id", "=", "sales.id");
+                })*/
+                ->where('customer_id', '=', $id)
+                ->where('currency_id', '=', 1)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = ($chk_balance->total_balance  + $chk_balance->total_extra_return_amount) - $chk_balance->total_collection_amount;
+            }
+
+            //$previous_balance = ($previous_balance - $chk_balance->gain_amt) + $chk_balance->loss_amt;
+
+            $chk_return = DB::table("sale_returns")
+                ->select(DB::raw("SUM(sale_returns.total_payment_amount) as return_payment"))
+                ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+                ->where('sale_returns.customer_id', '=', $id)
+                ->where('sales.payment_type', '!=', 'cash')
+                ->groupBy('sale_returns.customer_id')
+                ->first();
+
+            if ($chk_return) {
+                $return_amount = $chk_return->return_payment;
+            }
+
+            $cus_return_amount = 0;
+            $chk_cus_return = DB::table("return_invoices")
+
+                ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+                ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+                ->where('customer_returns.customer_id', '=', $id)
+                ->groupBy('customer_returns.customer_id')
+                ->first();
+            if ($chk_cus_return) {
+                $cus_return_amount = $chk_cus_return->cus_return_amount;
+            }
+
+            $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+        } else {
+            //for other currency
+            $chk_balance = DB::table("sales")
+
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount_fx IS NOT NULL THEN collection_amount_fx  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount_fx IS NOT NULL THEN discount_fx  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount_fx IS NOT NULL THEN balance_amount_fx  ELSE 0 END)  as total_balance"))
+                ->where('customer_id', '=', $id)
+                ->where('currency_id', '=', $currency_id)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+            }
+            //end other currency
         }
-
-        $chk_return = DB::table("sale_returns")
-            ->select(DB::raw("SUM(sale_returns.total_payment_amount) as return_payment"))
-            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
-            ->where('sale_returns.customer_id', '=', $id)
-            ->where('sales.payment_type', '!=', 'cash')
-            ->groupBy('sale_returns.customer_id')
-            ->first();
-
-        if ($chk_return) {
-            $return_amount = $chk_return->return_payment;
-        }
-
-        $cus_return_amount = 0;
-        $chk_cus_return = DB::table("return_invoices")
-
-            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
-            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
-            ->where('customer_returns.customer_id', '=', $id)
-            ->groupBy('customer_returns.customer_id')
-            ->first();
-        if ($chk_cus_return) {
-            $cus_return_amount = $chk_cus_return->cus_return_amount;
-        }
-
-        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
 
         //get customer's sale advance
         $customer_advance = 0;
@@ -2084,8 +2302,14 @@ class SaleController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $sales->where('branch_id', $branch);
+                /*$branch = Auth::user()->branch_id;
+                $sales->where('branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $sales->whereIn('branch_id', $branch_arr);
             }
         }
         if ($request->state_id != "") {
@@ -2244,8 +2468,14 @@ class SaleController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $sales->where('branch_id', $branch);
+               /* $branch = Auth::user()->branch_id;
+                $sales->where('branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $sales->whereIn('branch_id', $branch_arr);
             }
         }
 
@@ -2562,6 +2792,14 @@ class SaleController extends Controller
             $sales->where('sales.branch_id', $request->branch_id);
         }
 
+        if ($request->state_id != "") {
+            $sales->where('customers.state_id', $request->state_id);
+        }
+
+        if ($request->township_id != "") {
+            $sales->where('customers.township_id', $request->township_id);
+        }
+
         //for Country Head and Admin roles (can access multiple branch)
         if (Auth::user()->role->id == 6 || Auth::user()->role->id == 2) {
             $branches = Auth::user()->branches;
@@ -2573,18 +2811,27 @@ class SaleController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $sales->where('sales.branch_id', $branch);
+                /*$branch = Auth::user()->branch_id;
+                $sales->where('sales.branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $sales->whereIn('sales.branch_id', $branch_arr);
             }
         }
         if ($request->customer_id != "") {
             $sales->where('sales.customer_id', $request->customer_id);
         }
 
-        if ($request->product_name != "") {
+        /*if ($request->product_name != "") {
             //$products->where('products.product_name', 'LIKE', "%$request->product_name%");
             $binds = array(strtolower($request->product_name));
             $sales->whereRaw('lower(products.product_name) like lower(?)', ["%{$request->product_name}%"]);
+        }*/
+        if ($request->product_name != "") {
+            $sales->where('products.id', $request->product_name);
         }
 
         /*if($request->brand_id != "") {
@@ -2840,46 +3087,65 @@ class SaleController extends Controller
         if($chk_balance) {
             $previous_balance  = $chk_balance->previous_balance;
         }**/
-        $chk_balance = DB::table("sales")
+        if($sale->currency_id == 1) {
+            $chk_balance = DB::table("sales")
 
-            ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
-            ->where('customer_id', '=', $sale->customer_id)
-            ->where('id', '!=', $sale_id)
-            ->where('payment_type', '=', 'credit')
-            ->groupBy('customer_id')
-            ->first();
-        if ($chk_balance) {
-            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
-            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance, SUM(CASE  WHEN extra_return_amount IS NOT NULL THEN extra_return_amount ELSE 0 END)  as total_extra_return_amount"))
+                ->where('customer_id', '=', $sale->customer_id)
+                ->where('id', '!=', $sale_id)
+                ->where('currency_id', '=', 1)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = ($chk_balance->total_balance + $chk_balance->total_extra_return_amount) - ($chk_balance->total_collection_amount);
+            }
+
+            $chk_return = DB::table("sale_returns")
+
+                ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+                ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+                ->where('sale_returns.customer_id', '=', $sale->customer_id)
+                ->where('sales.payment_type', '!=', 'cash')
+                ->where('sales.id', '!=', $sale_id)
+                ->groupBy('sale_returns.customer_id')
+                ->first();
+            if ($chk_return) {
+                $return_amount = $chk_return->return_payment;
+            }
+
+            $cus_return_amount = 0;
+            $chk_cus_return = DB::table("return_invoices")
+
+                ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+                ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+                ->where('customer_returns.customer_id', '=', $sale->customer_id)
+                ->where('return_invoices.sale_id', '!=', $sale_id)
+                ->groupBy('customer_returns.customer_id')
+                ->first();
+            if ($chk_cus_return) {
+                $cus_return_amount = $chk_cus_return->cus_return_amount;
+            }
+
+            $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+        } else {
+            //start other currency
+            $chk_balance = DB::table("sales")
+
+                ->select(DB::raw("SUM(CASE  WHEN collection_amount_fx IS NOT NULL THEN collection_amount_fx  ELSE 0 END)  as total_collection_amount, SUM(CASE WHEN discount_fx IS NOT NULL THEN discount_fx  ELSE 0 END)  as total_discount, SUM(CASE WHEN balance_amount_fx IS NOT NULL THEN balance_amount_fx ELSE 0 END)  as total_balance"))
+                ->where('customer_id', '=', $sale->customer_id)
+                ->where('id', '!=', $sale_id)
+                ->where('currency_id', '=', $sale->currency_id)
+                ->where('payment_type', '=', 'credit')
+                ->groupBy('customer_id')
+                ->first();
+            if ($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+            }
+            //end other currency
         }
-
-        $chk_return = DB::table("sale_returns")
-
-            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
-            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
-            ->where('sale_returns.customer_id', '=', $sale->customer_id)
-            ->where('sales.payment_type', '!=', 'cash')
-            ->where('sales.id', '!=', $sale_id)
-            ->groupBy('sale_returns.customer_id')
-            ->first();
-        if ($chk_return) {
-            $return_amount = $chk_return->return_payment;
-        }
-
-        $cus_return_amount = 0;
-        $chk_cus_return = DB::table("return_invoices")
-
-            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
-            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
-            ->where('customer_returns.customer_id', '=', $sale->customer_id)
-            ->where('return_invoices.sale_id', '!=', $sale_id)
-            ->groupBy('customer_returns.customer_id')
-            ->first();
-        if ($chk_cus_return) {
-            $cus_return_amount = $chk_cus_return->cus_return_amount;
-        }
-
-        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
 
         // $previous_balance = $previous_balance - $return_amount;
 
@@ -2932,46 +3198,65 @@ class SaleController extends Controller
         if($chk_balance) {
             $previous_balance  = $chk_balance->previous_balance;
         }**/
-        $chk_balance = DB::table("sales")
+        if($sale->currency_id == 1) {
+            $chk_balance = DB::table("sales")
 
-                    ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
-                    ->where('customer_id','=',$sale->customer_id)
-                    ->where('id', '!=', $sale_id)
-                    ->where('payment_type', '=', 'credit')
-                    ->groupBy('customer_id')
-                    ->first();
-        if($chk_balance) {
-            //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
-            $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+                        ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
+                        ->where('customer_id','=',$sale->customer_id)
+                        ->where('id', '!=', $sale_id)
+                        ->where('currency_id', '=', 1)
+                        ->where('payment_type', '=', 'credit')
+                        ->groupBy('customer_id')
+                        ->first();
+            if($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+            }
+
+            $chk_return = DB::table("sale_returns")
+
+                ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
+                ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
+                ->where('sale_returns.customer_id','=',$sale->customer_id)
+                ->where('sales.payment_type','!=','cash')
+                ->where('sales.id','!=', $sale_id)
+                ->groupBy('sale_returns.customer_id')
+                ->first();
+            if($chk_return) {
+                $return_amount = $chk_return->return_payment;
+            }
+
+            $cus_return_amount = 0;
+            $chk_cus_return = DB::table("return_invoices")
+
+                ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
+                ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
+                ->where('customer_returns.customer_id','=',$sale->customer_id)
+                ->where('return_invoices.sale_id','!=',$sale_id)
+                ->groupBy('customer_returns.customer_id')
+                ->first();
+            if($chk_cus_return) {
+                $cus_return_amount = $chk_cus_return->cus_return_amount;
+            }
+
+            $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
+        } else {
+            //start other currency
+            $chk_balance = DB::table("sales")
+
+                        ->select(DB::raw("SUM(CASE  WHEN collection_amount_fx IS NOT NULL THEN collection_amount_fx  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount_fx IS NOT NULL THEN discount_fx  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount_fx IS NOT NULL THEN balance_amount_fx  ELSE 0 END)  as total_balance"))
+                        ->where('customer_id','=',$sale->customer_id)
+                        ->where('id', '!=', $sale_id)
+                        ->where('currency_id', '=', $sale->currency_id)
+                        ->where('payment_type', '=', 'credit')
+                        ->groupBy('customer_id')
+                        ->first();
+            if($chk_balance) {
+                //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
+                $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
+            }
+            //end other currency
         }
-
-        $chk_return = DB::table("sale_returns")
-
-            ->select(DB::raw("SUM(sale_returns.total_payment_amount)  as return_payment"))
-            ->leftjoin('sales', 'sales.id', '=', 'sale_returns.sale_id')
-            ->where('sale_returns.customer_id','=',$sale->customer_id)
-            ->where('sales.payment_type','!=','cash')
-            ->where('sales.id','!=', $sale_id)
-            ->groupBy('sale_returns.customer_id')
-            ->first();
-        if($chk_return) {
-            $return_amount = $chk_return->return_payment;
-        }
-
-        $cus_return_amount = 0;
-        $chk_cus_return = DB::table("return_invoices")
-
-            ->select(DB::raw("SUM(return_invoices.return_amount)  as cus_return_amount"))
-            ->leftjoin('customer_returns', 'customer_returns.id', '=', 'return_invoices.customer_return_id')
-            ->where('customer_returns.customer_id','=',$sale->customer_id)
-            ->where('return_invoices.sale_id','!=',$sale_id)
-            ->groupBy('customer_returns.customer_id')
-            ->first();
-        if($chk_cus_return) {
-            $cus_return_amount = $chk_cus_return->cus_return_amount;
-        }
-
-        $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
 
        // $previous_balance = $previous_balance - $return_amount;
         $currency = $sale->currency->sign;
@@ -3057,7 +3342,7 @@ class SaleController extends Controller
             }
             $data = $data->where('currency_id', 1)
                 ->where('payment_type', 'credit')
-                ->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
+               // ->whereRaw('((total_amount + IFNULL(tax_amount,0))-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0')
                 ->get();
         } else {
             $data = Sale::orderBy('invoice_date', 'ASC')
@@ -3108,7 +3393,20 @@ class SaleController extends Controller
         $previous_balance = 0;
         $chk_balance = DB::table("sales")
 
-            ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))
+            /*->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance"))*/
+
+            ->select(DB::raw("SUM(CASE  WHEN collection_amount IS NOT NULL THEN collection_amount  ELSE 0 END)  as total_collection_amount, SUM(CASE  WHEN discount IS NOT NULL THEN discount  ELSE 0 END)  as total_discount, SUM(CASE  WHEN balance_amount IS NOT NULL THEN balance_amount  ELSE 0 END)  as total_balance, SUM(cs.gain_amt) as gain_amt, SUM(cs.loss_amt) as loss_amt"))
+            ->leftjoin(DB::raw("(SELECT sale_id, SUM(gain_amount) as gain_amt, SUM(ABS(loss_amount)) as loss_amt FROM collection_sale LEFT JOIN sales ON sales.id = collection_sale.sale_id Where sales.customer_id = ".$cus_id. " GROUP BY collection_sale.sale_id
+
+                            ) as cs"), function ($join) {
+
+                    $join->on("cs.sale_id", "=", "sales.id");
+                })
+
+            /*->where(function($query) {
+                        $query->whereRaw('(sales.total_amount_fx-(IFNULL(sales.cash_discount_fx,0) + sales.pay_amount_fx + sales.collection_amount_fx)) > 0')
+                              ->orWhereRaw('(sales.total_amount-(IFNULL(sales.cash_discount,0) + sales.pay_amount + sales.collection_amount + sales.return_amount + sales.customer_return_amount)) > 0');
+                    })*/
             ->where('customer_id', '=', $cus_id)
             ->where('payment_type', '=', 'credit')
             ->groupBy('customer_id')
@@ -3117,6 +3415,19 @@ class SaleController extends Controller
             //$previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount + $chk_balance->total_discount);
             $previous_balance = $chk_balance->total_balance - ($chk_balance->total_collection_amount);
         }
+
+        $gain= $chk_balance->gain_amt;
+        $loss= $chk_balance->loss_amt;
+        $gain_loss = $chk_balance->gain_amt - $chk_balance->loss_amt;
+        if($chk_balance->gain_amt > $chk_balance->loss_amt) {
+            //$gain = $gain_loss;
+            $previous_balance = ($previous_balance + $gain_loss);
+        } else {
+            //$loss = $gain_loss;
+            $previous_balance = ($previous_balance - $gain_loss);
+        }
+
+        
 
         $chk_return = DB::table("sale_returns")
 
@@ -3145,7 +3456,7 @@ class SaleController extends Controller
 
         $previous_balance = ($previous_balance - $return_amount) - $cus_return_amount;
 
-        return response(compact('data', 'previous_balance'), 200);
+        return response(compact('data', 'previous_balance','gain','loss'), 200);
     }
 
     /**
@@ -3328,8 +3639,14 @@ class SaleController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id', $branch);
+                /*$branch = Auth::user()->branch_id;
+                $data->where('branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id', $branch_arr);
             }
         }
         if ($request->approval_no != '') {
@@ -3475,6 +3792,29 @@ class SaleController extends Controller
 
         return $pdf->output();
 
+    }
+
+     public function getSaleOrderPending(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+        $sale_order_pending = $this->saleOrderPending($request);
+        if ($route_name == 'sale_order_pending_export') {
+            $export = new SaleOrderPendingExport($sale_order_pending);
+            $fileName = 'Sale Order Pending Export' . Carbon::now()->format('Ymd') . '.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        return compact('sale_order_pending');
+    }
+    public function getDeliveryPending(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+        $delivery_pending = $this->deliveryPending($request);
+        if ($route_name == 'delivery_pending_export') {
+            $export = new DeliveryPendingExport($delivery_pending);
+            $fileName = 'Delivery Pending Export' . Carbon::now()->format('Ymd') . '.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        return compact('delivery_pending');
     }
 
 }

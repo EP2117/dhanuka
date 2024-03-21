@@ -31,8 +31,8 @@
     font-size: 25px;
   }
   .mm-txt{
-    font-family: 'ZawgyiOne2008' !important;  
-    font-size:13px;
+    font-family: 'Pyidaungsu' !important;  
+    font-size:12px;
   }
   .box {
     float:left;
@@ -138,13 +138,13 @@
           <td colspan="5">
             <table style="border:none; width:100%">
                 <tr>
-                    <td class="mm-txt" style="border:none;">၀ယ္သူ</td>
+                    <td class="mm-txt" style="border:none;">ဝယ်သူ</td>
                     <td class="mm-txt" style="border:none;">{{$order->customer->cus_name}}</td>
-                    <td class="mm-txt" style="text-align:right;border:none;">ရက္စဲြ</td>
+                    <td class="mm-txt" style="text-align:right;border:none;">ရက်စွဲ</td>
                     <td class="mm-txt" style="text-align:right;border:none;">{{$order->order_date}}</td>
                 </tr>
                 <tr>
-                    <td class="mm-txt" style="border:none;">လိပ္စာ</td>
+                    <td class="mm-txt" style="border:none;">လိပ်စာ</td>
                     <td class="mm-txt" style="border:none;">{{$order->customer->cus_shipping_address}}</td>
                     <td style="text-align:right;border:none;" class="mm-txt">Order No.</td>
                     <td style="text-align:right; border:none;" class="mm-txt">{{$order->order_no}}</td>
@@ -169,11 +169,11 @@
           </td>
         </tr>
         <tr>
-          <td class='mm-txt' style="text-align: center; width:50px;">စဥ္</td>
-          <td class='mm-txt' style="text-align: center;width:300px;">အမ်ိဳးအမည္</td>
-          <td class='mm-txt' style="text-align: center; min-width:50px;">အေရအတြက္</td>
-          <td class='mm-txt' style="text-align: center; min-width:30px;">စျေးနှုန်း</td>
-          <td class='mm-txt' style="text-align: center;">သင့်ငွေ</td>
+          <td class='mm-txt' style="text-align: center; width:50px;">စဉ်</td>
+          <td class='mm-txt' style="text-align: center;width:300px;">အမျိုးအမည်</td>
+          <td class='mm-txt' style="text-align: center; min-width:50px;">အရေအတွက်</td>
+          <td class='mm-txt' style="text-align: center; min-width:30px;">ဈေးနှုန်း</td>
+          <td class='mm-txt' style="text-align: center;">သင့်ငွေ</td>
         </tr>
       </thead>
       <?php
@@ -185,7 +185,7 @@
       ?>
         <tr>
           <td style="text-align: center;">{{$k}}</td>
-          <td class="mm-txt">{{$product->product_name}}</td>
+          <td class="mm-txt" style="text-align: left;">{{trim($product->product_name)}}</td>
 
           @if($product->pivot->uom_id == $product->uom_id)
           <td style="text-align: right;">
@@ -198,7 +198,7 @@
           @endif
 
           @if($product->pivot->is_foc == 0)
-            <td style="text-align: right;">{{$product->pivot->price}}</td>
+            <td style="text-align: right;">{{$product->pivot->rate}}</td>
             <td style="text-align: right;">{{number_format($product->pivot->total_amount)}}</td>
           @else
             <td style="text-align: right">FOC</td>
@@ -224,7 +224,7 @@
       ?>
 
       <tr>
-        <td colspan="4" class="mm-txt" style="text-align: right;">စုစုေပါင္း</td>
+        <td colspan="4" class="mm-txt" style="text-align: right;">စုစုပေါင်း</td>
         <td style="text-align: right;">{{number_format($order->total_amount)}}</td>
       </tr>
       <!--<tr>

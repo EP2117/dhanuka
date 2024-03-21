@@ -69,12 +69,33 @@
                             <option value="">Select One</option>
                             <option v-for="cus in customers" :value="cus.id"  >{{cus.cus_name}}</option>
                         </select>
-                    </div>                    
+                    </div>
+
+                    <div class="form-group col-md-4 col-lg-3 mm-txt">
+                        <label >State</label>
+                        <select id="state_id" class="form-control mm-txt"
+                                 v-model="search.state_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="s in states" :value="s.id"  >{{s.state_name}}</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label for="township_id">Township</label>
+                        <select id="township_id" class="form-control mm-txt"
+                            name="township_id" v-model="search.township_id" style="width:100%" required
+                        >
+                            <option value="">Select One</option>
+                            <option v-for="tsp in townships" :value="tsp.id"  >{{tsp.township_name}}</option>
+                        </select>
+                    </div>                     
 
                     <div class="form-group col-md-4 col-lg-3">
                         <label for="product_name">Product Name</label>
-                        <input type="text" class="form-control" id="product_name" name="product_name"
-                        v-model="search.product_name">
+                        <select id="product_name" class="form-control mm-txt"
+                                name="product_name" v-model="search.product_name" style="width:100%" required
+                        >
+                        </select>
                     </div>
 
                     <div class="form-group col-md-4 col-lg-3 mm-txt">
@@ -146,7 +167,8 @@
                 <div v-if="sales.length > 0">
 
                     <div class="form-group float-left">
-                        <select id="order" class="form-control mt-2"
+                        <label for="sort_by">&nbsp;</label>
+                        <select id="order" class="form-control mt-0"
                             name="order" v-model="search.order" style="width:150px; margin-left:10px;" @change="getDailySales(1)"
                         >
                             <option value="">Select One</option>
@@ -209,6 +231,8 @@
                     customer_id: "",
                     category_id: "",
                     warehouse_id: "",
+                    township_id: "",
+                    state_id: "",
                     product_name: "",
                     brand_id: "",
                     sale_man_id: "",
@@ -251,9 +275,60 @@
             app.initCategories();
            // app.initWarehouses();
             app.initBranches();
-
+            app.initStates();
+            app.initTownships();
             app.initSaleMan();
             app.initOfficeSaleMan();
+
+             $("#product_name").select2({
+            allowClear: true,
+            placeholder: "Select One",
+            minimumInputLength: 3,
+            ajax: {
+                url: app.site_path+'/search_products',
+            data: function (params) {
+                var query = {
+                term: params.term,           
+                }
+
+                return query;
+            },
+            processResults: function (data) {
+
+                return {
+                results: $.map(data, function (obj) {
+                    return { 
+                        'id': obj.id, 
+                        'text': obj.product_name,
+                        'datatsp': obj.category_id,
+                    };
+                })
+                };
+            }
+            
+            }
+        });
+        $("#product_name").on("select2:select", function(e) {
+            var data = e.params.data;
+            
+            app.search.product_name = data.id;
+        });
+         $("#product_name").on("select2:unselecting", function(e) {
+                app.search.product_name = '';
+            });
+        $("#state_id").select2();
+        $("#state_id").on("select2:select", function(e) {
+            app.townships=[];
+            var data = e.params.data;
+            app.search.state_id = data.id;
+            axios.get("/township_by_state/"+ data.id).then(({ data }) => (app.townships = data.data));
+        });
+        $("#township_id").select2();
+        $("#township_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.search.township_id = data.id;
+
+        });
 
             $("#office_sale_man_id").on("select2:select", function(e) {
 
@@ -369,6 +444,19 @@
 
         methods: {
 
+            initStates() {
+                    axios.get("/state").then(({ data }) => (this.states = data.data));
+                    $("#state_id").select2();
+            },
+            initTownships() {
+                if(this.search.state_id != "") {
+                    axios.get("/township_by_state/" + this.search.state_id).then(({ data }) => (this.townships = data.data));
+                    $("#township_id").select2();
+                }else{
+                      axios.get("/township/" + this.search.state_id).then(({ data }) => (this.townships = data.data));
+                    $("#township_id").select2();
+                }
+            },
             initCategories() {
               axios.get("/categories").then(({ data }) => (this.categories = data.data));
               $("#category_id").select2();
@@ -435,6 +523,10 @@
                     app.search.office_sale_man_id +
                     "&product_name=" +
                     app.search.product_name +
+                    "&state_id=" +
+                    app.search.state_id +
+                    "&township_id=" +
+                    app.search.township_id +
                     "&order=" +
                     app.search.order +
                     "&branch_id=" +
@@ -495,6 +587,10 @@
                 app.search.order +
                 "&branch_id=" +
                 app.search.branch_id +
+                "&state_id=" +
+                app.search.state_id +
+                "&township_id=" +
+                app.search.township_id +
                 "&category_id=" +
                 app.search.category_id +
                 "&sort_by=" +

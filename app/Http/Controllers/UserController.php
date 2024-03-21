@@ -20,13 +20,16 @@ class UserController extends Controller
         if($request->role_id != "") {
             $data->where('role_id',  $request->role_id);
         }
+        if($request->status != "") {
+            $data->where('is_active',  $request->status);
+        }
         $data = $data->orderBy('name', 'ASC')->get(); 
         return response(compact('data'), 200);
     }
 
     public function getSaleMan()
     {
-        $data = User::with('role');
+        $data = User::with('role')->where('is_active',1);
 
         if(Auth::user()->role->id == 6) {
             //for Country Head User
@@ -77,7 +80,7 @@ class UserController extends Controller
 
     public function getOfficeSaleMan()
     {
-        $data = User::with('role');
+        $data = User::with('role')->where('is_active',1);
 
         if(Auth::user()->role->id == 6) {
             //for Country Head User
@@ -103,7 +106,7 @@ class UserController extends Controller
 
     public function getAllUsers()
     {
-        $data = User::with('role')->where('role_id','!=',1);
+        $data = User::with('role')->where('role_id','!=',1)->where('is_active',1);
 
         $data = $data->orderBy('name', 'ASC')->get();
         return response(compact('data'), 200);
@@ -124,7 +127,7 @@ class UserController extends Controller
     public function getByRole($id)
     {
         
-        $data = User::where('role_id', $id);
+        $data = User::where('role_id', $id)->where('is_active',1);
         if($id == 7) {
         	$data->whereNull('country_head_id');
         }
@@ -155,11 +158,11 @@ class UserController extends Controller
         $user->warehouse_id = $request->warehouse_id;
         $user->role_id = $request->role_id;
         $user->password = Hash::make($request->password); 
-        if(!empty($request->branch_id)) {
+        /*if(!empty($request->branch_id)) {
             $user->branch_id = $request->branch_id;
         } else {
             $user->branch_id = NULL;
-        }
+        }*/
         $user->save();
 
          //for country head role
@@ -192,14 +195,24 @@ class UserController extends Controller
         	}
         }
 
-        if($request->role_id == 6 || $request->role_id == 2) {
+       /* if($request->role_id == 6 || $request->role_id == 2) {
             //for country head and admin
             if(count($request->branches) > 0) {
                 for($i=0; $i<count($request->branches); $i++) {
                     $user->branches()->attach($request->branches[$i]);
                 }
             }
-        } 
+        } */
+        if(!empty($request->branch_id)) {
+            $user->branches()->attach($request->branch_id);
+        } else {
+
+            if(count($request->branches) > 0) {
+                for($i=0; $i<count($request->branches); $i++) {
+                    $user->branches()->attach($request->branches[$i]);
+                }
+            }
+        }
 
         $status = "success";
         return compact('status');
@@ -230,11 +243,11 @@ class UserController extends Controller
         	$user->password = Hash::make($request->password); 
         }
 
-        if(!empty($request->branch_id)) {
+        /*if(!empty($request->branch_id)) {
             $user->branch_id = $request->branch_id;
         } else {
             $user->branch_id = NULL;
-        }
+        }*/
 
         $user->save();
 
@@ -286,14 +299,24 @@ class UserController extends Controller
         //remove previous branch relations
         $user->branches()->detach();
 
-        if($request->role_id == 6 || $request->role_id == 2) {
+        /*if($request->role_id == 6 || $request->role_id == 2) {
             //for country head and admin
             if(count($request->branches) > 0) {
                 for($i=0; $i<count($request->branches); $i++) {
                     $user->branches()->attach($request->branches[$i]);
                 }
             }
-        } 
+        } */
+        if(!empty($request->branch_id)) {
+            $user->branches()->attach($request->branch_id);
+        } else {
+
+            if(count($request->branches) > 0) {
+                for($i=0; $i<count($request->branches); $i++) {
+                    $user->branches()->attach($request->branches[$i]);
+                }
+            }
+        }
 
         $status = "success";
         return compact('status');       
@@ -314,6 +337,14 @@ class UserController extends Controller
         $data = Brand::select(['id', 'brand_name'])->whereNull('country_head_id');
 
         $data = $data->orderBy('id', 'DESC')->get();
+        return response(compact('data'), 200);
+    }
+    public function updateStatus($id, $status)
+    {
+        $data = User::find($id);
+        $active = $status == "active" ? '1' : '0';
+        $data->is_active = $active;
+        $data->save();
         return response(compact('data'), 200);
     }
 }

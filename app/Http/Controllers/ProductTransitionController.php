@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use DB;
 use PDF;
+use stdClass;
 use App\Sale;
 use APp\User;
 use App\Product;
 use App\Transfer;
 use Carbon\Carbon;
 use App\Collection;
+use App\SubAccount;
 use App\ProductTransition;
 use Illuminate\Http\Request;
 use App\Exports\InventoryExport;
@@ -19,6 +21,9 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Traits\Report\GetReport;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use App\Exports\MinMaxExport;
+use App\Exports\StockLedgerExport;
+use App\Exports\ReorderLevelExport;
 
 class ProductTransitionController extends Controller
 {
@@ -513,12 +518,288 @@ class ProductTransitionController extends Controller
         // Kamlesh End
         return response(compact('data', 'op_data', 'order_data'), 200);
     }
+
+    public function NEWgetStockLedger(Request $request)
+    {
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', 600);
+        $route_name = Route::currentRouteName();
+        $start = strtotime($request->from_date); 
+        $now = Carbon::now()->format('Y-m-d');
+        $end = !empty($request->to_date) ? strtotime($request->to_date) : strtotime($now);
+        $range = array();
+
+        $date = strtotime("-1 day", $start);  
+        while($date < $end)  { 
+           $date = strtotime("+1 day", $date);
+           $date_arr[] = date('Y-m-d', $date);
+        }
+
+
+        foreach($date_arr as $key => $d) {
+             $op_products = DB::table("product_transitions")
+
+                ->select(DB::raw("product_id, products.product_name, products.brand_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name,SUM(CASE  WHEN transition_type = 'in' THEN product_quantity  ELSE 0 END)  as in_qty, SUM(CASE  WHEN transition_type = 'out' THEN product_quantity  ELSE 0 END)  as out_qty"))
+
+                ->leftjoin('products', 'products.id', '=', 'product_transitions.product_id')
+
+                ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+
+                ->leftjoin('brands', 'brands.id', '=', 'products.brand_id')
+
+                ->leftjoin('categories', 'categories.id', '=', 'products.category_id');
+
+            $op_products->whereDate('transition_date', '<', $d);
+
+            if ($request->warehouse_id != "") {
+                $op_products->where('product_transitions.warehouse_id', $request->warehouse_id);
+            }
+
+            if ($request->branch_id != "") {
+                $op_products->where('product_transitions.branch_id', $request->branch_id);
+            }
+
+            if ($request->product_name != "") {
+                $product_arr = explode(',', $request->product_name);
+                $op_products->whereIn('product_transitions.product_id', $product_arr);
+            }
+
+            if ($request->brand_id != "") {
+                $op_products->where('products.brand_id', $request->brand_id);
+            }
+            $op_products  = $op_products->orderBy("products.product_code")->groupBy("product_id")->get();
+            
+            foreach($op_products as $op) {
+                $bal = $op->in_qty - $op->out_qty;
+
+                $data = DB::table("product_transitions")
+
+                    ->select(DB::raw("sales.reference_no as sale_reference_no, purchase_invoices.reference_no as purchase_reference_no, inventory_adjustment.reference_no as adjustment_reference_no, mainwarehouse_entries.reference_no as entry_reference_no, sc.cus_name as sale_customer_name, rc.cus_name as return_customer_name, suppliers.name as supplier_name, sale_returns.return_no as return_invoice_no, (CASE WHEN sales.invoice_no IS NOT NULL THEN sales.invoice_no WHEN purchase_invoices.invoice_no IS NOT NULL THEN purchase_invoices.invoice_no WHEN mainwarehouse_entries.entry_no IS NOT NULL THEN mainwarehouse_entries.entry_no WHEN transfers.transfer_no IS NOT NULL THEN transfers.transfer_no WHEN inventory_adjustment.invoice_no IS NOT NULL THEN inventory_adjustment.invoice_no WHEN sale_returns.return_no IS NOT NULL THEN sale_returns.return_no ELSE '' END) as invoice_no, product_transitions.transition_date, (CASE WHEN product_transitions.transition_type = 'OUT' AND transition_adjustment_id IS NOT NULL THEN product_transitions.product_quantity * -1 ELSE product_transitions.product_quantity END) as product_quantity, product_transitions.transition_sale_id, product_transitions.transition_purchase_id, product_transitions.transition_entry_id, product_transitions.transition_adjustment_id, product_transitions.transition_transfer_id, product_transitions.transition_return_id, product_transitions.transition_type, product_transitions.product_id, products.product_code, products.product_name, brands.brand_name"))
+
+                    ->join('products','products.id','=', 'product_transitions.product_id')
+
+                    ->leftjoin('brands','brands.id','=', 'products.brand_id')
+
+                    ->leftjoin('sales', 'sales.id', '=', 'product_transitions.transition_sale_id')
+
+                    ->leftjoin('customers as sc', 'sc.id', '=', 'sales.customer_id')
+
+                    ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'product_transitions.transition_purchase_id')
+
+                    ->leftjoin('suppliers', 'suppliers.id', '=', 'purchase_invoices.supplier_id')
+
+                    ->leftjoin('mainwarehouse_entries', 'mainwarehouse_entries.id', '=', 'product_transitions.transition_entry_id')
+
+                    ->leftjoin('transfers', 'transfers.id', '=', 'product_transitions.transition_transfer_id')
+
+                    ->leftjoin('inventory_adjustment', 'inventory_adjustment.id', '=', 'product_transitions.transition_adjustment_id')
+
+                    ->leftjoin('sale_returns', 'sale_returns.id', '=', 'product_transitions.transition_return_id')
+
+                    ->leftjoin('customers as rc', 'rc.id', '=', 'sale_returns.customer_id');
+
+        // if ($request->from_date != '' && $request->to_date != '') {
+        //     $data->whereBetween('product_transitions.transition_date', array($request->from_date, $request->to_date));
+        // }
+            if ($request->warehouse_id != "") {
+                $data->where('product_transitions.warehouse_id', $request->warehouse_id);
+            }
+
+            if ($request->branch_id != "") {
+                $data->where('product_transitions.branch_id', $request->branch_id);
+            }
+
+            $data->whereDate('product_transitions.transition_date', '=', $d);
+            $data  = $data->where("product_transitions.product_id",$op->product_id)->orderBy('product_transitions.id', 'ASC')->get();
+
+                if(count($data) > 0) {
+
+                    $closing = 0;
+                    $entry = 0; $sale_return =0;  $purchase = 0;  $receive = 0;
+                    $sale = 0;  $adjustment =0;   $transfer=0;
+
+                    foreach($data as $k=>$p) {
+                       if(!empty($p->transition_entry_id)) {
+                            $entry += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_return_id)) {
+                            $sale_return += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_purchase_id)) {
+                            $purchase += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_transfer_id) && $p->transition_type == 'out') {
+                            $transfer += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_transfer_id) && $p->transition_type == 'in') {
+                            $receive += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_sale_id) && empty($p->transition_return_id)) {
+                            $sale += $p->product_quantity;
+                       }
+                       else if(!empty($p->transition_adjustment_id)) {
+                            $adjustment += $p->product_quantity;
+                       } else {}
+                    }
+
+                    $products[$key][$op->product_id]=new \stdClass();
+                    $products[$key][$op->product_id]->date = $d;
+                    $products[$key][$op->product_id]->opening = $op;
+                    $products[$key][$op->product_id]->transitions = $data;
+                    $products[$key][$op->product_id]->closing     = ($bal + $entry + $purchase + $sale_return + $receive + $adjustment)-($sale + $transfer);
+
+                } else {
+                    if($bal != 0) {
+                        $products[$key][$op->product_id]=new \stdClass();
+                        $products[$key][$op->product_id]->date = $d;
+                        $products[$key][$op->product_id]->opening = $op;
+                        $products[$key][$op->product_id]->transitions = [];
+                        $products[$key][$op->product_id]->closing = $bal;
+
+                    }
+                }
+            }
+
+            
+        }
+
+        return compact('products');
+    }
+
+    public function getStockLedger(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+
+        $data = DB::table("product_transitions")
+
+                    ->select(DB::raw("sales.reference_no as sale_reference_no, purchase_invoices.reference_no as purchase_reference_no, inventory_adjustment.reference_no as adjustment_reference_no, mainwarehouse_entries.reference_no as entry_reference_no, sc.cus_name as sale_customer_name, rc.cus_name as return_customer_name, suppliers.name as supplier_name, sale_returns.return_no as return_invoice_no, (CASE WHEN sales.invoice_no IS NOT NULL THEN sales.invoice_no WHEN purchase_invoices.invoice_no IS NOT NULL THEN purchase_invoices.invoice_no WHEN mainwarehouse_entries.entry_no IS NOT NULL THEN mainwarehouse_entries.entry_no WHEN transfers.transfer_no IS NOT NULL THEN transfers.transfer_no WHEN inventory_adjustment.invoice_no IS NOT NULL THEN inventory_adjustment.invoice_no WHEN sale_returns.return_no IS NOT NULL THEN sale_returns.return_no ELSE '' END) as invoice_no, product_transitions.transition_date, (CASE WHEN product_transitions.transition_type = 'OUT' AND transition_adjustment_id IS NOT NULL THEN product_transitions.product_quantity * -1 ELSE product_transitions.product_quantity END) as product_quantity, product_transitions.transition_sale_id, product_transitions.transition_purchase_id, product_transitions.transition_entry_id, product_transitions.transition_adjustment_id, product_transitions.transition_transfer_id, product_transitions.transition_return_id, product_transitions.transition_type, product_transitions.product_id, products.product_code, products.product_name, brands.brand_name"))
+
+                    ->leftjoin('products','products.id','=', 'product_transitions.product_id')
+
+                    ->leftjoin('brands','brands.id','=', 'products.brand_id')
+
+                    ->leftjoin('sales', 'sales.id', '=', 'product_transitions.transition_sale_id')
+
+                    ->leftjoin('customers as sc', 'sc.id', '=', 'sales.customer_id')
+
+                    ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'product_transitions.transition_purchase_id')
+
+                    ->leftjoin('suppliers', 'suppliers.id', '=', 'purchase_invoices.supplier_id')
+
+                    ->leftjoin('mainwarehouse_entries', 'mainwarehouse_entries.id', '=', 'product_transitions.transition_entry_id')
+
+                    ->leftjoin('transfers', 'transfers.id', '=', 'product_transitions.transition_transfer_id')
+
+                    ->leftjoin('inventory_adjustment', 'inventory_adjustment.id', '=', 'product_transitions.transition_adjustment_id')
+
+                    ->leftjoin('sale_returns', 'sale_returns.id', '=', 'product_transitions.transition_return_id')
+
+                    ->leftjoin('customers as rc', 'rc.id', '=', 'sale_returns.customer_id');
+
+        if ($request->from_date != '' && $request->to_date != '') {
+            $data->whereBetween('product_transitions.transition_date', array($request->from_date, $request->to_date));
+        } else if ($request->from_date != '') {
+            $data->whereDate('product_transitions.transition_date', '>=', $request->from_date);
+        } else if ($request->to_date != '') {
+            $data->whereDate('product_transitions.transition_date', '<=', $request->to_date);
+        } else {
+        }
+
+        if ($request->warehouse_id != "") {
+            $data->where('product_transitions.warehouse_id', $request->warehouse_id);
+        }
+
+        if ($request->branch_id != "") {
+            $data->where('product_transitions.branch_id', $request->branch_id);
+        }
+
+        if ($request->product_name != "") {
+            $product_arr = explode(',', $request->product_name);
+            $data->whereIn('product_transitions.product_id', $product_arr);
+        }
+
+        if ($request->brand_id != "") {
+            $data->where('products.brand_id', $request->brand_id);
+        }
+
+        if ($request->order == "") {
+            $order = "ASC";
+        } else {
+            $order = $request->order;
+        }
+
+
+        /*if ($request->sort_by != "") {
+            if ($request->sort_by == "name") {
+                $data  =  $data->orderBy("product_transitions.transition_date")->orderBy('products.product_code', $order)->orderBy('product_transitions.id', 'ASC')->get();
+            } else if ($request->sort_by == "code") {
+                $data  =  $data->orderBy("product_transitions.transition_date")->orderBy('products.product_code', $order)->orderBy('product_transitions.id', 'ASC')->get();
+            } else if ($request->sort_by == "brand") {
+                $data  =  $data->orderBy("product_transitions.transition_date")->orderBy('brands.brand_name', $order)->orderBy('products.product_code', $order)->orderBy('product_transitions.id', 'ASC')->get();
+            } else if ($request->sort_by == "category") {
+            } else if ($request->sort_by == "uom") {
+            } else {
+            }
+        } else {
+            $data  = $data->orderBy("product_transitions.transition_date")->orderBy("products.product_code")->orderBy('product_transitions.id', 'ASC')->get();
+        }*/
+
+        $data  = $data->orderBy("products.product_code")->orderBy("product_transitions.transition_date")->orderBy('product_transitions.id', 'ASC')->get();
+        //dd($data);
+        //start opening
+         $op_products = DB::table("product_transitions")
+
+            ->select(DB::raw("product_id, products.product_name, products.brand_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name,SUM(CASE  WHEN transition_type = 'in' THEN product_quantity  ELSE 0 END)  as in_qty, SUM(CASE  WHEN transition_type = 'out' THEN product_quantity  ELSE 0 END)  as out_qty, SUM(CASE  WHEN transition_type = 'out' AND transition_transfer_id IS NOT NULL THEN product_quantity  ELSE 0 END)  as transfer_qty"))
+
+            ->leftjoin('products', 'products.id', '=', 'product_transitions.product_id')
+
+            ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+
+            ->leftjoin('brands', 'brands.id', '=', 'products.brand_id')
+
+            ->leftjoin('categories', 'categories.id', '=', 'products.category_id');
+
+        $op_products->whereDate('transition_date', '<', $request->from_date);
+
+        if ($request->warehouse_id != "") {
+            $op_products->where('product_transitions.warehouse_id', $request->warehouse_id);
+        }
+            
+        if ($request->branch_id != "") {
+            $op_products->where('product_transitions.branch_id', $request->branch_id);
+        }
+
+        if ($request->product_name != "") {
+            $product_arr = explode(',', $request->product_name);
+            $op_products->whereIn('product_transitions.product_id', $product_arr);
+        }
+
+        if ($request->brand_id != "") {
+            $op_products->where('products.brand_id', $request->brand_id);
+        }
+
+        $op_data  = $op_products->orderBy("product_name")->groupBy("product_id")->get();
+        //end opening
+
+        if ($route_name == 'stock_ledger_export') {
+            $export = new StockLedgerExport($data, $op_data, $request);
+            $fileName = 'Stock Ledger Export' . Carbon::now()->format('Ymd') . '.xlsx';
+            return Excel::download($export, $fileName);
+        }
+
+        return compact('data','op_data');
+    }
+
+
     public function getValuationReport(Request $request)
     {
         $route_name = Route::currentRouteName();
         $data = $this->getValuation($request);
         // dd($data);
         $total_valuation = 0;
+        $total_adj_in = 0;
+        $total_adj_out = 0;
+        $total_after_valuation = 0;
         foreach ($data as $p) {
             $bal = ((int)$p->entry_qty + (int)$p->in_qty) - (int)$p->out_qty;
             $p->balance = $bal;
@@ -528,6 +809,12 @@ class ProductTransitionController extends Controller
             // $total_valuation+=((int)$p->entry_qty * $p->purchase_price)+(((int)$p->p_valuation_amount+$p->in_cost_price)-(int)$p->cost_price);
             $total_valuation += ((int)$p->entry_qty * $p->purchase_price) + (((int)$p->p_valuation_amount + $p->in_cost_price) - (int)$p->cost_price);
             $p->t_valuation_amount = ((int)$p->entry_qty * (int)$p->purchase_price) + (int)(((int)$p->p_valuation_amount + $p->in_cost_price) - (int)$p->cost_price);
+
+            $total_adj_in += $p->adj_in_cost_price;
+            $total_adj_out += $p->adj_out_cost_price;
+
+            $total_after_valuation += (($p->t_valuation_amount + $p->adj_out_cost_price) - $p->adj_in_cost_price);
+
             // $p->
             // $total_valuation+=$p->
         }
@@ -535,13 +822,13 @@ class ProductTransitionController extends Controller
         // dd($total_valuation);
         // Kamlesh Start
         if ($route_name == 'get_valuation_export_pdf') {
-            $pdf = PDF::loadView('exports.inventory_valuation_pdf', compact('data', 'total_valuation'));
+            $pdf = PDF::loadView('exports.inventory_valuation_pdf', compact('data', 'total_valuation','total_adj_in','total_adj_out','total_after_valuation'));
             $pdf->setPaper('a4', 'portrait');
             return $pdf->output();
         }
         // Kamlesh End
 
-        return compact('data', 'total_valuation');
+        return compact('data', 'total_valuation', 'total_adj_in','total_adj_out','total_after_valuation');
     }
 
     public function exportInventoryReport(Request $request)
@@ -609,6 +896,165 @@ class ProductTransitionController extends Controller
 
     public function test()
     {
+        $date_arr = array('2023-01-01','2023-01-02');
+
+        foreach($date_arr as $key => $d) {
+             $op_products = DB::table("product_transitions")
+
+                ->select(DB::raw("product_id, products.product_name, products.brand_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name,SUM(CASE  WHEN transition_type = 'in' THEN product_quantity  ELSE 0 END)  as in_qty, SUM(CASE  WHEN transition_type = 'out' THEN product_quantity  ELSE 0 END)  as out_qty"))
+
+                ->leftjoin('products', 'products.id', '=', 'product_transitions.product_id')
+
+                ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+
+                ->leftjoin('brands', 'brands.id', '=', 'products.brand_id')
+
+                ->leftjoin('categories', 'categories.id', '=', 'products.category_id');
+
+            $op_products->whereDate('transition_date', '<', $d);
+            //Kamlesh End
+            $op_products  = $op_products->orderBy("products.product_code")->groupBy("product_id")->get();
+            foreach($op_products as $op) {
+                $bal = $op->in_qty - $op->out_qty;
+
+                $data = DB::table("product_transitions")
+
+                    ->select(DB::raw("sales.reference_no as sale_reference_no, purchase_invoices.reference_no as purchase_reference_no, inventory_adjustment.reference_no as adjustment_reference_no, mainwarehouse_entries.reference_no as entry_reference_no, sc.cus_name as sale_customer_name, rc.cus_name as return_customer_name, suppliers.name as supplier_name, sale_returns.return_no as return_invoice_no, (CASE WHEN sales.invoice_no IS NOT NULL THEN sales.invoice_no WHEN purchase_invoices.invoice_no IS NOT NULL THEN purchase_invoices.invoice_no WHEN mainwarehouse_entries.entry_no IS NOT NULL THEN mainwarehouse_entries.entry_no WHEN transfers.transfer_no IS NOT NULL THEN transfers.transfer_no WHEN inventory_adjustment.invoice_no IS NOT NULL THEN inventory_adjustment.invoice_no WHEN sale_returns.return_no IS NOT NULL THEN sale_returns.return_no ELSE '' END) as invoice_no, product_transitions.transition_date, (CASE WHEN product_transitions.transition_type = 'OUT' AND transition_adjustment_id IS NOT NULL THEN product_transitions.product_quantity * -1 ELSE product_transitions.product_quantity END) as product_quantity, product_transitions.transition_sale_id, product_transitions.transition_purchase_id, product_transitions.transition_entry_id, product_transitions.transition_adjustment_id, product_transitions.transition_transfer_id, product_transitions.transition_return_id, product_transitions.transition_type, product_transitions.product_id, products.product_code, products.product_name, brands.brand_name"))
+
+                    ->join('products','products.id','=', 'product_transitions.product_id')
+
+                    ->leftjoin('brands','brands.id','=', 'products.brand_id')
+
+                    ->leftjoin('sales', 'sales.id', '=', 'product_transitions.transition_sale_id')
+
+                    ->leftjoin('customers as sc', 'sc.id', '=', 'sales.customer_id')
+
+                    ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'product_transitions.transition_purchase_id')
+
+                    ->leftjoin('suppliers', 'suppliers.id', '=', 'purchase_invoices.supplier_id')
+
+                    ->leftjoin('mainwarehouse_entries', 'mainwarehouse_entries.id', '=', 'product_transitions.transition_entry_id')
+
+                    ->leftjoin('transfers', 'transfers.id', '=', 'product_transitions.transition_transfer_id')
+
+                    ->leftjoin('inventory_adjustment', 'inventory_adjustment.id', '=', 'product_transitions.transition_adjustment_id')
+
+                    ->leftjoin('sale_returns', 'sale_returns.id', '=', 'product_transitions.transition_return_id')
+
+                    ->leftjoin('customers as rc', 'rc.id', '=', 'sale_returns.customer_id');
+
+        // if ($request->from_date != '' && $request->to_date != '') {
+        //     $data->whereBetween('product_transitions.transition_date', array($request->from_date, $request->to_date));
+        // }
+            $data->whereDate('product_transitions.transition_date', '=', $d);
+            $data  = $data->where("product_transitions.product_id",$op->product_id)->orderBy('product_transitions.id', 'ASC')->get();
+
+                if(count($data) > 1) {
+                $products[$key][$op->product_id]=new \stdClass();
+                $products[$key][$op->product_id]->date = $d;
+                $products[$key][$op->product_id]->opening = $op;
+                $products[$key][$op->product_id]->transitions = $data;
+
+                } else {
+                    if($bal != 0) {
+                        $products[$key][$op->product_id]=new \stdClass();
+                        $products[$key][$op->product_id]->date = $d;
+                        $products[$key][$op->product_id]->opening = $op;
+                        $products[$key][$op->product_id]->transitions = [];
+
+                    }
+                }
+            }
+
+            
+        }
+
+        dd($products); dd('exit');
+        $data = DB::table("product_transitions")
+
+                    ->select(DB::raw("sales.reference_no as sale_reference_no, purchase_invoices.reference_no as purchase_reference_no, inventory_adjustment.reference_no as adjustment_reference_no, mainwarehouse_entries.reference_no as entry_reference_no, sc.cus_name as sale_customer_name, rc.cus_name as return_customer_name, suppliers.name as supplier_name, sale_returns.return_no as return_invoice_no, (CASE WHEN sales.invoice_no IS NOT NULL THEN sales.invoice_no WHEN purchase_invoices.invoice_no IS NOT NULL THEN purchase_invoices.invoice_no WHEN mainwarehouse_entries.entry_no IS NOT NULL THEN mainwarehouse_entries.entry_no WHEN transfers.transfer_no IS NOT NULL THEN transfers.transfer_no WHEN inventory_adjustment.invoice_no IS NOT NULL THEN inventory_adjustment.invoice_no WHEN sale_returns.return_no IS NOT NULL THEN sale_returns.return_no ELSE '' END) as invoice_no, product_transitions.transition_date, (CASE WHEN product_transitions.transition_type = 'OUT' AND transition_adjustment_id IS NOT NULL THEN product_transitions.product_quantity * -1 ELSE product_transitions.product_quantity END) as product_quantity, product_transitions.transition_sale_id, product_transitions.transition_purchase_id, product_transitions.transition_entry_id, product_transitions.transition_adjustment_id, product_transitions.transition_transfer_id, product_transitions.transition_return_id, product_transitions.transition_type, product_transitions.product_id, products.product_code, products.product_name, brands.brand_name"))
+
+                    ->join('products','products.id','=', 'product_transitions.product_id')
+
+                    ->leftjoin('brands','brands.id','=', 'products.brand_id')
+
+                    ->leftjoin('sales', 'sales.id', '=', 'product_transitions.transition_sale_id')
+
+                    ->leftjoin('customers as sc', 'sc.id', '=', 'sales.customer_id')
+
+                    ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'product_transitions.transition_purchase_id')
+
+                    ->leftjoin('suppliers', 'suppliers.id', '=', 'purchase_invoices.supplier_id')
+
+                    ->leftjoin('mainwarehouse_entries', 'mainwarehouse_entries.id', '=', 'product_transitions.transition_entry_id')
+
+                    ->leftjoin('transfers', 'transfers.id', '=', 'product_transitions.transition_transfer_id')
+
+                    ->leftjoin('inventory_adjustment', 'inventory_adjustment.id', '=', 'product_transitions.transition_adjustment_id')
+
+                    ->leftjoin('sale_returns', 'sale_returns.id', '=', 'product_transitions.transition_return_id')
+
+                    ->leftjoin('customers as rc', 'rc.id', '=', 'sale_returns.customer_id');
+
+        // if ($request->from_date != '' && $request->to_date != '') {
+        //     $data->whereBetween('product_transitions.transition_date', array($request->from_date, $request->to_date));
+        // }
+            $data->whereDate('product_transitions.transition_date', '=', '2023-01-01');
+            $data  = $data->orderBy("product_transitions.transition_date")->orderBy("products.product_code")->orderBy('product_transitions.id', 'ASC')->get();
+            dd($data);
+       
+
+        $start = strtotime('2023-12-01'); 
+$end = strtotime('2024-03-01'); 
+$range = array();
+
+$date = strtotime("-1 day", $start);  
+while($date < $end)  { 
+   $date = strtotime("+1 day", $date);
+   $range[] = date('Y-m-d', $date);
+} print_r($range); 
+    dd('exit');
+        /*$r = DB::table('receipts')->get();
+        $c=0;
+        foreach($r as $v) {
+            $c++;
+            $ag = SubAccount::find($v->debit_id);
+            $ag_id = $ag->account_group_id;
+            DB::table('account_transitions')
+                ->where('receipt_id', $v->id)
+                ->update(array('account_group_id' => $ag_id,'cash_bank_sub_account_id' => $v->debit_id));
+        }
+        echo $c."<br />";
+       $p = DB::table('payments')->get();
+        $c=0;
+        foreach($p as $v) {
+            $c++;
+            $ag = SubAccount::find($v->credit_id);
+            $ag_id = $ag->account_group_id;
+            DB::table('account_transitions')
+                ->where('payment_id', $v->id)
+                ->update(array('account_group_id' => $ag_id,'cash_bank_sub_account_id' => $v->credit_id));
+        }
+        dd($c);exit();*/
+        //dd('test');exit();
+        $data = DB::table("product_sale")
+
+            ->select(DB::raw("product_sale.*, sales.invoice_no,products.product_code,products.product_name"))
+
+            ->leftjoin('products', 'products.id', '=', 'product_sale.product_id')
+
+            ->leftjoin('sales', 'sales.id', '=', 'product_sale.sale_id')
+
+            ->where("sales.created_at", '>', '2022-11-30')
+
+            ->get();
+        foreach($data as $s) {
+            $p = DB::table("product_transitions")->where('transition_product_pivot_id', $s->id)->get();
+            if(count($p) == 0) {
+                echo 'invoice no = ' . $s->sale_id.', product_code = '.$s->product_code.', product_name='.$s->product_name.'<br />';
+            }
+        }
+        dd('success');
 
         $data = DB::table("product_transitions")
             ->select(DB::raw("product_transitions.*"))
@@ -736,5 +1182,36 @@ class ProductTransitionController extends Controller
             ->groupBy('customer_id')
             ->first();
         // dd($chk_order->previous_balance);
+    }
+
+    public function getMinMaxReport(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+
+        $min_max = $this->getMinMax($request);
+        if ($request->type_id == "min") {
+            $type = "min";
+        } else if ($request->type_id == "max") {
+            $type = "max";
+        } else {
+            $type = "all";
+        }
+        if ($route_name == 'min_max_export') {
+            $export = new MinMaxExport($min_max, $type);
+            $fileName = 'Min Max Export' . Carbon::now()->format('Ymd') . '.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        return compact('min_max', 'type');
+    }
+    public function getReorderLevelReport(Request $request)
+    {
+        $route_name = Route::currentRouteName();
+        $reorder_level = $this->getReorderLevel($request);
+        if ($route_name == 'reorder_level_export') {
+            $export = new ReorderLevelExport($reorder_level);
+            $fileName = 'Reorder Level Export' . Carbon::now()->format('Ymd') . '.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        return compact('reorder_level');
     }
 }

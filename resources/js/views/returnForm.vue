@@ -120,7 +120,7 @@
                                 <select class="form-control invoices"
                                     name="sale_id" id="sale_id" v-model="form.sale_id" style="width:100%"
                                 >
-                                    <option v-for="sale in invoices" :value="sale.id" :data-ptype="sale.payment_type" :data-balance="sale.total_amount-(sale.discount+sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)">{{sale.invoice_no}}</option>
+                                    <option v-for="sale in invoices" :value="sale.id" :data-ptype="sale.payment_type" :data-balance="sale.total_amount-((sale.cash_discount == null || sale.cash_discount == '' ? 0 : sale.cash_discount)+sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)">{{sale.invoice_no}}</option>
                                 </select>
                             </div>
                             <div class="form-group col-md-4 ost_div" style="display:none">
@@ -130,12 +130,30 @@
                             </div>
                         </div>
 
+                        <div class="row mt-3" >
+                             <div class="form-group col-md-4">
+                                <label for="">Payment Method</label>
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="">&nbsp;</label>
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="row mt-4 mb-3"  v-if="form.return_method!=''">
                             <div class="col-md-12">
                                 <span class="d-none d-sm-inline-block btn-sm btn-primary shadow-sm bg-blue"><i class="fas fa-search-plus text-white"></i> Product Details</span>
                             </div>
-                        </div>
-
+                        </div>                        
 
                         <div class="row mt-0 p_container"  id="p_container" style="display:none;" v-if="!isEdit">
                             <div class="col-md-12 text-right mt-0">
@@ -232,7 +250,7 @@
                                             </td>
                                         </tr>
                                         <tr class="total_row">
-                                            <td colspan="8" class="text-right">Return Amount</td>
+                                            <td colspan="8" class="text-right">Return Amount </td>
                                             <td colspan="2">
                                                 <input type="text" v-model="form.return_amount" class="form-control num_txt" style="width:150px;" @blur="changePaidAmount()" :readonly="returnReadonly" />
                                             </td>
@@ -289,7 +307,13 @@
                                             </td>
                                         </tr>
                                         <tr class="total_row">
-                                            <td colspan="8" class="text-right">Return Amount</td>
+                                            <td colspan="8" class="text-right">Discount</td>
+                                            <td colspan="2" class="text-right">
+                                                <input type="text" v-model="form.sale_discount" class="form-control num_txt" style="width:150px;" @blur="changePaidAmount()" />
+                                            </td>
+                                        </tr>
+                                        <tr class="total_row">
+                                            <td colspan="8" class="text-right">Return Amount </td>
                                             <td colspan="2">
                                                 <input type="text" id="return_amount" v-model="form.return_amount" class="form-control num_txt" style="width:150px;" @blur="changePaidAmount()" :readonly="returnReadonly" />
                                             </td>
@@ -347,8 +371,14 @@
                                                 <input type="text" v-model="form.all_total_amount" class="form-control num_txt" readonly style="width:150px;" required />
                                             </td>
                                         </tr>
+                                        <tr class="total_row" v-if="form.return_method == 'with invoice'">
+                                            <td colspan="8" class="text-right">Discount</td>
+                                            <td colspan="2" class="text-right">
+                                                <input type="text" class="form-control num_txt" style="width:150px;" v-model="form.sale_discount" @blur="changePaidAmount()" />
+                                            </td>
+                                        </tr>
                                         <tr class="total_row">
-                                            <td colspan="8" class="text-right">Return Amount</td>
+                                            <td colspan="8" class="text-right">Return Amount </td>
                                             <td colspan="2">
                                                 <input type="text" id="return_amount" v-model="form.return_amount" class="form-control num_txt" style="width:150px;" @blur="changePaidAmount()" :readonly="returnReadonly" />
                                             </td>
@@ -422,7 +452,10 @@
                 all_total_amount: 0,
                 return_amount: 0,
                 balance_amount:0, 
-                outstanding_amount: '',          
+                outstanding_amount: '', 
+                account_group: "",
+                cash_bank_account: '', 
+                sale_discount: 0,         
 
               }),              
               isEdit: false,
@@ -431,6 +464,7 @@
               products: [],
               uoms: [],
               return_id: '',
+              return_status: '',
               user_warehouse: '',
               selling_uoms: [],
               customers: [],
@@ -452,6 +486,9 @@
               returnReadonly: true,
               canEdit: false,
               return_total_amount: 0,
+              account_group: [],
+              cash_bank_accounts: [],
+              sale_discount: 0,
 
             };
         },
@@ -508,6 +545,8 @@
             app.initCustomers();
 
             app.initSaleMen();
+
+            app.initAccountGroup();
 
             $("#office_sale_man_id").select2();
 
@@ -712,23 +751,23 @@
                     
                 }
 
-                 var sub_total = 0;
+                var sub_total = 0;
                    for(var i=0; i<document.getElementsByName('product[]').length; i++) {
                         if(document.getElementsByName('total_amount[]')[i].value != "") {
                             sub_total += parseFloat(document.getElementsByName('total_amount[]')[i].value);
                             //alert(sub_total);
                         }
                    }
-
                     app.form.all_total_amount = Math.round(sub_total);
+                    var disc = app.form.sale_discount == '' ? 0 : app.form.sale_discount;
                     if(app.form.payment_type == "cash") {
                         var return_amount = app.form.all_total_amount;
-                        app.form.return_amount = return_amount;                 
+                        app.form.return_amount = parseInt(return_amount) - parseInt(disc);                 
                         app.form.balance_amount = parseInt(app.form.all_total_amount) - parseInt(return_amount);
                     } else {
                         var return_amount = app.form.return_amount == '' || app.form.return_amount == null ? 0 : app.form.return_amount;
                                           
-                        app.form.balance_amount = parseInt(app.form.all_total_amount) - parseInt(return_amount);
+                        app.form.balance_amount = (parseInt(app.form.all_total_amount) - parseInt(return_amount)) - parseInt(disc);
                     }
             });
 
@@ -783,6 +822,16 @@
         },
 
         methods: {
+
+            initAccountGroup(){
+                axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+                // $("#financial_type2_id").select2();
+            },
+
+            changeAccountGroup(id) {
+                var ag_id = this.form.account_group;
+                axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+            },
 
             changeMethod() {
 
@@ -840,13 +889,14 @@
             },
 
             changePayment() {
+                var disc = this.form.sale_discount == '' ? 0 : this.form.sale_discount;
                 if(this.form.payment_type == 'credit') {
                     this.returnReadonly = false;
                     this.form.return_amount = 0;
                     
                 } else {
                     this.returnReadonly = true;   
-                    this.form.return_amount = this.form.all_total_amount; 
+                    this.form.return_amount = parseInt(this.form.all_total_amount) - parseInt(disc); 
                 }
                 this.changePaidAmount();
             },
@@ -1179,6 +1229,7 @@
 
             getReturn(id) {
               let app = this;
+              app.return_status = '';
               $("#loading").show();
               axios
                 .get("/sale_return/" + id)
@@ -1189,18 +1240,40 @@
                         app.form.office_sale_man_id = response.data.data.office_sale_man_id;
                     }
                     app.form.return_no = response.data.data.return_no; 
+                    app.return_status = response.data.data.return_status;
                     app.form.return_date = response.data.data.return_date;
                     app.form.branch_id = response.data.data.branch_id;
+                    app.form.sale_discount = response.data.data.discount;
                     app.form.warehouse_id = response.data.data.warehouse_id;
                     app.user_branch = response.data.data.branch.branch_name;
                     app.user_warehouse = response.data.data.warehouse.warehouse_name;
                     app.form.return_method = response.data.data.return_method;
                     app.form.payment_type = response.data.data.return_type;
 
-                    if(response.data.data.payment_amount == response.data.data.total_payment_amount) {
-                        app.canEdit = true;
+                    app.form.account_group = response.data.data.account_group_id;             
+                    if(response.data.data.account_group_id != '' && response.data.data.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.data.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.data.sub_account_id;
+
+                    if(response.data.data.return_method == 'with invoice')
+                    {
+                        var cash_discount = response.data.data.sale.cash_discount == null || response.data.data.sale.cash_discount == '' ? 0 : response.data.data.sale.cash_discount;
+                        var total_discount = parseInt(cash_discount) - parseInt(response.data.data.sale.return_discount);
+                        var sale_discount = parseInt(total_discount) + parseInt(response.data.data.discount);
+                        app.sale_discount = sale_discount;
+
+                        if((response.data.data.payment_amount == response.data.data.total_payment_amount && response.data.data.sale.extra_return_amount == 0) || (response.data.data.return_status == 'extra' && response.data.data.payment_amount == response.data.data.total_payment_amount)) {
+                            app.canEdit = true;
+                        } else {
+                            app.canEdit = false;
+                        }
                     } else {
-                        app.canEdit = false;
+                        if(response.data.data.payment_amount == response.data.data.total_payment_amount) {
+                            app.canEdit = true;
+                        } else {
+                            app.canEdit = false;
+                        }
                     }
 
                     $('#customer_id').val(response.data.data.customer_id).trigger('change');
@@ -1524,6 +1597,9 @@
                     app.form.warehouse_id = response.data.sale.warehouse_id;
                     app.user_branch = response.data.sale.branch.branch_name;
                     app.user_warehouse = response.data.sale.warehouse.warehouse_name;
+                    var sale_discount = response.data.sale.cash_discount == null ? 0 : response.data.sale.cash_discount;
+                    app.form.sale_discount =  parseInt(sale_discount) - parseInt(response.data.sale.return_discount);
+                    app.sale_discount = parseInt(sale_discount) - parseInt(response.data.sale.return_discount);
 
                     if(app.form.payment_type == 'credit') {
                         app.required_val = true;
@@ -1536,9 +1612,10 @@
                     var subTotal = 0;
                     var balAmount = 0;
                     var row_id = 0;
-                    $('#product_table tbody tr').slice(0, -3).remove(); 
-                    $('#sale_product_table tbody tr').slice(0, -3).remove();
-                    $('#return_product_table tbody tr').slice(0, -3).remove();   
+                    $('#product_table tbody tr').slice(0, -4).remove(); 
+                    $('#sale_product_table tbody tr').slice(0, -4).remove();
+                    $('#return_product_table tbody tr').slice(0, -4).remove();
+
                     $.each(app.ex_products, function( key, product ) {                       
                         row_id = row_id+1; 
                             if(!app.isEdit) {
@@ -1546,7 +1623,7 @@
                             } else {
                                 var table=document.getElementById("return_product_table");
                             }
-                            var row=table.insertRow((table.rows.length) - 3);
+                            var row=table.insertRow((table.rows.length) - 4);
                             row.id = row_id;
                             var cell1=row.insertCell(0);
 
@@ -1693,7 +1770,7 @@
                                 actual_rate.addEventListener('blur', function(){ app.calTotalAmount(actual_rate); });
                                 cell_actual.appendChild(actual_rate);
 
-                            
+                            var sale_total_amt = (parseInt(product.pivot.product_quantity) - parseInt(product.pivot.return_quantity)) * parseInt(product.pivot.actual_rate);
 
                             $(".txt_product").select2();
 
@@ -1748,8 +1825,10 @@
                                 t7.id = "total_amount_"+row_id;
                                 t7.style = "width:100px;";
                                 if(product.pivot.total_amount != 0 && product.pivot.total_amount != null) {
-                                    t7.value = product.pivot.total_amount;
-                                    subTotal += parseInt(product.pivot.total_amount);
+                                   // t7.value = product.pivot.total_amount;
+                                   // subTotal += parseInt(product.pivot.total_amount);
+                                   t7.value = sale_total_amt;
+                                   subTotal += parseInt(sale_total_amt);
                                 }
                                 t7.className ="form-control num_txt";
                                 $(t7).attr("required", true);
@@ -1804,18 +1883,22 @@
                                 app.calTotalAmount($(this));
                                 //app.getSellingUomByProduct(selectbox_id, data.id);
                             });
+
+                            if(row_id == app.ex_products.length) {
+                                app.calAllTotal(subTotal);
+                            }
                     });
 
-                    app.form.all_total_amount  = response.data.sale.total_amount;
+                    /*app.form.all_total_amount  = response.data.sale.total_amount;
                     if(app.form.payment_type == 'cash') {
-                        app.form.return_amount= response.data.sale.total_amount;
+                        app.form.return_amount= parseInt(response.data.sale.total_amount)- parseInt(app.sale_discount);
                         app.form.balance_amount= 0;
                     } else {
                         app.form.balance_amount= response.data.sale.balance_amount;
                         app.form.return_amount= 0;
                     }
                     
-                    $("#loading").hide();
+                    $("#loading").hide();*/
 
 
                 })
@@ -1829,6 +1912,20 @@
                 });
 
                 $(".txt_uom").select2();
+            },
+
+            calAllTotal($subTotal) {
+                let app = this;
+                app.form.all_total_amount  = $subTotal;
+                if(app.form.payment_type == 'cash') {
+                    app.form.return_amount= parseInt($subTotal)- parseInt(app.sale_discount);
+                    app.form.balance_amount= 0;
+                } else {
+                    app.form.balance_amount= parseInt($subTotal)- parseInt(app.sale_discount);
+                    app.form.return_amount= 0;
+                }
+                
+                $("#loading").hide();
             },
 
              checkFoc(obj) {
@@ -2028,16 +2125,17 @@
                }
 
                app.form.all_total_amount = Math.round(sub_total);
+               var disc = this.form.sale_discount == '' ? 0 : this.form.sale_discount;
 
                if(this.form.payment_type == 'credit') {
                     this.returnReadonly = false;
                     
                 } else {
                     this.returnReadonly = true;  
-                    this.form.return_amount = sub_total; 
+                    this.form.return_amount = parseInt(sub_total) - parseInt(disc); 
                 }
 
-               app.form.balance_amount = parseInt(app.form.all_total_amount) - parseInt(app.form.return_amount);
+               app.form.balance_amount = (parseInt(app.form.all_total_amount) - parseInt(app.form.return_amount)) - parseInt(disc);
                 
             },
 
@@ -2074,7 +2172,19 @@
                 let app = this;
                 var total_amount = app.form.all_total_amount == '' || app.form.all_total_amount == null ? 0 : app.form.all_total_amount;
                 var return_amount = app.form.return_amount == '' || app.form.return_amount == null ? 0 : app.form.return_amount;
-                app.form.balance_amount = parseInt(total_amount) - parseInt(return_amount);
+                var sale_discount = app.form.sale_discount == null || app.form.sale_discount == '' ? 0 : app.form.sale_discount;
+
+                if(parseInt(app.form.sale_discount) > parseInt(app.sale_discount)) {
+                    swal("Warning!", "Invalid! Your discount is more than sale discount.", "warning");
+                    app.form.sale_discount = app.sale_discount;
+                }
+                if(app.form.payment_type == 'cash') {
+                    app.form.return_amount = parseInt(total_amount) - parseInt(sale_discount);
+                    app.form.balance_amount = 0;
+                } else {
+                    app.form.balance_amount = (parseInt(total_amount) - parseInt(sale_discount)) - parseInt(return_amount);
+                }
+                
             },
 
             changeTax() {
@@ -2145,7 +2255,7 @@
                 app.form.payment_type = $("#payment_type").val();
 
                 if(app.form.payment_type == 'cash') {
-                    if(app.form.balance_amount > 0) {
+                    if(app.form.balance_amount > 0 || app.form.balance_amount < 0) {
                         swal("Warning!", "Balance must be zero for cash payment!", "warning");
                         return false;
                     }
@@ -2155,15 +2265,17 @@
                     var payment_type = document.getElementById('sale_id').options[document.getElementById('sale_id').options.selectedIndex].dataset.ptype;
 
                     var sale_bal = parseInt(document.getElementById('sale_id').options[document.getElementById('sale_id').options.selectedIndex].dataset.balance) + parseInt(app.return_total_amount);
-
-                    if(payment_type == "credit") {
-                        if(parseInt(app.form.all_total_amount) > sale_bal) {
-                            swal("Warning!", "Total amount is more than balance amount. Please check!", "warning");
-                            return false;
+                    
+                    if(sale_bal > 0 && app.return_status == '') {
+                        if(payment_type == "credit") {
+                            if((parseInt(app.form.all_total_amount) - parseInt(app.form.sale_discount)) > sale_bal) {
+                                swal("Warning!", "Total amount is more than balance amount. Please check!", "warning");
+                                return false;
+                            }
                         }
                     }
                 }
-
+                //return false;
                 $('#loading').show();
 
                 if( app.form.balance_amount < 0 || app.form.return_amount<0) {

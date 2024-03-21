@@ -44,7 +44,7 @@ class User extends Authenticatable
 
     public function branches()
     {
-        return $this->belongsToMany('App\Branch', 'branch_user', 'user_id', 'branch_id');
+        return $this->belongsToMany('App\Branch', 'branch_user', 'user_id', 'branch_id')->withPivot('id')->orderBy('branch_user.id');
     }
 
     public function warehouse()

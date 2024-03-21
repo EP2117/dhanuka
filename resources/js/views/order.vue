@@ -177,7 +177,7 @@
                                                 </router-link>
                                             </a>
                                             <a class="dropdown-item">
-                                                <a title="Print" class="text-primary" @click="generatePDF(order.id)" v-if="user_role == 'admin' || user_role == 'system'">
+                                                <a title="Print" class="text-primary" @click="generatePDF(order.id)" v-if="user_role == 'admin' || user_role == 'system' || user_role == 'office_user'">
                                                     <i class="fas fa-print"></i>
                                                 </a>
                                             </a>

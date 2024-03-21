@@ -218,8 +218,8 @@
                   $gain = !empty($c_gain->amount) ? $c_gain->amount : 0;
                   $loss = !empty($c_loss->amount) ? $c_loss->amount : 0;
                   $netProfit = $net_profit!='' ? $net_profit : 0;
-                  $gain_loss_total = $gain + $loss;
-                  $gain_loss_profit = ($netProfit + $gain) - $loss;
+                  $gain_loss_total = abs($gain) - abs($loss);
+                  $gain_loss_profit = ($netProfit + abs($gain)) - abs($loss);
                ?>
 
                <tr>

@@ -53,52 +53,85 @@ class AccountTransitionController extends Controller
        foreach($account_head as $key=>$ah) {
                     //kaung (comment by ep)
                    $pl=AccountTransition::where('is_cashbook',0);
-                   $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                    $pl->when(!is_null($request->from_date),function($q)use($request){
                        return  $q->whereDate('transition_date','>=',$request->from_date);
                    });
                    $pl->when(!is_null($request->from_date),function($q){
                        return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-                   });
-                   if($request->month){
+                   });**/
+                if($request->from_date != '' && $request->to_date != '')
+                {            
+                    $pl->whereBetween('transition_date', array($request->from_date, $request->to_date));
+                } else if($request->from_date != '') {
+                    $pl->whereDate('transition_date', '>=', $request->from_date);
+
+                }else if($request->to_date != '') {
+                    $pl->whereDate('transition_date', '<=', $request->to_date);
+                } else {
+                    //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                }
+                   if(!empty($request->month)){
                     $pl->whereMonth('transition_date','=',$request->month);
                 }
-                $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                if($request->year){
+                //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
                     $pl->whereYear('transition_date','=',$request->year);
                 }
                 $pl->where('sub_account_id',8);
 
                  $pl_sr=SaleReturn::whereNotNull('return_no');
-                   $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                  /* $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                    $pl_sr->when(!is_null($request->from_date),function($q)use($request){
                        return  $q->whereDate('return_date','>=',$request->from_date);
                    });
                    $pl_sr->when(!is_null($request->from_date),function($q){
                        return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
-                   });
+                   });*/
+                if($request->from_date != '' && $request->to_date != '')
+                {            
+                    $pl_sr->whereBetween('return_date', array($request->from_date, $request->to_date));
+                } else if($request->from_date != '') {
+                    $pl_sr->whereDate('return_date', '>=', $request->from_date);
+
+                }else if($request->to_date != '') {
+                    $pl_sr->whereDate('return_date', '<=', $request->to_date);
+                } else {
+                    //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                }
                    $pl_sr->where('return_method','=','with invoice');
-                   if($request->month){
+                   if(!empty($request->month)){
                     $pl_sr->whereMonth('return_date','=',$request->month);
                 }
-                $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                if($request->year){
+               // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
                     $pl_sr->whereYear('return_date','=',$request->year);
                 }
 
                 $pl_cr=CustomerReturn::whereNotNull('customer_return_no');
-                   $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                  /** $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                    $pl_cr->when(!is_null($request->from_date),function($q)use($request){
                        return  $q->whereDate('return_date','>=',$request->from_date);
                    });
                    $pl_cr->when(!is_null($request->from_date),function($q){
                        return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
-                   });
-                   if($request->month){
+                   });**/
+                if($request->from_date != '' && $request->to_date != '')
+                {            
+                    $pl_cr->whereBetween('return_date', array($request->from_date, $request->to_date));
+                } else if($request->from_date != '') {
+                    $pl_cr->whereDate('return_date', '>=', $request->from_date);
+
+                }else if($request->to_date != '') {
+                    $pl_cr->whereDate('return_date', '<=', $request->to_date);
+                } else {
+                    //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                }
+                   if(!empty($request->month)){
                     $pl_cr->whereMonth('return_date','=',$request->month);
                 }
-                $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                if($request->year){
+               // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
                     $pl_cr->whereYear('return_date','=',$request->year);
                 }
                 /**$pl_sr->whereNotNull('return_id');
@@ -187,19 +220,30 @@ class AccountTransitionController extends Controller
                    // $pl->whereHas('sale.products',function($q){
                    //     $q->
                    // });
-                   $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                   /* $pl->when(!is_null($request->from_date),function($q)use($request){
                        return  $q->whereDate('transition_date','>=',$request->from_date);
-                   });*/
+                   });//
                    $pl->when(!is_null($request->from_date),function($q){
                     return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-                });
-                   if($request->month){
+                });**/
+                if($request->from_date != '' && $request->to_date != '')
+                {            
+                    $pl->whereBetween('transition_date', array($request->from_date, $request->to_date));
+                } else if($request->from_date != '') {
+                    $pl->whereDate('transition_date', '>=', $request->from_date);
+
+                }else if($request->to_date != '') {
+                    $pl->whereDate('transition_date', '<=', $request->to_date);
+                } else {
+                    //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                }
+                   if(!empty($request->month)){
                     // $pla->whereIn(DB::raw('MONTH(transition_date)'),[$request->month]);
                     $pl->whereMonth('transition_date','=',$request->month);
                 }
-                 $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                if($request->year){
+                // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
                     $pl->whereYear('transition_date','=',$request->year);
                 }
                 
@@ -219,19 +263,30 @@ class AccountTransitionController extends Controller
                                     ->where('transition_sale_id',$p->sale_id)
                                     ->whereNull('transition_return_id');
 
-                            $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                           // $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                                 /**$product_sale->when(!is_null($request->from_date),function($q)use($request){
                                    return  $q->whereDate('transition_date','>=',$request->from_date);
                                });**/
-                               $product_sale->when(!is_null($request->from_date),function($q){
+                               /*$product_sale->when(!is_null($request->from_date),function($q){
                                 return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-                            });
-                               if($request->month){
+                            });*/
+                            if($request->from_date != '' && $request->to_date != '')
+                            {            
+                                 $product_sale->whereBetween('transition_date', array($request->from_date, $request->to_date));
+                            } else if($request->from_date != '') {
+                                 $product_sale->whereDate('transition_date', '>=', $request->from_date);
+
+                            }else if($request->to_date != '') {
+                                 $product_sale->whereDate('transition_date', '<=', $request->to_date);
+                            } else {
+                                //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                            }
+                               if(!empty($request->month)){
                                 // $pla->whereIn(DB::raw('MONTH(transition_date)'),[$request->month]);
                                 $product_sale->whereMonth('transition_date','=',$request->month);
                             }
-                             $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                            if($request->year){
+                             //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                            if(!empty($request->year)){
                                 $product_sale->whereYear('transition_date','=',$request->year);
                             }
 
@@ -260,19 +315,30 @@ class AccountTransitionController extends Controller
                    // $pl->whereHas('sale.products',function($q){
                    //     $q->
                    // });
-                   $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   //$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                   /* $pl->when(!is_null($request->from_date),function($q)use($request){
                        return  $q->whereDate('transition_date','>=',$request->from_date);
                    });*/
-                   $pl_sr->when(!is_null($request->from_date),function($q){
+                   /*$pl_sr->when(!is_null($request->from_date),function($q){
                     return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
-                });
-                   if($request->month){
+                });*/
+                  if($request->from_date != '' && $request->to_date != '')
+                  {            
+                      $pl_sr->whereBetween('return_date', array($request->from_date, $request->to_date));
+                  } else if($request->from_date != '') {
+                      $pl_sr->whereDate('return_date', '>=', $request->from_date);
+
+                  }else if($request->to_date != '') {
+                      $pl_sr->whereDate('return_date', '<=', $request->to_date);
+                  } else {
+                      //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                  }
+                   if(!empty($request->month)){
                     // $pla->whereIn(DB::raw('MONTH(transition_date)'),[$request->month]);
                     $pl_sr->whereMonth('return_date','=',$request->month);
                 }
-                 $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                if($request->year){
+                 //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
                     $pl_sr->whereYear('return_date','=',$request->year);
                 }
                 
@@ -291,19 +357,30 @@ class AccountTransitionController extends Controller
                         $product_sale=DB::table('product_transitions')
                                     ->where('transition_return_id',$p->id);
 
-                            $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                            //$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                                 /**$product_sale->when(!is_null($request->from_date),function($q)use($request){
                                    return  $q->whereDate('transition_date','>=',$request->from_date);
                                });**/
-                               $product_sale->when(!is_null($request->from_date),function($q){
+                               /**$product_sale->when(!is_null($request->from_date),function($q){
                                 return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-                            });
-                               if($request->month){
+                            });**/
+                            if($request->from_date != '' && $request->to_date != '')
+                            {            
+                                $product_sale->whereBetween('transition_date', array($request->from_date, $request->to_date));
+                            } else if($request->from_date != '') {
+                                $product_sale->whereDate('transition_date', '>=', $request->from_date);
+
+                            }else if($request->to_date != '') {
+                                $product_sale->whereDate('transition_date', '<=', $request->to_date);
+                            } else {
+                                //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+                            }
+                               if(!empty($request->month)){
                                 // $pla->whereIn(DB::raw('MONTH(transition_date)'),[$request->month]);
                                 $product_sale->whereMonth('transition_date','=',$request->month);
                             }
-                             $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-                            if($request->year){
+                            //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                            if(!empty($request->year)){
                                 $product_sale->whereYear('transition_date','=',$request->year);
                             }
 
@@ -342,25 +419,36 @@ class AccountTransitionController extends Controller
             //    ->orWhere('name','Expense');
         })
         // ->orderBy('id','desc')
-        ->get();
+        ->where('name','!=','Indirect Expense')->get();
         $ah_expense= $account_head=AccountHead::whereHas('financial_type2',function($q){
             $q->where('name','Expense');
-        })->get();
+        })->where('name','!=','Indirect Expense')->get();
         foreach($ah_income as $key=>$ai){
             $pla=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',79);
-            $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+            /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
             $pla->when(!is_null($request->from_date),function($q)use($request){
                 return  $q->whereDate('transition_date','>=',$request->from_date);
             });
             $pla->when(!is_null($request->from_date),function($q){
                 return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-            });
-            if($request->month){
+            });**/
+            if($request->from_date != '' && $request->to_date != '')
+            {            
+                $pla->whereBetween('transition_date', array($request->from_date, $request->to_date));
+            } else if($request->from_date != '') {
+                $pla->whereDate('transition_date', '>=', $request->from_date);
+
+            }else if($request->to_date != '') {
+                $pla->whereDate('transition_date', '<=', $request->to_date);
+            } else {
+                //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+            }
+            if(!empty($request->month)){
                 // $pla->whereIn(DB::raw('MONTH(transition_date)'),[$request->month]);
                 $pla->whereMonth('transition_date','=',$request->month);
             }
-            $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-            if($request->year){
+            //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+            if(!empty($request->year)){
                 $pla->whereYear('transition_date','=',$request->year);
             }
           
@@ -408,18 +496,29 @@ class AccountTransitionController extends Controller
       
         foreach($ah_expense as $key=>$ae){
             $ple=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',80);
-            $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+            /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
             $ple->when(!is_null($request->from_date),function($q)use($request){
                 return  $q->whereDate('transition_date','>=',$request->from_date);
             });
             $ple->when(!is_null($request->from_date),function($q){
                 return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-            });
-            if($request->month){
+            });**/
+            if($request->from_date != '' && $request->to_date != '')
+            {            
+                $ple->whereBetween('transition_date', array($request->from_date, $request->to_date));
+            } else if($request->from_date != '') {
+                $ple->whereDate('transition_date', '>=', $request->from_date);
+
+            }else if($request->to_date != '') {
+                $ple->whereDate('transition_date', '<=', $request->to_date);
+            } else {
+                //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+            }
+            if(!empty($request->month)){
                 $ple->whereMonth('transition_date','=',$request->month);
             }
-            $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-            if($request->year){
+           // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+            if(!empty($request->year)){
                 $ple->whereYear('transition_date','=',$request->year);
             }
             $ple->whereHas('sub_account.account_head',function($q)use($ae){
@@ -466,18 +565,29 @@ class AccountTransitionController extends Controller
 
       /** currency gain **/
       $c_gain=AccountTransition::where('is_cashbook',0)->where('sub_account_id',79);
-      $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
       $c_gain->when(!is_null($request->from_date),function($q)use($request){
           return  $q->whereDate('transition_date','>=',$request->from_date);
       });
       $c_gain->when(!is_null($request->from_date),function($q){
           return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-      });
-      if($request->month){
+      });**/
+      if($request->from_date != '' && $request->to_date != '')
+      {            
+          $c_gain->whereBetween('transition_date', array($request->from_date, $request->to_date));
+      } else if($request->from_date != '') {
+          $c_gain->whereDate('transition_date', '>=', $request->from_date);
+
+      }else if($request->to_date != '') {
+          $c_gain->whereDate('transition_date', '<=', $request->to_date);
+      } else {
+          //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+      }
+      if(!empty($request->month)){
           $c_gain->whereMonth('transition_date','=',$request->month);
       }
-      $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-      if($request->year){
+      //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+      if(!empty($request->year)){
           $c_gain->whereYear('transition_date','=',$request->year);
       }
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
@@ -489,18 +599,29 @@ class AccountTransitionController extends Controller
 
         /** currency Loss **/
       $c_loss=AccountTransition::where('is_cashbook',0)->where('sub_account_id',80);
-      $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
       $c_loss->when(!is_null($request->from_date),function($q)use($request){
           return  $q->whereDate('transition_date','>=',$request->from_date);
       });
       $c_loss->when(!is_null($request->from_date),function($q){
           return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
-      });
-      if($request->month){
+      });**/
+      if($request->from_date != '' && $request->to_date != '')
+      {            
+          $c_loss->whereBetween('transition_date', array($request->from_date, $request->to_date));
+      } else if($request->from_date != '') {
+          $c_loss->whereDate('transition_date', '>=', $request->from_date);
+
+      }else if($request->to_date != '') {
+          $c_loss->whereDate('transition_date', '<=', $request->to_date);
+      } else {
+          //$data->whereBetween('sale_date', array($login_year.'-01-01', $login_year.'-12-31')); 
+      }
+      if(!empty($request->month)){
           $c_loss->whereMonth('transition_date','=',$request->month);
       }
-      $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
-      if($request->year){
+      //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+      if(!empty($request->year)){
           $c_loss->whereYear('transition_date','=',$request->year);
       }
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
@@ -809,10 +930,10 @@ class AccountTransitionController extends Controller
             //    ->orWhere('name','Expense');
         })
         // ->orderBy('id','desc')
-        ->get();
+        ->where('name','!=','Indirect Expense')->get();
         $ah_expense= $account_head=AccountHead::whereHas('financial_type2',function($q){
             $q->where('name','Expense');
-        })->get();
+        })->where('name','!=','Indirect Expense')->get();
         foreach($ah_income as $key=>$ai){
             $pla=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',79);
             $pla->whereYear('transition_date','=',$year);
@@ -1013,7 +1134,7 @@ class AccountTransitionController extends Controller
             }
            // $c_asset=AccountTransition::whereIn('sub_account_id',$ca_arr)->where('is_cashbook',0)->selectRaw('*, sum(credit) as credit_amount')->groupBy('sub_account_id')->get();
             /**$c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, SUM(CASE  WHEN sub_accounts.account_type_id = 1 OR sub_accounts.account_type_id = 2 THEN COALESCE(debit,credit) ELSE COALESCE(credit,0) END) as credit_amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (SUM(CASE  WHEN sub_accounts.account_type_id = 1 OR sub_accounts.account_type_id = 2 THEN COALESCE(credit,0) ELSE COALESCE(debit,0) END) - SUM(CASE  WHEN sub_accounts.account_type_id = 1 OR sub_accounts.account_type_id = 2 THEN COALESCE(debit,0) ELSE COALESCE(credit,0) END)) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.credit_amount != 0"));**/
-            $c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
+            $c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select sub_accounts.account_group_id, account_transitions.cash_bank_sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) = ".$year. " AND cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as t LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) < ".$year." AND  cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as op ON t.cash_bank_sub_account_id=op.cash_bank_sub_account_id WHERE t.amount != 0 AND t.account_group_id IS NOT NULL"));
           }
           //end current asset
 
@@ -1030,7 +1151,7 @@ class AccountTransitionController extends Controller
                 }
             }
             //$nc_asset=AccountTransition::whereIn('sub_account_id',$nca_arr)->where('is_cashbook',0)->selectRaw('*, sum(credit) as credit_amount')->groupBy('sub_account_id')->get();
-            $nc_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$nca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$nca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0 AND t.sub_account_name != 'Prepaid Expense'"));
+            $nc_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$nca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$nca_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0 AND t.sub_account_name != 'Prepaid Expense'"));
           }
           //end non current asset
           //end Asset
@@ -1076,7 +1197,11 @@ class AccountTransitionController extends Controller
         $total_c = 0;
         if(!empty($nc_asset)) {            
           foreach($nc_asset as $ncasset) {
-            $nc_amt = (float)$ncasset->op_amount + (float)$ncasset->amount;
+            if($ncasset->opening_amount_type == $ncasset->amount_type) {
+              $nc_amt = abs((float)$ncasset->op_amount + (float)$ncasset->amount);
+            } else {
+              $nc_amt = abs((float)$ncasset->op_amount - (float)$ncasset->amount);
+            }
             $html.='<tr><td>'.$ncasset->sub_account_name.'</td><td>'.$nc_amt.'</td></tr>';
             $total_nc+=$nc_amt;
           }
@@ -1089,8 +1214,12 @@ class AccountTransitionController extends Controller
         $html.='<tr><td>Trade Receiable</td><td>'.$os_amount.'</td></tr>';
         if(!empty($c_asset)) {
             
-          foreach($c_asset as $casset) {            
-            $amt = (float)$casset->op_amount + (float)$casset->amount;
+          foreach($c_asset as $casset) {   
+            if($casset->opening_amount_type == $casset->amount_type) {
+              $amt = abs((float)$casset->op_amount + (float)$casset->amount);
+            } else {
+              $amt = abs((float)$casset->op_amount - (float)$casset->amount);
+            } 
             $html.='<tr><td>'.$casset->sub_account_name.'</td><td>'.$amt.'</td></tr>';
             $total_c+=$amt;
           }
@@ -1126,7 +1255,7 @@ class AccountTransitionController extends Controller
                   $eq_str .=",".$eq->id;
                 }
             }
-            $eq_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$eq_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$eq_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
+            $eq_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$eq_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$eq_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
 
             $total_eq = 0;
             $total_eq += $gain_loss_profit;
@@ -1136,7 +1265,13 @@ class AccountTransitionController extends Controller
                 if($obj->sub_account_name == 'Drawing') {
                   $eq_amt = (float)$obj->amount;
                 } else {
-                  $eq_amt = (float)$obj->op_amount + (float)$obj->amount;
+
+                  if($obj->opening_amount_type == $obj->amount_type) {
+                    $eq_amt = abs((float)$obj->op_amount + (float)$obj->amount);
+                  } else {
+                    $eq_amt = abs((float)$obj->op_amount - (float)$obj->amount);
+                  }
+                  
                 }
 
                 $html.='<tr><td>'.$obj->sub_account_name.'</td><td>'.$eq_amt.'</td></tr>';
@@ -1163,14 +1298,19 @@ class AccountTransitionController extends Controller
               }
           }
 
-          $lt_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$lt_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$lt_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
+          $lt_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$lt_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$lt_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
 
             $total_lt = 0;
             if(!empty($lt_query)) {            
-              foreach($lt_query as $obj) {
-                $lt_amt = (float)$obj->op_amount + (float)$obj->amount;
-                $html.='<tr><td>'.$obj->sub_account_name.'</td><td>'.$lt_amt.'</td></tr>';
-                $total_lt+=$lt_amt;
+              foreach($lt_query as $obj) {                
+
+                 if($obj->opening_amount_type == $obj->amount_type) {
+                    $lt_amt = abs((float)$obj->op_amount + (float)$obj->amount);
+                  } else {
+                    $lt_amt = abs((float)$obj->op_amount - (float)$obj->amount);
+                  }
+                  $html.='<tr><td>'.$obj->sub_account_name.'</td><td>'.$lt_amt.'</td></tr>';
+                  $total_lt+=$lt_amt;
               }
              
             }
@@ -1196,13 +1336,17 @@ class AccountTransitionController extends Controller
                 $cl_str .=",".$cl->id;
               }
           }
-          $cl_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$cl_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$cl_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
+          $cl_query = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select account_transitions.sub_account_id, sub_account_name, (ABS(SUM(ABS(COALESCE(debit,0))) - SUM(ABS(COALESCE(credit,0))))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) = ".$year. " AND sub_account_id IN (".$cl_str.") AND is_cashbook=0 GROUP BY sub_account_id) as t LEFT JOIN (Select account_transitions.sub_account_id, (ABS(SUM(ABS(COALESCE(debit,0))) - SUM(ABS(COALESCE(credit,0))))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.sub_account_id WHERE YEAR(transition_date) < ".$year." AND  sub_account_id IN (".$cl_str.") AND is_cashbook=0 GROUP BY sub_account_id) as op ON t.sub_account_id=op.sub_account_id WHERE t.amount != 0"));
 
             $total_cl = 0;
             $total_cl += $pos_amount;
             if(!empty($cl_query)) {            
               foreach($cl_query as $obj) {
-                $cl_amt = (float)$obj->op_amount + (float)$obj->amount;
+                if($obj->opening_amount_type == $obj->amount_type) {
+                  $cl_amt = abs((float)$obj->op_amount + (float)$obj->amount);
+                } else {
+                  $cl_amt = abs((float)$obj->op_amount - (float)$obj->amount);
+                }
                 $html.='<tr><td>'.$obj->sub_account_name.'</td><td>'.$cl_amt.'</td></tr>';
                 $total_cl+=$cl_amt;
               }

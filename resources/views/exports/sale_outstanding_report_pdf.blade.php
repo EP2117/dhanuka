@@ -104,12 +104,14 @@
                     @endif
                     <td class="text-center">{{$c->customer->cus_phone}}</td>
                     <td>
-                        @foreach($c->products as $j=>$prod)
-                        {{$prod->product_name}}
-                        @if($j!=count($c->products) - 1)
-                        ,
-                        @endif
-                        @endforeach
+                         @if(!empty($c->products))
+                            @foreach($c->products as $j=>$prod)
+                              {{$prod['product_name']}}
+                              @if($j!=count($c->products) - 1)
+                                ,
+                              @endif
+                            @endforeach
+                          @endif
                     </td>
                     @if($c->is_opening == 1)
                     <td class="text-center">{{$c->total_amount}}</td>

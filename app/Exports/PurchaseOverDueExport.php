@@ -15,11 +15,13 @@ class PurchaseOverDueExport implements FromView, WithTitle
     private $net_paid_amt;
     private $net_balance_amt;
     private $net_inv_amt;
-    public function __construct($purchase_over_due,$net_paid_amt,$net_balance_amt,$net_inv_amt){
+    private $request;
+    public function __construct($purchase_over_due,$net_paid_amt,$net_balance_amt,$net_inv_amt,$request){
         $this->purchase_over_due=$purchase_over_due;
         $this->net_paid_amt=$net_paid_amt;
         $this->net_balance_amt=$net_balance_amt;
         $this->net_inv_amt=$net_inv_amt;
+        $this->request = $request;
     }
     public function view(): View
     {
@@ -29,6 +31,7 @@ class PurchaseOverDueExport implements FromView, WithTitle
             'net_paid_amt'=>$this->net_paid_amt,
             'net_bal_amt'=>$this->net_balance_amt,
             'net_inv_amt'=>$this->net_inv_amt,
+            'request' => $this->request,
         ]);
     }
     // public function headings(): array     {
@@ -38,6 +41,6 @@ class PurchaseOverDueExport implements FromView, WithTitle
     // }
     public function title(): string
     {
-        return 'Purchase Outstanding  Export';
+        return 'Purchase Over Due Lists';
     }
 }

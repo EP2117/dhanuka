@@ -12,7 +12,7 @@ class PurchaseInvoice extends Model
 //    protected $fillable=['invoice_no','reference_no','invoice_date','supplier_id']
     public function products()
     {
-        return $this->belongsToMany('App\Product', 'product_purchase', 'purchase_id', 'product_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc');
+        return $this->belongsToMany('App\Product', 'product_purchase', 'purchase_id', 'product_id')->withPivot('id','uom_id','product_quantity','delivered_quantity','debit_note_quantity','price','price_fx','price_variant','total_amount','total_amount_fx','is_foc');
     } 
 
     public function advances()

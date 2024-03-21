@@ -215,10 +215,19 @@ class OrderApprovalController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
+                /*$branch = Auth::user()->branch_id;
                 //$data->where('branch_id',$branch);
                 $data->whereHas('order.branch', function ($query) use ($request,$branch) {
                     $query->where('branch_id', $branch);                         
+                });*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                //$data->whereIn('branch_id',$branch_arr);
+                $data->whereHas('order.branch', function ($query) use ($request,$branch_arr) {
+                    $query->whereIn('branch_id', $branch_arr);                         
                 });
             }
         }

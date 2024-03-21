@@ -31,14 +31,15 @@
 <body>
     <table id="t01" class="table_no" width="100%" style="table-layout: fixed">
         <thead>
-        <tr><th colspan="5" style="text-align: center;"><h3>Purchase Outstanding Report</h3></th>
+        <tr><th colspan="6" style="text-align: center;"><h3>Purchase Over Due Report</h3></th>
         </tr>
         <tr>
             {{-- <th class="text-center">No-></th>oo --}}
             <th class="text-center">Invoice No</th>
             <th class="text-center">Date</th>
+            <th class="text-center">Due Date</th>
             <th class="text-center">Supplier Name</th>
-            <th class="text-center">Reference No</th>
+            <th class="text-center">Supplier Code</th>
             <th class="text-center">Invoice Amount	</th>
             <th class="text-center">Paid Amount	</th>
             <th class="text-center">Balance Amount </th>
@@ -51,38 +52,31 @@
                 {{-- <template v-for="(c,key) in $so->out_list"> --}}
                 <!-- <td class="text-center"></td> -->
                    @if($c->type=="paid")
-                        @if($c->diff_day>$c->credit_day)
                                 <tr>
                                     <td class="text-center over_due" style="background-color:black;color:red">{{$c->invoice_no}}</td>
-                                    <td class="text-center" style="background-color:black;color:red">{{$c->invoice_date}}</td>
+                                    <td class="text-center" style="background-color:black;color:red">{{date_format(date_create($c->invoice_date),'d-m-Y')}}</td>
+                                    @if(!empty($c->due_date))
+                                    <td class="text-center" style="background-color:black;color:red">{{date_format(date_create($c->due_date),'d-m-Y')}}</td>
+                                    @else
+                                    <td class="text-center" style="background-color:black;color:red"></td>
+                                    @endif
                                     <td class="text-center" style="color:red">{{$c->supplier->name}}</td>
-                                    <td class="text-center" style="color:red">{{$c->reference_no}}</td>
+                                    <td class="text-center" style="color:red">{{$c->supplier->supplier_code}}</td>
                                     <td class="text-center" style="color:red">{{$c->total_amount}} </td>
                                     <td class="text-center" style="color:red">{{$c->t_paid_amount}} </td>
                                     <td class="text-center" style="color:red">{{$c->t_balance_amount}} </td>
                                 </tr>
-                           @else
-                                <tr>
-                                    <td class="text-center" style="color:red"><span class="over_due">{{$c->invoice_no}}</span></td>
-                                    <td class="text-center">{{$c->invoice_date}}</td>
-                                    <td class="text-center">{{$c->supplier->name}}</td>
-                                    <td class="text-center" style="right: 4px ">{{$c->reference_no}}</td>
-                                    <td class="text-center">{{$c->total_amount}} </td>
-                                    <td class="text-center">{{$c->t_paid_amount}} </td>
-                                    <td class="text-center">{{$c->t_balance_amount}} </td>
-                                </tr>
-                                @endif
                     @endif
              @endforeach
                     <tr class="">
-                        <td colspan="4" class="text-right mm-txt" style="text-align: right;"><b>Total</b></td>
+                        <td colspan="5" class="text-right mm-txt" style="text-align: right;"><b>Total</b></td>
                         <td class="text-center">{{$so->total_inv_amt}}</td>
                         <td class="text-center">{{$so->total_paid_amt}}</td>
                         <td class="text-center">{{$so->total_bal_amt}}</td>
                     </tr>
             @endforeach
              <tr class="">
-                    <td colspan="4" class="text-right mm-txt" style="text-align: right;"><strong>Total Net</strong></td>
+                    <td colspan="5" class="text-right mm-txt" style="text-align: right;"><strong>Total Net</strong></td>
                     <td class="text-center">{{$net_inv_amt}}</td>
                     <td class="text-center">{{$net_paid_amt}}</td>
                     <td class="text-center">{{$net_bal_amt}}</td>

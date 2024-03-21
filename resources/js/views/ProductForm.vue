@@ -138,6 +138,14 @@
                             </div>
                         </div>
                         <div class="form-group row">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Miximum QTY</label>
+                            <div class="col-lg-6">
+                                <input class="form-control num_txt" type="text"
+                                    id="max_qty" name="max_qty"
+                                    v-model="form.max_qty" required >
+                            </div>
+                        </div>
+                        <div class="form-group row">
                             <label class="col-lg-3 col-form-label text-right form-control-label">Reorder Level</label>
                             <div class="col-lg-6">
                                 <input class="form-control num_txt" type="text"
@@ -206,6 +214,7 @@
                     product_name: "",
                     product_code: "",
                     min_qty: '',
+                    max_qty: '',
                     product_code_type:'',
                     selling_price:'',
                     purchase_price:'',
@@ -581,6 +590,7 @@
                     app.form.brand_id = response.data.product.brand_id;
                     app.form.product_code_type = response.data.product.product_code_type;
                     app.form.min_qty = response.data.product.minimum_qty;
+                    app.form.max_qty = response.data.product.maximum_qty;
                     app.form.selling_price = response.data.product.selling_price;
                     app.form.purchase_price = response.data.product.purchase_price;
                     app.form.reorder_level = response.data.product.reorder_level;

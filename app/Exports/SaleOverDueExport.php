@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Exports;
+
+use Illuminate\Contracts\View\View;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromView;
+use Maatwebsite\Excel\Concerns\WithTitle;
+
+class SaleOverDueExport implements FromView, WithTitle
+{
+    /**
+    */
+    private $sale_over_due;
+    private $net_paid_amt;
+    private $net_balance_amt;
+    private $net_inv_amt;
+    public function __construct($sale_over_due,$net_paid_amt,$net_balance_amt,$net_inv_amt,$request){
+        $this->sale_over_due=$sale_over_due;
+        $this->net_paid_amt=$net_paid_amt;
+        $this->net_balance_amt=$net_balance_amt;
+        $this->net_inv_amt=$net_inv_amt;
+        $this->request = $request;
+    }
+    public function view(): View
+    {
+        // dd($this->sale_over_due);
+        return view('exports.sale_over_due_export',[
+            'sale_over_due'=>$this->sale_over_due,
+            'net_paid_amt'=>$this->net_paid_amt,
+            'net_bal_amt'=>$this->net_balance_amt,
+            'net_inv_amt'=>$this->net_inv_amt,
+            'request' => $this->request,
+        ]);
+    }
+    // public function headings(): array     {
+    //    return [
+    //     'စဥ်.','နေ့စွဲ','နိုင်ငံသားအမျိုးအစား','ခရိုင်   ','မြို့နယ်အမည် ','စာမျက်နှာနံပါတ်  ','မှ','ထိ','ဦးရေ  '
+    //     ];
+    // }
+    public function title(): string
+    {
+        return 'Sale Over Due Export Export';
+    }
+}

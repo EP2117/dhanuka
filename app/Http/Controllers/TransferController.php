@@ -45,8 +45,14 @@ class TransferController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id',$branch);
+               /* $branch = Auth::user()->branch_id;
+                $data->where('branch_id',$branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id',$branch_arr);
             }
         }
 
@@ -87,9 +93,17 @@ class TransferController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
+                /*$branch = Auth::user()->branch_id;
                 $data->whereHas('to_warehouse', function ($query) use ($branch) {
                     $query->where('branch_id', $branch);                      
+                });*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereHas('to_warehouse', function ($query) use ($branch_arr) {
+                    $query->whereIn('branch_id', $branch_arr);                      
                 });
                 //$data->where('branch_id',$branch);
             }
@@ -107,7 +121,11 @@ class TransferController extends Controller
         $data->received_by = Auth::user()->id;
         $data->save();
 
-        
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
 
         foreach($data->products as $product) {
 
@@ -132,7 +150,7 @@ class TransferController extends Controller
             $obj->transition_type       = "in";
             $obj->transition_transfer_id   = $id;
             $obj->transition_product_pivot_id   = $product->pivot->id;
-            $obj->branch_id  = Auth::user()->branch_id;
+            $obj->branch_id  = $branch_id;
             $obj->warehouse_id          = $data->to_warehouse_id; // for Main Warehouse Entry
             $obj->transition_date       = $received_date;
             $obj->transition_product_uom_id        = $product->pivot->uom_id;
@@ -172,12 +190,18 @@ class TransferController extends Controller
             $max_id = 1;
         }
 
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
+
         $transfer_no = str_pad($max_id,5,"0",STR_PAD_LEFT); 
 
         $transfer = new Transfer;
         $transfer->transfer_no = $transfer_no;
         $transfer->transfer_date = $request->transfer_date;
-        $transfer->branch_id = Auth::user()->branch_id;
+        $transfer->branch_id = $branch_id;
         $transfer->from_warehouse_id = Auth::user()->warehouse_id;
         $transfer->to_warehouse_id = $request->to_warehouse;
         $transfer->created_by = Auth::user()->id;
@@ -238,7 +262,7 @@ class TransferController extends Controller
             $obj->transition_type       = "out";
             $obj->transition_transfer_id   = $transfer_id;
             $obj->transition_product_pivot_id   = $pivot_id;
-            $obj->branch_id  = Auth::user()->branch_id;
+            $obj->branch_id  = $branch_id;
             $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
             $obj->transition_date       = $request->transfer_date;
             $obj->transition_product_uom_id        = $request->uom[$i];
@@ -274,6 +298,12 @@ class TransferController extends Controller
     {
         DB::beginTransaction();
         try {
+
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
         $transfer = Transfer::find($id);
         $transfer->transfer_date = $request->transfer_date;
         $transfer->from_warehouse_id = Auth::user()->warehouse_id;
@@ -380,7 +410,7 @@ class TransferController extends Controller
 	            $obj->transition_type       = "out";
 	            $obj->transition_transfer_id   = $id;
 	            $obj->transition_product_pivot_id   = $pivot_id;
-                $obj->branch_id  = Auth::user()->branch_id;
+                $obj->branch_id  = $branch_id;
 	            $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
 	            $obj->transition_date       = $request->transfer_date;
 	            $obj->transition_product_uom_id        = $request->uom[$i];

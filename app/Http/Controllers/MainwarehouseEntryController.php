@@ -47,8 +47,14 @@ class MainwarehouseEntryController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id',$branch);
+                /*$branch = Auth::user()->branch_id;
+                $data->where('branch_id',$branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id',$branch_arr);
             }
         }
 
@@ -102,11 +108,15 @@ class MainwarehouseEntryController extends Controller
                 'reference_no' => 'max:255|unique:mainwarehouse_entries',
             ]);
         }
-
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
        	$entry = new MainwarehouseEntry;
         $entry->entry_date = $request->entry_date;
         $entry->warehouse_id = Auth::user()->warehouse_id;
-        $entry->branch_id = Auth::user()->branch_id;
+        $entry->branch_id = $branch_id;
         $entry->created_by = Auth::user()->id;
         $entry->updated_by = Auth::user()->id;        
         $entry->save();
@@ -135,7 +145,7 @@ class MainwarehouseEntryController extends Controller
         	$obj->transition_type   	= "in";
         	$obj->transition_entry_id 	= $entry_id;
             $obj->transition_product_pivot_id   = $pivot_id;
-            $obj->branch_id = Auth::user()->branch_id;
+            $obj->branch_id = $branch_id;
         	//$obj->warehouse_id			= 1; // for Main Warehouse Entry
             $obj->warehouse_id = Auth::user()->warehouse_id;
         	$obj->transition_date 		= $request->entry_date;
@@ -171,6 +181,12 @@ class MainwarehouseEntryController extends Controller
                 $validatedData = $request->validate([
                     'reference_no' => 'max:255|unique:mainwarehouse_entries,reference_no,'.$id,
                 ]);
+            }
+
+            foreach (Auth::user()->branches as $k => $b) {
+                if ($k == 0) {
+                    $branch_id = $b->id;
+                }
             }
 
             $entry = MainwarehouseEntry::find($id);;
@@ -228,7 +244,7 @@ class MainwarehouseEntryController extends Controller
                     $obj->transition_type       = "in";
                     $obj->transition_entry_id   = $entry_id;
                     $obj->transition_product_pivot_id   = $pivot_id;
-                    $obj->branch_id = Auth::user()->branch_id;
+                    $obj->branch_id = $branch_id;
                     //$obj->warehouse_id          = 1; // for Main Warehouse Entry
                     $obj->warehouse_id = Auth::user()->warehouse_id;
                     $obj->transition_date       = $request->entry_date;

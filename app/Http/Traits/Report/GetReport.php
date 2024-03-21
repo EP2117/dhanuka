@@ -15,6 +15,8 @@ use App\PurchaseCollection;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+use App\Exports\SaleOrderPendingExport;
 
 trait GetReport
 {
@@ -378,6 +380,8 @@ trait GetReport
 
     public function getPurchaseOutStandingReport($request)
     {
+        ini_set('memory_limit', '2048M');
+        ini_set('max_execution_time', 300);
         $sup = PurchaseInvoice::where('payment_type', 'credit');
         if ($request->supplier_id != null) {
             $sup->where('supplier_id', $request->supplier_id);
@@ -463,7 +467,7 @@ trait GetReport
                                 $invoices[$k]->type="paid";
                         }**/
                     if ($i->currency_id == 1) {
-                        if (($i->collection_amount) != $i->balance_amount) {
+                        if (($i->collection_amount + $i->credit_note_amount) != $i->balance_amount) {
                             $invoices[$k]->type = "paid";
                         }
                     } else {
@@ -487,17 +491,17 @@ trait GetReport
                             $per_bal_amt += $i->balance_amount_fx - $i->collection_amount_fx;
                         }
                     } else {
-                        $i->t_paid_amount = $i->pay_amount + $i->collection_amount;
+                        $i->t_paid_amount = $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
                         //$i->t_balance_amount=$i->balance_amount-$i->collection_amount;
                         $i->t_gain_loss_amount = $gain_loss;
 
                         if ($i->currency_id == 1) {
-                            $i->t_balance_amount = $i->balance_amount - $i->collection_amount;
-                            if (($i->collection_amount + $i->discount) != $i->balance_amount) {
+                            $i->t_balance_amount = $i->balance_amount - ($i->collection_amount + $i->credit_note_amount);
+                            if (($i->collection_amount + $i->discount + $i->credit_note_amount) != $i->balance_amount) {
                                 $per_gain_loss_amt += $gain_loss;
                                 $t_amount = $i->total_amount - $i->discount;
                                 $per_inv_amt += $t_amount;
-                                $per_paid_amt += $i->pay_amount + $i->collection_amount;
+                                $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
                                 //$per_bal_amt+=$i->balance_amount-$i->collection_amount;
                                 $per_bal_amt += $i->t_balance_amount;
                             }
@@ -511,7 +515,7 @@ trait GetReport
                                 $per_gain_loss_amt += $gain_loss;
                                 $t_amount = $i->total_amount - $i->discount;
                                 $per_inv_amt += $t_amount;
-                                $per_paid_amt += $i->pay_amount + $i->collection_amount;
+                                $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
                                 // $per_bal_amt+=$i->balance_amount-$i->collection_amount;
                                 $per_bal_amt += $i->t_balance_amount;
                             }
@@ -539,7 +543,10 @@ trait GetReport
     }
     public function getSaleOutstandingReport($request)
     {
-        ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '2048M');
+        ini_set('max_execution_time', 360);
+
+        $login_year = Session::get('loginYear');
         // dd($request->all());
         //$cus=Sale::where('payment_type','credit')->whereRaw('(total_amount-(IFNULL(cash_discount,0) + pay_amount + collection_amount)) > 0');
         if (isset($request->currency_id) && $request->currency_id != 1) {
@@ -601,7 +608,7 @@ trait GetReport
         } else if ($request->to_date != '') {
             $cus->whereDate('invoice_date', '<=', $request->to_date);
         } else {
-            // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            $cus->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
         }
         //$cus=$cus->groupBy('customer_id')->toSql();
         $cus = $cus->groupBy('customer_id')->orderBy('states.state_name')->orderBy('townships.township_name')->get();
@@ -611,7 +618,7 @@ trait GetReport
                 // dd($s);
                 $per_gain_loss_amt = $per_inv_amt = $per_paid_amt = $per_bal_amt = 0;
                 $p_outstandings[$key] = new \stdClass();
-                $invoices = Sale::with('collections', 'customer.township', 'products')->where('customer_id', $s->customer_id)->where('payment_type', 'credit');
+                $invoices = Sale::with('collections','customer', 'customer.township', 'products')->where('customer_id', $s->customer_id)->where('payment_type', 'credit');
                 if ($request->invoice_no != null) {
                     $invoices->where('invoice_no', $request->invoice_no);
                 }
@@ -642,7 +649,7 @@ trait GetReport
                 } else if ($request->to_date != '') {
                     $invoices->whereDate('invoice_date', '<=', $request->to_date);
                 } else {
-                    // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+                    $invoices->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
                 }
                 if ($request->currency_id != 1 && $request->currency_id != "") {
                     $invoices->where('currency_id', $request->currency_id);
@@ -888,10 +895,12 @@ trait GetReport
         }
         $products = DB::table("products")
             ->where('products.is_active', 1)
-            ->select(DB::raw("products.id as product_id,pt.transition_date,ps.s_valuation_amount,pt.cost_price,pt.in_cost_price,products.purchase_price,ps.s_qty,pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
+            ->select(DB::raw("products.id as product_id,pt.transition_date,ps.s_valuation_amount,pt.cost_price,pt.in_cost_price,products.purchase_price,ps.s_qty,pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty,pt.adj_in_cost_price,pt.adj_out_cost_price"))
             ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
                          SUM(CASE  WHEN transition_type = 'in'  AND transition_entry_id IS NOT NULL THEN product_quantity  ELSE 0 END) as entry_qty,
                          SUM(CASE  WHEN transition_type = 'in' AND transition_entry_id IS NULL THEN product_quantity  ELSE 0 END) as in_qty,
+                         SUM(CASE  WHEN transition_type = 'out' AND transition_adjustment_id IS NOT NULL THEN cost_price  ELSE 0 END) as adj_out_cost_price,
+                         SUM(CASE  WHEN transition_type = 'in' AND transition_adjustment_id IS NOT NULL THEN cost_price  ELSE 0 END) as adj_in_cost_price,
                          SUM(CASE  WHEN transition_type = 'out' AND ( transition_sale_id || transition_adjustment_id || transition_transfer_id)  IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
                          SUM(CASE  WHEN transition_type = 'in'  AND (transition_adjustment_id IS NOT NULL OR transition_transfer_id IS NOT NULL OR transition_sale_id IS NOT NULL OR transition_return_id IS NOT NULL) THEN cost_price ELSE 0 END ) as in_cost_price,
                          SUM(CASE  WHEN transition_type = 'out'  THEN product_quantity  ELSE 0 END) as out_qty
@@ -952,6 +961,8 @@ trait GetReport
         $p = DB::table("products")
             ->select(DB::raw("products.id as product_id,ps.s_valuation_amount,pt.cost_price,pt.in_cost_price,products.purchase_price,ps.s_qty, pp.p_valuation_amount,pt.entry_qty,products.product_name,products.minimum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
             ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
+                         SUM(CASE  WHEN transition_type = 'out' AND transition_adjustment_id IS NOT NULL THEN cost_price  ELSE 0 END) as adj_out_cost_price,
+                         SUM(CASE  WHEN transition_type = 'in' AND transition_adjustment_id IS NOT NULL THEN cost_price  ELSE 0 END) as adj_in_cost_price,
                          SUM(CASE  WHEN transition_type = 'in'  AND transition_entry_id IS NOT NULL THEN product_quantity  ELSE 0 END) as entry_qty,
                          SUM(CASE  WHEN transition_type = 'in' AND transition_entry_id IS NULL THEN product_quantity  ELSE 0 END) as in_qty,
                          SUM(CASE  WHEN transition_type = 'out' AND (transition_sale_id || transition_adjustment_id || transition_transfer_id) IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
@@ -1001,7 +1012,11 @@ trait GetReport
         if ($p->t_valuation_amount == 0 && $p->balance == 0) {
             $p->product_cost_price = 0;
         } else {
-            $p->product_cost_price = (int)$p->t_valuation_amount / $p->balance;
+            if($p->balance == 0) {
+                $p->product_cost_price = 0;
+            } else {
+                $p->product_cost_price = (int)$p->t_valuation_amount / $p->balance;
+            }
         }
         // $p->product_cost_price=(int)$p->t_valuation_amount/$p->balance;
 
@@ -1011,5 +1026,583 @@ trait GetReport
         // $products->where('products.id',7);
         // $data  = $products->orderBy("product_name")->get();
         // return $data;
+    }
+
+    public function saleOverDue($request){
+        $cus=Sale::where('payment_type','credit');
+        if (isset($request->currency_id) && $request->currency_id != 1) {
+            $cus = Sale::with('products')->where('payment_type', 'credit')->whereRaw('(total_amount_fx-(IFNULL(cash_discount_fx,0) + pay_amount_fx + collection_amount_fx)) > 0');
+        } else {
+            $cus = Sale::where('payment_type', 'credit')->whereRaw('(total_amount-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0');
+        }
+        //$cus->whereRaw('(total_amount-(IFNULL(cash_discount,0) + pay_amount + collection_amount)) > 0');
+        if($request->customer_id!=null){
+            $cus->where('customer_id',$request->customer_id);
+        }
+        if($request->invoice_no!=null){
+            $cus->where('invoice_no',$request->invoice_no);
+        }
+        if($request->branch_id!=null){
+            $cus->where('branch_id',$request->branch_id);
+        }
+        if ($request->currency_id != 1 && $request->currency_id != "") {
+            $cus->where('currency_id', $request->currency_id);
+        }
+        if($request->state_id){
+            $state=$request->state_id;
+            $cus->whereHas('customer',function($q)use($state){
+                $q->where('state_id',$state);
+            });
+        }
+        if($request->township_id){
+            $town=$request->township_id;
+            $cus->whereHas('customer',function($q)use($town){
+                $q->where('township_id',$town);
+            });
+        }
+        if($request->from_date != '' && $request->to_date != '')
+        {
+            $cus->whereBetween('due_date', array($request->from_date, $request->to_date));
+        } else if($request->from_date != '') {
+            $cus->whereDate('due_date', '>=', $request->from_date);
+
+        }else if($request->to_date != '') {
+            $cus->whereDate('due_date', '<=', $request->to_date);
+        } else {
+            // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+        $cus=$cus->groupBy('customer_id')->get();
+        if($cus->isNotEmpty()){
+            foreach($cus as $key=>$s){
+                // dd($s);
+                $per_inv_amt=$per_paid_amt=$per_bal_amt=0;
+                $p_outstandings[$key]=new \stdClass();
+                $invoices=Sale::where('customer_id',$s->customer_id)->where('payment_type','credit');
+                if (isset($request->currency_id) && $request->currency_id != 1) {
+                    $invoices->whereRaw('(total_amount_fx-(IFNULL(cash_discount_fx,0) + pay_amount_fx + collection_amount_fx)) > 0');
+                } else {
+                    $invoices->whereRaw('(total_amount-(IFNULL(cash_discount,0) + pay_amount + collection_amount + return_amount + customer_return_amount)) > 0');
+                }
+                //$invoices->whereRaw('(total_amount-(IFNULL(cash_discount,0) + pay_amount + collection_amount)) > 0');
+                if($request->invoice_no!=null){
+                    $invoices->where('invoice_no',$request->invoice_no);
+                }
+                if($request->from_date != '' && $request->to_date != '')
+                {
+                    $invoices->whereBetween('due_date', array($request->from_date, $request->to_date));
+                } else if($request->from_date != '') {
+                    $invoices->whereDate('due_date', '>=', $request->from_date);
+
+                }else if($request->to_date != '') {
+                    $invoices->whereDate('due_date', '<=', $request->to_date);
+                } else {
+                    // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+                }
+                if ($request->currency_id != 1 && $request->currency_id != "") {
+                    $invoices->where('currency_id', $request->currency_id);
+                }
+                $invoices=$invoices->get();
+                foreach($invoices as $k=>$i){
+                    $d1=Carbon::today();
+                    $d2=Carbon::parse($i->due_date);
+                    $diff_day=$d1->diffInDays($d2);
+                    // if($diff_day>$i->credit_day){
+                        $invoices[$k]->diff_day=$diff_day;
+                    // }
+                    /*if(($i->collection_amount+$i->cash_discount == NULL ? 0 : $i->cash_discount)!=($i->balance_amount)){
+                        $invoices[$k]->type="paid";
+                    }*/
+                    $gain_loss = 0;
+                    $gain_amt = 0;
+                    $loss_amt = 0;
+                    if (!empty($i->collections)) {
+                        // dd($i->payments);
+                        $gain = 0;
+                        $loss = 0;
+                        foreach ($i->collections as $pay) {
+                            $gain += $pay->pivot->gain_amount;
+                            $gain_amt += $pay->pivot->gain_amount;
+                            $loss += $pay->pivot->loss_amount;
+                            $loss_amt += abs($pay->pivot->loss_amount);
+                        }
+                        $gain_loss = $gain + $loss;
+                    }
+                    if ($i->currency_id == 1) {
+                        if (($i->collection_amount + $i->return_amount + $i->customer_return_amount + $i->discount) != $i->balance_amount) {
+                            $invoices[$k]->type = "paid";
+                        }
+                    } else {
+
+                        if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                            $invoices[$k]->type = "paid";
+                        }
+
+                        /***if($i->total_amount_fx-($i->cash_discount_fx + $i->pay_amount_fx + $i->collection_amount_fx) != 0){
+                            $invoices[$k]->type="paid";
+                        }***/
+                    }
+
+                   /* $i->t_paid_amount=$i->pay_amount+$i->collection_amount;
+                    $i->t_balance_amount=$i->balance_amount-$i->collection_amount;
+                    if(($i->collection_amount+$i->cash_discount == NULL ? 0 : $i->cash_discount)!=($i->balance_amount)){
+                        $per_inv_amt+=$i->total_amount; $per_paid_amt+=$i->pay_amount+$i->collection_amount;$per_bal_amt+=$i->balance_amount-$i->collection_amount;
+                    }*/
+                    if ($invoices[$k]->type == "paid") {
+                        if ($request->currency_id != 1 && $request->currency_id != "") {
+                            $i->t_paid_amount = $i->pay_amount_fx + $i->collection_amount_fx;
+                            $i->t_balance_amount = $i->balance_amount_fx - $i->collection_amount_fx;
+                            if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                                /**if($i->is_opening == 1) {
+                                $per_inv_amt+=$i->total_amount; 
+                            } else {
+                                $per_inv_amt+=$i->net_total;     
+                            }**/
+                                $per_inv_amt = $per_inv_amt + $i->net_total_fx + $i->tax_amount_fx;
+
+                                $per_paid_amt += $i->pay_amount_fx + $i->collection_amount_fx;
+                                $per_bal_amt += $i->balance_amount_fx - $i->collection_amount_fx;
+                            }
+                        } else {
+                            $i->t_paid_amount = $i->pay_amount + $i->collection_amount + $i->return_amount + $i->customer_return_amount;
+
+                            if ($i->currency_id == 1) {
+                                $i->t_balance_amount = $i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount);
+                                if (($i->collection_amount + $i->return_amount + $i->customer_return_amount + $i->discount) != $i->balance_amount) {
+                                    if ($i->is_opening == 1) {
+                                        $per_inv_amt += $i->total_amount;
+                                    } else {
+                                        $taxAmt = $i->tax_amount == NULL ? 0 : $i->tax_amount;
+                                        $per_inv_amt = $per_inv_amt + $i->net_total + $taxAmt;
+                                    }
+                                    $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->return_amount + $i->customer_return_amount;
+                                    $per_bal_amt += $i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount);
+                                }
+                            } else {
+                                $i->t_balance_amount = $i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount);
+                                $i->t_balance_amount = (round($i->t_balance_amount, 3) + $gain_amt) - $loss_amt;
+                                $i->t_balance_amount = round($i->t_balance_amount, 3);
+                                if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                                    if ($i->is_opening == 1) {
+                                        $per_inv_amt += $i->total_amount;
+                                    } else {
+                                        //$per_inv_amt+=$i->net_total; 
+                                        $taxAmt = $i->tax_amount == NULL ? 0 : $i->tax_amount;
+                                        $per_inv_amt = $per_inv_amt + $i->net_total + $taxAmt;
+                                    }
+                                    //$per_gain_loss_amt+=$gain_loss;
+                                    $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->return_amount + $i->customer_return_amount;
+                                    $per_bal_amt += ($i->balance_amount - ($i->collection_amount + $i->return_amount + $i->customer_return_amount) + $gain_amt) - $loss_amt;
+                                }
+                            }
+                        }
+                    }
+                    // $net_inv_amt+=$i->total_amount; $net_paid_amt+=$i->paid_amount;$net_balance_amt+=$i->balance_amount;
+                }
+                // $invoices[$key]->per_inv_amt=$per_inv_amt;
+                // $invoices[$key]->per_paid_amt=$per_paid_amt;
+                // $invoices[$key]->per_bal_amt=$per_bal_amt;
+                $p_outstandings[$key]->out_list=$invoices;
+                $p_outstandings[$key]->total_inv_amt=$per_inv_amt;
+                $p_outstandings[$key]->total_paid_amt=$per_paid_amt;
+                $p_outstandings[$key]->total_bal_amt=$per_bal_amt;
+            }
+            // dd($p_outstandings);
+            // return $p_outstandings;
+        }else{
+            $p_outstandings=[];
+        }
+        return $p_outstandings;
+    }
+
+    public function purchaseOverDue($request)
+    {
+        $sup = PurchaseInvoice::where('payment_type', 'credit');
+        if ($request->supplier_id != null) {
+            $sup->where('supplier_id', $request->supplier_id);
+        }
+        if ($request->invoice_no != null) {
+            $sup->where('invoice_no', $request->invoice_no);
+        }
+        if ($request->branch_id != null) {
+            $sup->where('branch_id', $request->branch_id);
+        }
+        if ($request->currency_id != 1 && $request->currency_id != "") {
+            $sup->where('currency_id', $request->currency_id);
+        }
+        if ($request->state_id) {
+            $state = $request->state_id;
+            $sup->whereHas('supplier', function ($q) use ($state) {
+                $q->where('state_id', $state);
+            });
+        }
+        if ($request->township_id) {
+            $town = $request->township_id;
+            $sup->whereHas('supplier', function ($q) use ($town) {
+                $q->where('township_id', $town);
+            });
+        }
+        if ($request->from_date != '' && $request->to_date != '') {
+            $sup->whereBetween('due_date', array($request->from_date, $request->to_date));
+        } else if ($request->from_date != '') {
+            $sup->whereDate('due_date', '>=', $request->from_date);
+        } else if ($request->to_date != '') {
+            $sup->whereDate('due_date', '<=', $request->to_date);
+        } else {
+            // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+        $sup = $sup->groupBy('supplier_id')->get();
+        if ($sup->isNotEmpty()) {
+            foreach ($sup as $key => $s) {
+                $per_inv_amt = $per_paid_amt = $per_bal_amt = 0;
+                $p_outstandings[$key] = new \stdClass();
+                $invoices = PurchaseInvoice::where('supplier_id', $s->supplier_id)->where('payment_type', 'credit');
+                // dd($invoices);
+                if ($request->from_date != '' && $request->to_date != '') {
+                    $invoices->whereBetween('due_date', array($request->from_date, $request->to_date));
+                } else if ($request->from_date != '') {
+                    $invoices->whereDate('due_date', '>=', $request->from_date);
+                } else if ($request->to_date != '') {
+                    $invoices->whereDate('due_date', '<=', $request->to_date);
+                } else {
+                    // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+                }
+                if ($request->invoice_no != null) {
+                    $invoices->where('invoice_no', $request->invoice_no);
+                }
+                if ($request->currency_id != 1 && $request->currency_id != "") {
+                    $invoices->where('currency_id', $request->currency_id);
+                }
+                $invoices = $invoices->get();
+                // dd($invoices);
+                // if($invoices->isNotEmpty()){
+                foreach ($invoices as $k => $i) {
+
+                    $gain_loss = 0;
+                    $gain_amt = 0;
+                    $loss_amt = 0;
+                    if (!empty($i->payments)) {
+                        // dd($i->payments);
+                        $gain = 0;
+                        $loss = 0;
+                        foreach ($i->payments as $pay) {
+                            $gain += $pay->pivot->gain_amount;
+                            $gain_amt += $pay->pivot->gain_amount;
+                            $loss += $pay->pivot->loss_amount;
+                            $loss_amt += abs($pay->pivot->loss_amount);
+                        }
+                        $gain_loss = $gain + $loss;
+                    }
+
+                    /*if (($i->collection_amount + $i->discount) != ($i->balance_amount + $i->credit_note_amount)) {
+                        $invoices[$k]->type = "paid";
+                    }*/
+
+                    if ($i->currency_id == 1) {
+                        if (($i->collection_amount + $i->discount) != ($i->balance_amount + $i->credit_note_amount)) {
+                            $invoices[$k]->type = "paid";
+                        }
+                    } else {
+                        if (($i->collection_amount_fx) != $i->balance_amount_fx) {
+                            $invoices[$k]->type = "paid";
+                        }
+                    }
+
+                    /*$i->t_paid_amount = $i->pay_amount + $i->collection_amount;
+                    $i->t_balance_amount = ($i->balance_amount + $i->credit_note_amount) - $i->collection_amount;
+                    if (($i->collection_amount + $i->discount) != ($i->balance_amount + $i->credit_note_amount)) {
+                        $per_inv_amt += $i->total_amount;
+                        $per_paid_amt += $i->pay_amount + $i->collection_amount;
+                        $per_bal_amt += ($i->balance_amount + $i->credit_note_amount) - $i->collection_amount;
+                    }*/
+                    if ($request->currency_id != 1 && $request->currency_id != "") {
+
+                        $i->t_paid_amount = $i->pay_amount_fx + $i->collection_amount_fx;
+                        $i->t_balance_amount = $i->balance_amount_fx - $i->collection_amount_fx;
+                        // $i->t_balance_amount = (round($i->t_balance_amount, 3) + $gain_amt) - $loss_amt;
+                        $i->t_balance_amount = round($i->t_balance_amount, 3);
+                        if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                            $t_amount = $i->total_amount_fx - $i->discount_fx;
+                            $per_inv_amt += $t_amount;
+                            $per_paid_amt += $i->pay_amount_fx + $i->collection_amount_fx;
+                            $per_bal_amt += $i->balance_amount_fx - $i->collection_amount_fx;
+                        }
+                    } else {
+                        $i->t_paid_amount = $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
+                        //$i->t_balance_amount=$i->balance_amount-$i->collection_amount;
+
+                        if ($i->currency_id == 1) {
+                            $i->t_balance_amount = $i->balance_amount - $i->collection_amount + $i->credit_note_amount;
+                            if (($i->collection_amount + $i->discount + $i->credit_note_amount) != $i->balance_amount) {
+                                $t_amount = $i->total_amount - $i->discount;
+                                $per_inv_amt += $t_amount;
+                                $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
+                                //$per_bal_amt+=$i->balance_amount-$i->collection_amount;
+                                $per_bal_amt += $i->t_balance_amount;
+                            }
+                        } else {
+                            //$i->t_balance_amount=(abs($i->t_gain_loss_amount) + ($i->total_amount - $i->discount) ) - $i->t_paid_amount;
+                            //$i->t_balance_amount = round($i->t_balance_amount, 2);
+                            $i->t_balance_amount = (($i->total_amount - $i->discount)) - $i->t_paid_amount;
+                            $i->t_balance_amount = (round($i->t_balance_amount, 3) + $gain_amt) - $loss_amt;
+                            $i->t_balance_amount = round($i->t_balance_amount, 3);
+                            if (($i->collection_amount_fx + $i->discount_fx) != $i->balance_amount_fx) {
+                                $t_amount = $i->total_amount - $i->discount;
+                                $per_inv_amt += $t_amount;
+                                $per_paid_amt += $i->pay_amount + $i->collection_amount + $i->credit_note_amount;
+                                // $per_bal_amt+=$i->balance_amount-$i->collection_amount;
+                                $per_bal_amt += $i->t_balance_amount;
+                            }
+                        }
+                    }
+                    // }
+                    // $net_inv_amt+=$i->total_amount; $net_paid_amt+=$i->paid_amount;$net_balance_amt+=$i->balance_amount;
+                }
+
+                $p_outstandings[$key]->out_list = $invoices;
+                // if($per_bal_amt!=0){
+                $p_outstandings[$key]->total_inv_amt = $per_inv_amt;
+                $p_outstandings[$key]->total_paid_amt = $per_paid_amt;
+                $p_outstandings[$key]->total_bal_amt = $per_bal_amt;
+                // }
+
+            }
+            // dd($p_outstandings);
+            // return $p_outstandings;
+        } else {
+            $p_outstandings = [];
+        }
+        return $p_outstandings;
+    }
+
+    public function getMinMax($request)
+    {
+        // dd($request->all());
+        $products = DB::table("products")
+            ->select(DB::raw("products.id as product_id, products.product_name,products.minimum_qty,products.maximum_qty, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
+            ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
+                         SUM(CASE  WHEN transition_type = 'in'  THEN product_quantity  ELSE 0 END) as in_qty,
+                         SUM(CASE  WHEN transition_type = 'out'  THEN product_quantity  ELSE 0 END) as out_qty
+                         FROM product_transitions 
+                         GROUP BY product_transitions.product_id
+                         ) as pt"), function ($join) {
+                $join->on("pt.product_id", "=", "products.id");
+            })
+            ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+            ->leftjoin('brands', 'brands.id', '=', 'products.brand_id')
+            ->leftjoin('categories', 'categories.id', '=', 'products.category_id');
+
+        if ($request->product_name != "") {
+            $products->where('products.product_name', 'LIKE', "%$request->product_name%");
+        }
+        if ($request->brand_id != "") {
+            $products->where('products.brand_id', $request->brand_id);
+        }
+        if ($request->warehouse_id != "") {
+            $products->where('pt.warehouse_id', $request->warehouse_id);
+        }
+        // if($request->brand_id != "") {
+        //     $products->where('products.warehouse_id', $request->warehouse_id);
+        // }
+        if ($request->product_code != "") {
+            $products->where('products.product_code', $request->product_code);
+        }
+        if ($request->category_id != "") {
+            $products->where('products.category_id', $request->category_id);
+        }
+        /*if($request->warehouse_id != "") {
+            $products->where('pt.warehouse_id', $request->warehouse_id);
+        }*/
+        // if($request->type_id){
+        //     $products->whereRaw('');
+        // }
+        $data  = $products->orderBy("product_name")->get();
+        foreach ($data as $p) {
+            $bal = (int)$p->in_qty - (int)$p->out_qty;
+            $p->balance = $bal;
+        }
+        // dd($data);
+        return $data;
+        // dd($data);
+    }
+    public function getReorderLevel($request)
+    {
+        // dd($request->all());
+        $where = '1=1 ';
+        if ($request->warehouse_id != "") {
+            $where .= " AND warehouse_id =" . $request->warehouse_id;
+        }
+        if ($request->branch_id != "") {
+            $where .= " AND branch_id =" . $request->branch_id;
+        }
+        $products = DB::table("products")
+            ->select(DB::raw("products.id as product_id, products.product_name,products.minimum_qty,products.maximum_qty,products.reorder_level, products.brand_id,pt.warehouse_id, products.product_code,uom_id,uoms.uom_name,brands.brand_name,categories.category_name, pt.in_qty,pt.out_qty"))
+            ->leftjoin(DB::raw("(SELECT product_id,product_quantity,transition_type,transition_purchase_id, warehouse_id, transition_date, branch_id,
+                         SUM(CASE  WHEN transition_type = 'in'  THEN product_quantity  ELSE 0 END) as in_qty,
+                         SUM(CASE  WHEN transition_type = 'out'  THEN product_quantity  ELSE 0 END) as out_qty
+                         FROM product_transitions Where " . $where . " 
+                         GROUP BY product_transitions.product_id
+                         ) as pt"), function ($join) {
+                $join->on("pt.product_id", "=", "products.id");
+            })
+            ->leftjoin('uoms', 'uoms.id', '=', 'products.uom_id')
+            ->leftjoin('brands', 'brands.id', '=', 'products.brand_id')
+            ->leftjoin('categories', 'categories.id', '=', 'products.category_id');
+
+        if ($request->product_name != "") {
+            $products->where('products.product_name', 'LIKE', "%$request->product_name%");
+        }
+        if ($request->brand_id != "") {
+            $products->where('products.brand_id', $request->brand_id);
+        }
+        /*if($request->warehouse_id != "") {
+                $products->where('pt.warehouse_id', $request->warehouse_id);
+            }*/
+        // if($request->brand_id != "") {
+        //     $products->where('products.warehouse_id', $request->warehouse_id);
+        // }
+        if ($request->product_code != "") {
+            $products->where('products.product_code', $request->product_code);
+        }
+
+        /*if($request->branch_id != "") {
+                $products->where('pt.branch_id', $request->branch_id);
+            }*/
+        // Kamlesh Start
+        if ($request->category_id != "") {
+            $products->where('products.category_id', $request->category_id);
+        }
+        // Kamlesh End
+        /*if($request->warehouse_id != "") {
+            $products->where('pt.warehouse_id', $request->warehouse_id);
+        }*/
+        // if($request->type_id){
+        //     $products->whereRaw('');
+        // }
+        $data  = $products->orderBy("product_name")->get();
+        foreach ($data as $p) {
+            $bal = (int)$p->in_qty - (int)$p->out_qty;
+            $p->balance = $bal;
+        }
+        // dd($data);
+        return $data;
+        // dd($data);
+    }
+    // SUM(CASE  WHEN transition_type = 'out' AND transition_sale_id IS NOT NULL THEN cost_price  ELSE 0 END) as cost_price,
+    public function saleOrderPending($request)
+    {
+        $route_name = Route::currentRouteName();
+        $dp = DB::table('product_order')
+            ->select(DB::raw('categories.category_name,orders.order_no,orders.order_date,customers.cus_name as cus_name,product_order.product_quantity as so_qty,states.state_name,products.product_code,products.product_name,townships.township_name,IFNULL(product_order.accepted_quantity,0) as si_qty'))
+            // ->leftjoin('sales', 'sales.id', '=', 'product_sale.sale_id')
+            ->leftjoin('orders', 'orders.id', '=', 'product_order.order_id')
+            // ->leftjoin('product_order','product_order.id','=','product_sale.order_product_pivot_id')
+            ->leftjoin('products', 'products.id', '=', 'product_order.product_id')
+            ->leftjoin('customers', 'customers.id', '=', 'orders.customer_id')
+            ->leftjoin('states', 'states.id', '=', 'customers.state_id')
+            ->leftjoin('townships', 'townships.id', '=', 'customers.township_id')
+            ->leftjoin('categories', 'categories.id', '=', 'products.category_id')
+            ->whereRaw('(product_order.product_quantity - IFNULL(product_order.accepted_quantity,0))> 0');
+        // ->where('sales.order_id','!=',null);
+        if ($request->product_code != "") {
+            $dp->where('products.product_code', $request->product_code);
+        }
+        if ($request->product_name != "") {
+            $dp->where('products.product_name', $request->product_name);
+        }
+        if ($request->customer_id != null) {
+            $dp->where('orders.customer_id', $request->customer_id);
+        }
+        // Kamlesh Start
+        if ($request->sale_man_id != null) {
+            $dp->where('orders.sale_man_id', $request->sale_man_id);
+        }
+        if ($request->branch_id != null) {
+            $dp->where('orders.branch_id', $request->branch_id);
+        }
+        if ($request->category_id != null) {
+            $dp->where('products.category_id', $request->category_id);
+        }
+        // Kamlesh End
+        if ($request->state_id != null) {
+            $dp->where('customers.state_id', $request->state_id);
+        }
+        if ($request->township_id != null) {
+            $dp->where('customers.township_id', $request->township_id);
+        }
+        if ($request->order_no != null) {
+            $dp->where('order_no', $request->order_no);
+        }
+
+        // if($request->state_id){
+        //     $state=$request->state_id;
+        //     $dp->whereHas('customer',function($q)use($state){
+        //         $q->where('state_id',$state);
+        //     });
+        // }
+        // if($request->township_id){
+        //     $town=$request->township_id;
+        //     $dp->whereHas('customer',function($q)use($town){
+        //         $q->where('township_id',$town);
+        //     });
+        // }
+        if ($request->from_date != '' && $request->to_date != '') {
+            $dp->whereBetween('order_date', array($request->from_date, $request->to_date));
+        } else if ($request->from_date != '') {
+            $dp->whereDate('order_date', '>=', $request->from_date);
+        } else if ($request->to_date != '') {
+            $dp->whereDate('order_date', '<=', $request->to_date);
+        } else {
+            // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+        $dp = $dp->get();
+
+        return $dp;
+    }
+
+    public function deliveryPending($request)
+    {
+        $dp = DB::table('product_sale')
+            ->select(DB::raw('sales.*,customers.cus_name as cus_name,IFNULL(product_sale.delivered_quantity,0) as del_qty,states.state_name,products.product_code,products.product_name,townships.township_name,product_sale.product_quantity as si_qty'))
+            ->leftjoin('sales', 'sales.id', '=', 'product_sale.sale_id')
+            ->leftjoin('products', 'products.id', '=', 'product_sale.product_id')
+            ->leftjoin('customers', 'customers.id', '=', 'sales.customer_id')
+            ->leftjoin('states', 'states.id', '=', 'customers.state_id')
+            ->leftjoin('townships', 'townships.id', '=', 'customers.township_id')
+            ->whereRaw('(product_sale.product_quantity-IFNULL(product_sale.delivered_quantity,0))> 0')
+            // ->where('sales.delivery_status','=','Pending');
+            ->where(function ($q) {
+                $q->where('sales.delivery_status', 'Pending')
+                    ->orWhere('sales.delivery_status', 'Draft');
+            });
+        // ->where('sales.delivery_status','=','Just');
+        if ($request->product_code != "") {
+            $dp->where('products.product_code', $request->product_code);
+        }
+        if ($request->product_name != "") {
+            $dp->where('products.product_name', $request->product_name);
+        }
+        if ($request->customer_id != null) {
+            $dp->where('sales.customer_id', $request->customer_id);
+        }
+        if ($request->state_id != null) {
+            $dp->where('customers.state_id', $request->state_id);
+        }
+        if ($request->township_id != null) {
+            $dp->where('customers.township_id', $request->township_id);
+        }
+        if ($request->invoice_no != null) {
+            $dp->where('sales.invoice_no', $request->invoice_no);
+        }
+        if ($request->from_date != '' && $request->to_date != '') {
+            $dp->whereBetween('invoice_date', array($request->from_date, $request->to_date));
+        } else if ($request->from_date != '') {
+            $dp->whereDate('invoice_date', '>=', $request->from_date);
+        } else if ($request->to_date != '') {
+            $dp->whereDate('invoice_date', '<=', $request->to_date);
+        } else {
+            // $data->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+        }
+        $dp = $dp->get();
+        return $dp;
     }
 }

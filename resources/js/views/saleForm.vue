@@ -8,7 +8,6 @@
                 <li class="breadcrumb-item" v-else><a :href="site_path+'/van'">Van Sale</a></li>
                 <li class="breadcrumb-item"><router-link tag="span" :to="'/sale/'+sale_type+'/'" class="font-weight-normal"><a href="#">Sale Invoice</a></router-link></li>
                 <li class="breadcrumb-item active" aria-current="page">Sale Invoice Form</li>
-
             </ol>
         </nav>
         <!-- Page Heading -->
@@ -108,12 +107,12 @@
                             <div class="form-group col-md-4" v-if="form.payment_type == 'credit'">
                                 <label for="due_date">Due Date</label>
                                 <input type="text" class="form-control datetimepicker" id="due_date" name="due_date"
-                                v-model="form.due_date" :readonly="SOEdit">
+                                 :readonly="SOEdit">
                             </div>
                             <div class="form-group col-md-4" style="display:none;" v-else>
                                 <label for="due_date">Due Date</label>
                                 <input type="text" class="form-control datetimepicker" id="due_date" name="due_date"
-                                v-model="form.due_date" :readonly="SOEdit">
+                                 :readonly="SOEdit">
                             </div>
                             <div class="form-group col-md-4" v-if="form.payment_type == 'credit'">
                                 <label for="credit_day">Credit Days</label>
@@ -290,14 +289,23 @@
                                             </td>
                                         </tr>
                                         <tr class="total_row">
-                                            <td :colspan="total_colspan" class="text-right">Cash Discount</td>
+                                            <td :colspan="parseInt(total_colspan) - 1" class="text-right" v-if="!isMMK">Cash Discount 
+                                            </td>
+                                            <td :colspan="parseInt(total_colspan)" class="text-right" v-else>Cash Discount 
+                                            </td>
+                                            <td class="p-0 m-0 pt-2">
+                                                <select v-model="form.discount_type" class="form-control " style="width:90px;" @change="changeCashDiscount()" id="discount_type" name="discount_type">
+                                                    <option value='amount'>Amount</option>
+                                                    <option value='percentage'>%</option>
+                                                </select>
+                                            </td>
                                             <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                                 <div style="display:inline-block;">
                                                     <label style="display:inline-block;">{{sign}}</label>
                                                     <input type="text" v-model="form.cash_discount_fx" class="form-control decimal_no" style="width:100px;display:inline-block;"  @blur="changeCashDiscount()" />
                                                 </div>
                                             </td>
-                                            <td v-else>&nbsp;</td>
+                                            <!--<td v-else>&nbsp;</td>-->
 
                                             <td colspan="2" class="p-0 m-0 pt-2">
                                                 <div style="display:inline-block;">
@@ -452,7 +460,24 @@
                                             <td colspan="2">
                                                 <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:150px;" required />
                                             </td>-->
-                                        </tr>                                   
+                                        </tr>  
+                                        <tr class="total_row" v-show="form.payment_type =='cash' || (form.payment_type =='credit' && form.pay_amount != 0 && form.pay_amount != null)">
+                                            <td colspan="6" class="text-right">Payment Method</td>
+                                            <td colspan="2">
+                                                <select class="form-control" id="account_group" 
+                                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                                    <option value="">Select One</option>
+                                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                                </select>
+                                            </td>
+                                            <td colspan="3">
+                                                <select class="form-control" id="cash_bank_account"
+                                                        v-model="form.cash_bank_account" style="width:100%">
+                                                    <option value="">Select One</option>
+                                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                                </select>
+                                            </td>
+                                        </tr>                                 
                                     </tbody>
                                 </table>
                             </div>                         
@@ -517,14 +542,23 @@
                                             </td>
                                         </tr>
                                         <tr class="total_row">
-                                            <td :colspan="order_colspan" class="text-right">Cash Discount</td>
+                                            <td :colspan="parseInt(order_colspan) - 1" class="text-right" v-if="!isMMK">Cash Discount 
+                                            </td>
+                                            <td :colspan="parseInt(order_colspan)" class="text-right" v-else>Cash Discount 
+                                            </td>
+                                            <td class="p-0 m-0 pt-2">
+                                                <select v-model="form.discount_type" class="form-control " style="width:90px;" @change="changeCashDiscount()" id="discount_type" name="discount_type">
+                                                    <option value='amount'>Amount</option>
+                                                    <option value='percentage'>%</option>
+                                                </select>
+                                            </td>
                                             <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                                 <div style="display:inline-block;">
                                                     <label style="display:inline-block;">{{sign}}</label>
                                                     <input type="text" v-model="form.cash_discount_fx" class="form-control decimal_no" style="width:70px;display:inline-block;"  @blur="changeCashDiscount()" />
                                                 </div>
                                             </td>
-                                            <td v-else>&nbsp;</td>
+                                            <!--<td v-else>&nbsp;</td>-->
 
                                             <td colspan="2" class="p-0 m-0 pt-2">
                                                 <div style="display:inline-block;">
@@ -681,6 +715,24 @@
                                             </td>-->
                                         </tr>
 
+                                        <tr class="total_row" v-show="form.payment_type =='cash' || (form.payment_type =='credit' && form.pay_amount != 0 && form.pay_amount != null)">
+                                            <td colspan="6" class="text-right">Payment Method</td>
+                                            <td colspan="2">
+                                                <select class="form-control" 
+                                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                                    <option value="">Select One</option>
+                                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                                </select>
+                                            </td>
+                                            <td colspan="3">
+                                                <select class="form-control" 
+                                                        v-model="form.cash_bank_account" style="width:100%">
+                                                    <option value="">Select One</option>
+                                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+
                                         <!--<tr class="total_row">
                                             <td colspan="8" class="text-right">Total Amount</td>
                                             <td>&nbsp;</td>
@@ -726,6 +778,7 @@
                                             </td>
                                         </tr>-->
 
+                                        
                                     </tbody>
                                 </table>
                             </div>
@@ -816,8 +869,10 @@
                 tax_amount_fx: '',    
                 order_product_id: [],  
                 currency_id: 1,
-                currency_rate: '',         
-
+                currency_rate: '',   
+                account_group: '',
+                cash_bank_account: '',
+                discount_type: 'amount',
               }),              
               isEdit: false,
               brands: [],
@@ -850,6 +905,8 @@
               order_colspan : 9,
               prev_pay_amount: 0,
               currency_type: 1,
+              account_group: [],
+              cash_bank_accounts: [],
             };
         },
 
@@ -903,6 +960,8 @@
             
            // app.initWarehouses();
 
+            app.initAccountGroup();
+
             app.initCustomers();
 
             app.initSaleMen();
@@ -920,7 +979,64 @@
                     $("#order_product_table .total_row_first").prevAll().remove();
                 } else {
                     $("#product_table .total_row_first").prevAll().remove();
-                }                
+                } 
+
+                //previous balance start
+                axios.get("/customer_previous_balance/"+app.form.customer_id+"/"+app.form.currency_id).then(function(response) {
+                    app.form.previous_balance = response.data.previous_balance;
+                    app.prev_pay_amount = response.data.customer_advance;
+                    app.form.pay_amount = response.data.customer_advance;
+                    app.currency_type = response.data.currency_type;
+
+                    var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+
+                    if(app.prev_pay_amount != 0 || app.form.pay_amount != 0) {
+                        if(app.prev_pay_amount != 0) {
+                            /***var currency_rate = app.form.currency_rate == "" ? 0 : app.form.currency_rate;
+                            if(currency_rate != 0) {
+                                var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                            } else {
+                                app.form.pay_amount = app.prev_pay_amount;
+                                app.form.pay_amount_fx = 0;
+                            }***/
+
+                            if(app.currency_type == 1) {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = parseInt(app.prev_pay_amount)/parseFloat(currency_rate);
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                } else {
+                                    app.form.pay_amount = app.prev_pay_amount;
+                                    app.form.pay_amount_fx = 0;
+                                }
+                            } else {
+                                if(currency_rate != 0) {
+                                    var prev_pay_amt_fx = app.prev_pay_amount;
+                                    app.form.pay_amount = Math.round(parseFloat(app.prev_pay_amount) * parseFloat(currency_rate));
+                                    app.form.pay_amount_fx = app.decimalFormat(prev_pay_amt_fx);
+                                } else {
+                                    app.form.pay_amount =0;
+                                    app.form.pay_amount_fx = app.decimalFormat(app.prev_pay_amount);
+                                }
+                            }
+                        } else {
+                            //app.form.pay_amount = app.prev_pay_amount;
+                            //app.form.pay_amount_fx = 0;
+                        }
+                    } else {
+                        app.form.pay_amount = 0;
+                        app.form.pay_amount_fx = 0;
+                    }
+
+                    for(var i=0; i<document.getElementsByName('product[]').length; i++) {
+                        if(document.getElementsByName('total_amount[]')[i].value != "") {
+                           app.calTotalAmount(document.getElementsByName('product[]')[i]);
+                        }
+                    }
+                });
+                //previous balance end               
 
                 if(data.id != 1) {
                     app.isMMK = false;
@@ -1051,7 +1167,7 @@
                 //get customer's previous balance
                 /***axios.get("/customer_previous_balance/"+data.id).then(({ data }) => (app.form.previous_balance = data.previous_balance)); ***/
 
-                axios.get("/customer_previous_balance/"+data.id).then(function(response) {
+                axios.get("/customer_previous_balance/"+data.id+"/"+app.form.currency_id).then(function(response) {
                     app.form.previous_balance = response.data.previous_balance;
                     app.prev_pay_amount = response.data.customer_advance;
                     app.form.pay_amount = response.data.customer_advance;
@@ -1109,7 +1225,7 @@
                 axios.get("/customer_sale_orders/"+data.id).then(({ data }) => (app.sale_orders = data.data));
                     $("#sale_order").select2();
 
-                $('#order_product_table tbody tr').slice(0, -6).remove(); 
+                $('#order_product_table tbody tr').slice(0, -7).remove(); 
 
                 if(app.form.sale_order == true) {
                     app.sale_orders = [];  
@@ -1154,7 +1270,7 @@
                 if(data.id != '') {
                     app.getOrder(data.id);
                 } else {
-                    $('#order_product_table tbody tr').slice(0, -6).remove();  
+                    $('#order_product_table tbody tr').slice(0, -7).remove();  
                     app.form.cash_discount = '';
                     app.form.net_total = '';
                     app.form.tax = '';
@@ -1285,6 +1401,9 @@
                     app.form.credit_day = '';
 
                     $('#due_date').data("DateTimePicker").minDate(e.date);
+                    $("#due_date").val('');
+                    $("#credit_day").val('');
+                    app.form.credit_day = '';
                 });
 
                 $("#due_date")
@@ -1352,9 +1471,21 @@
                         }
                    }
 
-                   var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                  // var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
-                   app.form.sub_total = Math.round(sub_total);
+                    app.form.sub_total = Math.round(sub_total);
+
+                    var dis_type = $("#discount_type").val();
+                    if(dis_type == 'amount')
+                    {
+                        var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                    } else {
+                        if(app.form.cash_discount == '' || app.form.cash_discount == null) {
+                            var cash_discount = 0;
+                        }  else {
+                            var cash_discount = Math.round((parseFloat(app.form.cash_discount)/100) * parseInt(app.form.sub_total));
+                        }          
+                    }
 
                    app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
 
@@ -1402,9 +1533,21 @@
                                     sub_total += parseFloat(document.getElementsByName('total_amount[]')[i].value);
                                 }
                            }
-                           var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                          // var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
                            app.form.sub_total = Math.round(sub_total);
+
+                            var dis_type = $("#discount_type").val();
+                            if(dis_type == 'amount')
+                            {
+                                var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                            } else {
+                                if(app.form.cash_discount == '' || app.form.cash_discount == null) {
+                                    var cash_discount = 0;
+                                }  else {
+                                    var cash_discount = Math.round((parseFloat(app.form.cash_discount)/100) * parseInt(app.form.sub_total));
+                                }          
+                            }
 
                            app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
 
@@ -1435,6 +1578,16 @@
 
         methods: {
 
+            initAccountGroup(){
+                axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+                // $("#financial_type2_id").select2();
+            },
+
+            changeAccountGroup(id) {
+                var ag_id = this.form.account_group;
+                axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+            },
+
             decimalFormat(num)
             {
                var decimal_num = Number.isInteger(parseFloat(num))== true ?  parseInt(num) : parseFloat(num).toFixed(3);
@@ -1448,7 +1601,7 @@
 
             getOrder(id) {
                 $("#loading").show();
-                $('#order_product_table tbody tr').slice(0, -6).remove();
+                $('#order_product_table tbody tr').slice(0, -7).remove();
               let app = this;
               axios
                 .get("/order/" + id)
@@ -1469,7 +1622,7 @@
 
                         if((app.user_role != "Country Head" || (app.user_role == "Country Head" && response.data.access_brands.indexOf(product.brand_id) > -1)) && bal_product > 0) {
                             var table=document.getElementById("order_product_table");
-                            var row=table.insertRow((table.rows.length) - 6);
+                            var row=table.insertRow((table.rows.length) - 7);
                             row.id = row_id;
                             var cell1=row.insertCell(0);
 
@@ -1761,6 +1914,7 @@
                     app.form.office_sale_man_id = response.data.order.sale_man_id;
 
                     app.form.sub_total  = response.data.order.total_amount;
+                    app.form.discount_type = 'amount';
                     app.form.cash_discount  = response.data.order.cash_discount;
                     app.form.net_total     = response.data.order.net_total;
                     app.form.tax           = response.data.order.tax;
@@ -1864,14 +2018,17 @@
             },
 
             calcDueDate() { 
-                var startdate = this.form.invoice_date;
-                var new_date = moment(startdate, "YYYY-MM-DD").add('days', this.form.credit_day);
+                if(this.form.credit_day != '') {
+                    var startdate = this.form.invoice_date;
+                    var new_date = moment(startdate, "YYYY-MM-DD").add('days', this.form.credit_day);
 
-                var day = new_date.format('DD');
-                var month = new_date.format('MM');
-                var year = new_date.format('YYYY');
+                    var day = new_date.format('DD');
+                    var month = new_date.format('MM');
+                    var year = new_date.format('YYYY');
 
-                this.form.due_date = year+'-'+month+'-'+day;
+                    this.form.due_date = year+'-'+month+'-'+day;
+                    $('#due_date').val(this.form.due_date);
+                }
             },
 
             initProducts() {
@@ -1994,7 +2151,7 @@
 
                 let app = this;
                 var table=document.getElementById("product_table");
-                var row=table.insertRow((table.rows.length)-6);
+                var row=table.insertRow((table.rows.length)-7);
                 var cell1=row.insertCell(0);
                     row.id = row_id;
                 var t1=document.createElement("select");
@@ -2322,7 +2479,7 @@
                 .then(function(response) {
                     //prevent to Edit (save button permission)
                     if(app.user_role == "admin" || app.user_role == "system" || app.user_role == "office_user") {
-                        if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0 && response.data.sale.return_amount==0 && response.data.sale.cash_return_amount==0) {
+                        if(response.data.sale.collections.length == 0 && response.data.sale.deliveries.length == 0 && response.data.sale.delivery_approve == 0 && response.data.sale.return_amount==0 && response.data.sale.cash_return_amount==0 && response.data.sale.sale_returns.length == 0) {
                             app.isDisabled = false;
                         } else {
                             app.isDisabled = true;
@@ -2345,6 +2502,12 @@
                     app.form.reference_no = response.data.sale.reference_no;
                     app.form.payment_type = response.data.sale.payment_type;
 
+                    app.form.account_group = response.data.sale.account_group_id;                    
+                    if(response.data.sale.account_group_id != '' && response.data.sale.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.sale.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.sale.sub_account_id;
+
                     app.user_warehouse = response.data.sale.warehouse.warehouse_name;
 
                     if(response.data.sale.payment_type == 'credit') {
@@ -2354,6 +2517,7 @@
                     }
                    // app.form.previous_balance = response.data.previous_balance;
                     app.form.due_date = response.data.sale.due_date;
+                    $("#due_date").val(response.data.sale.due_date);
                     app.form.credit_day = response.data.sale.credit_day;
                     if(response.data.sale.office_sale_man_id != null) {
                         $('#sale_man').val(response.data.sale.office_sale_man_id).trigger('change');
@@ -2397,7 +2561,7 @@
                         row_id = row_id+1;                      
                         if(app.user_role != "Country Head" || (app.user_role == "Country Head" && response.data.access_brands.indexOf(product.brand_id) > -1)) {
                             var table=document.getElementById("product_table");
-                            var row=table.insertRow((table.rows.length) - 6);
+                            var row=table.insertRow((table.rows.length) - 7);
                             row.id = row_id;
                             var cell1=row.insertCell(0);
 
@@ -2828,7 +2992,13 @@
                     });
 
                     app.form.sub_total  = response.data.sale.total_amount;
-                    app.form.cash_discount  = response.data.sale.cash_discount;
+                    //app.form.cash_discount  = response.data.sale.cash_discount;
+                    app.form.discount_type = response.data.sale.discount_type;
+                    if(response.data.sale.discount_type == 'amount') {
+                        app.form.cash_discount  = response.data.sale.cash_discount == '' || response.data.sale.cash_discount == null ? 0 : response.data.sale.cash_discount;
+                    } else {
+                        app.form.cash_discount = response.data.sale.discount_percentage == '' || response.data.sale.discount_percentage == null ? 0 : response.data.sale.discount_percentage;
+                    }
                     app.form.net_total     = response.data.sale.net_total;
                     app.form.tax           = response.data.sale.tax;
                     app.form.tax_amount    = response.data.sale.tax_amount;
@@ -2841,7 +3011,12 @@
                         app.total_colspan = 13;
                         app.order_colspan = 14;
                         app.form.sub_total_fx  = app.decimalFormat(response.data.sale.total_amount_fx);
-                        app.form.cash_discount_fx  = app.decimalFormat(response.data.sale.cash_discount_fx);
+                        //app.form.cash_discount_fx  = app.decimalFormat(response.data.sale.cash_discount_fx);
+                        if(response.data.sale.discount_type == 'amount') {
+                            app.form.cash_discount_fx  = response.data.sale.cash_discount_fx == '' || response.data.sale.cash_discount_fx == null ? 0 :  app.decimalFormat(response.data.sale.cash_discount_fx);
+                        } else {
+                            app.form.cash_discount_fx = response.data.sale.discount_percentage_fx == '' || response.data.sale.discount_percentage_fx == null ? 0 : app.decimalFormat(response.data.sale.discount_percentage_fx);
+                        }
                         app.form.net_total_fx     = app.decimalFormat(response.data.sale.net_total_fx);
                         app.form.tax_fx           = app.decimalFormat(response.data.sale.tax_fx);
                         app.form.tax_amount_fx    = app.decimalFormat(response.data.sale.tax_amount_fx);
@@ -3185,12 +3360,32 @@
                         }
                     }
                }
-               var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+               //var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
 
-               var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+               //var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
 
                app.form.sub_total = Math.round(sub_total);
                app.form.sub_total_fx = app.decimalFormat(sub_total_fx);
+
+                var dis_type = $("#discount_type").val();
+                if(dis_type == 'amount')
+                {
+                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                    var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+
+                } else {
+                    if(app.form.cash_discount == '' || app.form.cash_discount == null) {
+                        var cash_discount = 0;
+                    }  else {
+                        var cash_discount = Math.round((parseFloat(app.form.cash_discount)/100) * parseInt(app.form.sub_total));
+                    }
+
+                    if(app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null) {
+                        var cash_discount_fx = 0;
+                    }  else {
+                         var cash_discount_fx = (parseFloat(app.form.cash_discount_fx)/100) * parseFloat(app.form.sub_total_fx);
+                    }          
+                }
 
                app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
                app.form.net_total_fx = app.decimalFormat(parseFloat(app.form.sub_total_fx) - parseFloat(cash_discount_fx));
@@ -3287,7 +3482,19 @@
             changeCashDiscount() {
                 let app = this;
                 if(app.isMMK) {
-                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                   // var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+
+                   var dis_type = $("#discount_type").val();
+                    if(dis_type == 'amount')
+                    {
+                        var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                    } else {
+                        if(app.form.cash_discount == '' || app.form.cash_discount == null) {
+                            var cash_discount = 0;
+                        }  else {
+                            var cash_discount = Math.round((parseFloat(app.form.cash_discount)/100) * parseInt(app.form.sub_total));
+                        }          
+                    }
 
                     if(parseInt(cash_discount) > parseInt(app.form.sub_total)) {
                         swal("Warning!", "Cash discount is greater than total amount", "warning");
@@ -3373,8 +3580,26 @@
                     }**/
                 } else {
                     var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
-                    var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
-                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate)); 
+                    /*var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate)); */
+
+                    var dis_type = $("#discount_type").val();
+                    if(dis_type == 'amount')
+                    {
+
+                        var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                        var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate)); 
+                    } else {
+                        if(app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null) {
+                            var cash_discount = 0;
+                            var cash_discount_fx = 0;
+                        }  else {
+                            var cash_discount_fx = (parseFloat(app.form.cash_discount_fx)/100) * parseFloat(app.form.sub_total_fx);
+                           // alert(cash_discount_fx);
+                            var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate)); //alert(cash_discount);
+                        }          
+                    }
+
                     app.form.cash_discount = cash_discount;
                     //$("#cash_discount").val(cash_discount);
 
@@ -3491,7 +3716,19 @@
             changePaidAmount() {
                 let app = this;
                 if(app.isMMK) {
-                    var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                   // var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+
+                   var dis_type = $("#discount_type").val();
+                    if(dis_type == 'amount')
+                    {
+                        var cash_discount = app.form.cash_discount == '' || app.form.cash_discount == null ? 0 : app.form.cash_discount;
+                    } else {
+                        if(app.form.cash_discount == '' || app.form.cash_discount == null) {
+                            var cash_discount = 0;
+                        }  else {
+                            var cash_discount = Math.round((parseFloat(app.form.cash_discount)/100) * parseInt(app.form.sub_total));
+                        }          
+                    }
 
                     app.form.net_total = parseInt(app.form.sub_total) - parseInt(cash_discount);
 
@@ -3525,8 +3762,26 @@
 
                     //For foreign currency
                     var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
-                    var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
-                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate));
+
+                   /* var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                    var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate));*/
+
+                    var dis_type = $("#discount_type").val();
+                    if(dis_type == 'amount')
+                    {
+
+                        var cash_discount_fx = app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null ? 0 : app.form.cash_discount_fx;
+                        var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate));
+                    } else {
+                        if(app.form.cash_discount_fx == '' || app.form.cash_discount_fx == null) {
+                            var cash_discount = 0;
+                            var cash_discount_fx = 0;
+                        }  else {
+                            var cash_discount_fx = (parseFloat(app.form.cash_discount_fx)/100) * parseFloat(app.form.sub_total_fx);
+                            var cash_discount = Math.round(parseFloat(cash_discount_fx) * parseFloat(currency_rate));
+                        }          
+                    }
+
                     $("#cash_discount").val(cash_discount);
 
                     app.form.net_total_fx = app.decimalFormat(parseFloat(app.form.sub_total_fx) - parseFloat(cash_discount_fx));
@@ -3689,6 +3944,20 @@
                 app.form.pay_amount = app.form.pay_amount == '' ? 0 : app.form.pay_amount;
                 app.form.pay_amount_fx = app.form.pay_amount_fx == '' ? 0 : app.form.pay_amount_fx;
 
+                if(app.form.payment_type =='cash' || (app.form.payment_type =='credit' && app.form.pay_amount != 0 && app.form.pay_amount != null)) {
+                    if(app.form.account_group == "" || app.form.account_group == null ) {
+                         swal("Warning!", "Payment Method is required", "warning");
+                         $("#account_group").focus();
+                          $('#loading').hide();
+                         return false;
+                    } else if(app.form.cash_bank_account == "" || app.form.cash_bank_account == null) {
+                         swal("Warning!", "Payment Method is required", "warning");
+                          $('#loading').hide();
+                         $("#cash_bank_account").focus();
+                         return false;
+                    } else {}
+                }
+
                 var cus_lock = document.getElementById('customer_id').options[document.getElementById('customer_id').options.selectedIndex].dataset.lock;
                 if(cus_lock == 1) {
                     swal("Warning!", "Customer is Locked!", "warning");
@@ -3747,6 +4016,9 @@
                     app.form.due_date = '';
                     app.form.credit_day = '';
                 }
+
+                //alert(app.form.due_date); return false;
+                
 
                 if (!this.isEdit) {
 

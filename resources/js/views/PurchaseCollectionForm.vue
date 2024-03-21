@@ -81,7 +81,7 @@
                                 <label>Invoice</label>
                                 <select multiple class="form-control invoices"
                                         name="invoices[]" v-model="form.invoices" :required="isRequired" style="width:100%">
-                                    <option v-for="p in purchase_invoices" :value="p.id">{{p.invoice_no}}-{{p.total_amount-(p.discount+p.collection_amount+p.pay_amount)}}</option>
+                                    <option v-for="p in purchase_invoices" :value="p.id">{{p.invoice_no}}-{{p.total_amount-(p.discount+p.collection_amount+p.pay_amount+parseInt(p.credit_note_amount))}}</option>
                                 </select>
                             </div>
                         </div>
@@ -98,6 +98,26 @@
                             </div>
                             
                         </div>
+
+                        <div class="row mt-3" >
+                             <div class="form-group col-md-4">
+                                <label for="">Payment Method</label>
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="">&nbsp;</label>
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
                         <div class="row mt-4">
                             <div class="col-md-12">
                                 <span class="d-none d-sm-inline-block btn-sm btn-primary shadow-sm bg-blue"><i class="fas fa-list text-white"></i> Invoice Details</span>
@@ -143,7 +163,7 @@
                                                 <input type="text" :id="'prev_amt_fx'+p.id" class="form-control decimal_no prev_amt_fx" readonly :value="parseFloat(p.pay_amount_fx)+parseFloat(p.collection_amount_fx)" />
                                             </td>
                                             <td>
-                                                <input type="text" :id="'prev_amt'+p.id" class="form-control decimal_no prev_amt" readonly :value="parseInt(p.pay_amount)+parseInt(p.collection_amount)" />
+                                                <input type="text" :id="'prev_amt'+p.id" class="form-control decimal_no prev_amt" readonly :value="parseInt(p.pay_amount)+parseInt(p.collection_amount)+parseInt(p.credit_note_amount)" />
 
                                                 <input type="hidden" :id="'gain_amt'+p.id" class="form-control num_txt gain_amt" :value="p.gain_amount" />
 
@@ -249,7 +269,7 @@
 
                         <div class="row">
                             <div class="col-md-12">
-                                <input type="submit" class="btn btn-primary btn-sm" value="Save Entry" :disabled="isDisabled">
+                                <input type="submit" class="btn btn-primary btn-sm" value="Save Entry" :disabled="isDisabled" v-if="!isEdit || user_role != 'office_order_user'">
                             </div>
                         </div>
 
@@ -287,6 +307,8 @@ export default {
                 currency_rate: '',
                 gain: [],
                 loss: [],
+                account_group: "",
+                cash_bank_account: '',
             }),
             isEdit: false,
             isReadonly: true,
@@ -309,6 +331,8 @@ export default {
             sign: 'MMK',
             isMMK: true,
             total_colspan: 5,
+            account_group: [],
+            cash_bank_accounts: [],
         };
     },
 
@@ -327,7 +351,7 @@ export default {
         this.user_year = document.querySelector("meta[name='user-year-likelink']").getAttribute('content');
 
         /*if(this.user_role == "office_order_user")*/
-        if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user")
+        if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user" && this.user_role != "office_order_user")
         {
             var url =  window.location.origin;
             window.location.replace(url);
@@ -341,10 +365,13 @@ export default {
         }
     },
     mounted() {
-        $("#loading").hide();
+        if(!this.isEdit) {
+            $("#loading").hide();
+        }
         let app = this;
         app.initSuppliers();
         app.initBranches();
+        app.initAccountGroup();
         $("#branch_id").on("select2:select", function(e) {
             app.selected_invoices = [];
             var data = e.params.data;
@@ -582,6 +609,15 @@ export default {
     },
 
     methods: {
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
+        },
+
+        changeAccountGroup(id) {
+            var ag_id = this.form.account_group;
+            axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+        },
         initBranches() {
             axios.get("/branches_byuser").then(({ data }) => (this.branches = data.data));
             $("#branch_id").select2();
@@ -1337,6 +1373,7 @@ export default {
 
         getCollection(id) {
             let app = this;
+            $("#loading").show();
             axios
                 .get("/purchase_collection/edit/" + id)
                 .then(function(response) {
@@ -1353,7 +1390,12 @@ export default {
                     app.form.supplier_id        = response.data.collection.supplier_id;
                     $('#supplier_id').val(app.form.supplier_id).trigger('change');
 
-
+                    app.form.account_group = response.data.collection.account_group_id;             
+                    if(response.data.collection.account_group_id != '' && response.data.collection.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.collection.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.collection.sub_account_id;
+                     $("#loading").hide();
                     if(response.data.collection.branch != null) {
                         app.form.branch_id = response.data.collection.branch.id;
                     } else {
@@ -1454,7 +1496,7 @@ export default {
                             var loss = 0;
                         }
 
-                        var prev_pay = (parseInt(value.pay_amount)+parseInt(value.collection_amount)) - (parseInt(paid) + parseInt(discount));
+                        var prev_pay = (parseInt(value.pay_amount)+parseInt(value.collection_amount)+parseInt(value.credit_note_amount)) - (parseInt(paid) + parseInt(discount));
 
                         //var bal = (parseInt(net_amount) - parseInt(prev_pay)) - (parseInt(paid) + parseInt(discount));
 

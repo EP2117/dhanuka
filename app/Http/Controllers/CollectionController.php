@@ -10,6 +10,7 @@ use App\Collection;
 use App\AccountTransition;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Exports\SaleOverDueExport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Traits\Report\GetReport;
@@ -55,8 +56,14 @@ class CollectionController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id', $branch);
+               /* $branch = Auth::user()->branch_id;
+                $data->where('branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id', $branch_arr);
             }
         }
         if ($request->branch_id != "") {
@@ -132,6 +139,8 @@ class CollectionController extends Controller
             }
             $collection->currency_id = $request->currency_id;
             $collection->currency_rate = $request->currency_rate;
+            $collection->account_group_id = $request->account_group;
+            $collection->sub_account_id = $request->cash_bank_account;
             $collection->created_by = Auth::user()->id;
             //$collection->updated_by = Auth::user()->id;
             $collection->save();
@@ -140,6 +149,8 @@ class CollectionController extends Controller
             if ($collection) {
                 AccountTransition::create([
                     'sub_account_id' => $sub_account_id,
+                    'account_group_id' => $request->account_group,
+                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                     'transition_date' => $request->collection_date,
                     'sale_id' => $collection->id,
                     'is_cashbook' => 1,
@@ -244,6 +255,8 @@ class CollectionController extends Controller
                 if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
                         'customer_id'=>$collection->customer_id,
@@ -260,6 +273,8 @@ class CollectionController extends Controller
                 if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
                         'customer_id' => $collection->customer_id,
@@ -324,6 +339,9 @@ class CollectionController extends Controller
 
             $collection->branch_id = $request->branch_id;
 
+            $collection->account_group_id = $request->account_group;
+            $collection->sub_account_id = $request->cash_bank_account;
+
             $collection->updated_at = time();
             $collection->updated_by = Auth::user()->id;
             $collection->save();
@@ -346,6 +364,8 @@ class CollectionController extends Controller
                     ])->delete();**/
                     AccountTransition::create([
                         'sub_account_id' => $sub_account_id,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
                         'vochur_no' => $request->collection_no,
@@ -479,6 +499,8 @@ class CollectionController extends Controller
                 if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
                         'customer_id'=>$collection->customer_id,
@@ -495,6 +517,8 @@ class CollectionController extends Controller
                 if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'sale_id' => $collection->id,
                         'customer_id' => $collection->customer_id,
@@ -833,8 +857,7 @@ class CollectionController extends Controller
                 ->leftjoin('sales', 'sales.id', '=', 'account_transitions.sale_id')
                 //->leftjoin('collection_purchase', 'collection_purchase.purchase_collection_id', '=', 'account_transitions.purchase_id')
                 //->leftjoin('credit_purchase_collections', 'credit_purchase_collections.id', '=', 'account_transitions.purchase_id')
-
-                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, collections.*,sales.invoice_no as sale_invoice_no, sales.invoice_date as sale_invoice_date, sales.currency_id as sale_currency_id, sales.currency_rate as sale_currency_rate FROM `account_transitions` JOIN collection_sale ON collection_sale.collection_id = account_transitions.sale_id AND collection_sale.gain_amount = coalesce(account_transitions.credit,0.000) AND collection_sale.loss_amount = coalesce(account_transitions.debit,0.000) LEFT JOIN collections ON collections.id = account_transitions.sale_id LEFT JOIN sales ON sales.id = collection_sale.sale_id GROUP BY collection_sale.sale_id) as sc"),function($join){
+                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, collections.*,sales.invoice_no as sale_invoice_no, sales.invoice_date as sale_invoice_date, sales.currency_id as sale_currency_id, sales.currency_rate as sale_currency_rate FROM `account_transitions` JOIN collection_sale ON collection_sale.collection_id = account_transitions.sale_id AND ABS(collection_sale.gain_amount) = ABS(coalesce(account_transitions.credit,0.000)) AND ABS(collection_sale.loss_amount) = ABS(coalesce(account_transitions.debit,0.000)) LEFT JOIN collections ON collections.id = account_transitions.sale_id LEFT JOIN sales ON sales.id = collection_sale.sale_id) as sc"),function($join){
 
                             $join->on("sc.transition_id","=","account_transitions.id");
 
@@ -988,5 +1011,26 @@ class CollectionController extends Controller
         $fileName = 'sale_currency_gain_loss_report_' . Carbon::now()->format('Ymd') . '.xlsx';
 
         return Excel::download($export, $fileName);
+    }
+
+    public function getSaleOverDue(Request $request){
+        $route_name=Route::currentRouteName();
+        $sale_over_due=$this->saleOverDue($request);
+        $net_inv_amt=$net_paid_amt=$net_balance_amt=0;
+        foreach($sale_over_due as $po){
+            foreach($po->out_list as $i){
+                if($i->type=='paid'){
+                    $net_inv_amt+=$i->total_amount; 
+                    $net_paid_amt+=$i->t_paid_amount;
+                    $net_balance_amt+=$i->t_balance_amount;
+                }
+            }
+        }
+        if($route_name=='sale_over_due_export'){
+            $export=new SaleOverDueExport($sale_over_due,$net_paid_amt,$net_balance_amt,$net_inv_amt,$request);
+            $fileName = 'Sale Over Due Export'.Carbon::now()->format('Ymd').'.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        return compact('sale_over_due','net_paid_amt','net_balance_amt','net_inv_amt');
     }
 }

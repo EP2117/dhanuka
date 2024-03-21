@@ -91,10 +91,11 @@
                 ?>
 
             @endforeach
-            <!--<tr>
-                <td colspan ="4" style="text-align: right;">Total</td>
+            <tr>
+                <td colspan ="5" style="text-align: right;">Total</td>
                 <td  style="text-align: right;">{{ number_format($total) }}</td>
-            </tr>-->
+                <td></td>
+            </tr>
         </tbody>
     </table>
 </body>

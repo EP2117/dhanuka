@@ -59,6 +59,8 @@ trait Ledger
         // dd($sale);
         $sale_account = AccountTransition::create([
             'sub_account_id' => $this->sale_account,
+            'account_group_id' => $sale->account_group_id,
+            'cash_bank_sub_account_id' => $sale->sub_account_id,
             'transition_date' => $sale->invoice_date,
             'sale_id' => $sale->id,
             'customer_id' => $sale->customer_id,
@@ -76,6 +78,8 @@ trait Ledger
             $sale_type = $sale_account->replicate()->fill([
                 'sub_account_id' => $sale->payment_type == 'cash' ? $this->cash_sale : $this->sale_advance,
                 'debit' => $sale->pay_amount,
+                'account_group_id' => $sale->account_group_id,
+                'cash_bank_sub_account_id' => $sale->sub_account_id,
                 // 'status' => 'sale',
                 'credit' => null,
             ]);
@@ -175,6 +179,8 @@ trait Ledger
         $discounts = array_sum($request->discounts);
         $sale_account = AccountTransition::create([
             'sub_account_id' => $this->credit_collection,
+            'account_group_id' => $request->account_group,
+            'cash_bank_sub_account_id' => $request->cash_bank_account,
             'transition_date' => $credit_collection->collection_date,
             'sale_id' => $credit_collection->id,
             'customer_id' => $credit_collection->customer_id,
@@ -189,6 +195,8 @@ trait Ledger
         if ($discounts != null || $discounts != 0) {
             $discount_acc = $sale_account->replicate()->fill([
                 'sub_account_id' => $this->discount_allowed,
+                'account_group_id' => $request->account_group,
+                'cash_bank_sub_account_id' => $request->cash_bank_account,
                 'debit' => $discounts,
                 'status' => 'discount_allowed',
             ]);
@@ -213,6 +221,8 @@ trait Ledger
       
         $p_account = AccountTransition::create([
             'sub_account_id' => $this->purchase_account,
+            'account_group_id' => $p->account_group_id,
+            'cash_bank_sub_account_id' => $p->sub_account_id,
             'transition_date' => $p->invoice_date,
             'purchase_id' => $p->id,
             'supplier_id' => $p->supplier_id,
@@ -228,6 +238,8 @@ trait Ledger
             $p_type = $p_account->replicate()->fill([
                 'sub_account_id' => $p->payment_type == 'cash' ? $this->cash_purchase : $this->purchase_advance,
                 // 'credit' => $p->payment_type == 'cash' ? $p->pay_amount:(int)$p->pay_amount+ (int)$p->balance_amount,
+                'account_group_id' => $p->account_group_id,
+                'cash_bank_sub_account_id' => $p->sub_account_id,
                 'credit' => $p->pay_amount,
                 'status' => 'purchase',
                 'debit' => null,
@@ -250,6 +262,8 @@ trait Ledger
         $discounts = array_sum($request->discounts);
         $credit_payment = AccountTransition::create([
             'sub_account_id' => $this->credit_payment,
+            'account_group_id'=>$request->account_group,
+            'cash_bank_sub_account_id' => $cp->sub_account_id,
             'transition_date' => $cp->collection_date,
             'purchase_id' => $cp->id,
             'supplier_id' => $cp->supplier_id,
@@ -287,8 +301,12 @@ trait Ledger
         $this->storeCreditPaymentInLedger($cp, $request);
     }
     public function storePaymentInLedger($payment){
+        $ag = SubAccount::find($payment->credit->id);
+        $ag_id = $ag->account_group_id;
         $p=AccountTransition::create([
             'sub_account_id' => $payment->debit->id,
+            'account_group_id' => $ag_id,
+            'cash_bank_sub_account_id' => $payment->credit->id,
             'transition_date' => $payment->date,
             'payment_id' => $payment->id,
             'vochur_no'=>$payment->cash_payment_no,
@@ -308,9 +326,56 @@ trait Ledger
         ])->delete();
         $this->storePaymentInLedger($payment);
     }
+    public function storeJournalEntryInLedger($entry){
+        $ag = SubAccount::find($entry->credit->id);
+        $ag_id = $ag->account_group_id;
+        $jd=AccountTransition::create([
+            'sub_account_id' => $entry->debit->id,
+            'account_group_id' => $ag_id,
+            'cash_bank_sub_account_id' => $entry->credit->id,
+            'transition_date' => $entry->date,
+            'journal_entry_id' => $entry->id,
+            'vochur_no'=>$entry->journal_entry_no,
+            'is_cashbook' => 0,
+            'status'=>'journal_entry',
+            'debit' => $entry->amount,
+            'description' => $entry->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
+        $ag1 = SubAccount::find($entry->debit->id);
+        $ag_id1 = $ag1->account_group_id;
+        $jc=AccountTransition::create([
+            'sub_account_id' => $entry->credit->id,
+            'account_group_id' => $ag_id1,
+            'cash_bank_sub_account_id' => $entry->debit->id,
+            'transition_date' => $entry->date,
+            'journal_entry_id' => $entry->id,
+            'vochur_no'=>$entry->journal_entry_no,
+            'is_cashbook' => 0,
+            'status'=>'journal_entry',
+            'credit' => $entry->amount,
+            'description' => $entry->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+    }
+    public function updateJournalEntryInLedger($entry){
+        AccountTransition::where([
+            ['is_cashbook', 0],
+            ['journal_entry_id', $entry->id],
+            ['status', 'journal_entry'],
+        ])->delete();
+        $this->storeJournalEntryInLedger($entry);
+    }
     public function storeReceiptInLedger($receipt){
+        $ag = SubAccount::find($receipt->debit->id);
+        $ag_id = $ag->account_group_id;
         $r=AccountTransition::create([
             'sub_account_id'=>$receipt->credit->id,
+            'account_group_id' => $ag_id,
+            'cash_bank_sub_account_id' => $receipt->debit->id,
             'transition_date'=>$receipt->date,
             'receipt_id'=>$receipt->id,
             'vochur_no'=>$receipt->cash_receipt_no,
@@ -344,22 +409,39 @@ trait Ledger
         //     $opening->where('sub_account_id',$request->sub_account);
         // }
         if($request->type=='Other'){
-            $opening->when(!is_null($request->sub_account),function($q){
+            /**$opening->when(!is_null($request->sub_account),function($q){
                 return  $q->where('sub_account_id',request('sub_account'));
+             });**/
+            $opening->whereNull('customer_id');
+            $opening->whereNull('supplier_id');
+            $opening->when(!is_null($request->sub_account),function($q){
+                
+                $sub_acc_id = request('sub_account');
+                return $q->where(function($query) use ($sub_acc_id) {
+                            $query->Where('sub_account_id',$sub_acc_id)
+                                  ->orWhere('cash_bank_sub_account_id',$sub_acc_id);
+                        });
+                //return  $q->where('sub_account_id',request('sub_account'));
              });
-            }
+        }
         if($request->type=='Customer'){
+            $opening->whereNotNull('customer_id');
             $opening->when(!is_null($request->customer_id),function($q){
                 return  $q->where('customer_id',request('customer_id'));
              });
             }
             if($request->type=='Supplier'){
+                $opening->whereNotNull('supplier_id');
                 $opening->when(!is_null($request->supplier_id),function($q){
                     return  $q->where('supplier_id',request('supplier_id'));
                  });
                 }
         if($request->vochur_no!=null){
             $opening->where('vochur_no',$request->vochur_no);
+        }
+        if(!empty($request->account_group)) {
+            $acc_group = explode(',', request('account_group'));
+            $opening->whereIn('account_group_id',$acc_group);
         }
         $opening=$opening->get();
         if($opening->isNotEmpty()){
@@ -391,15 +473,15 @@ trait Ledger
                 // }
                
                 if($request->type=="Customer"){
-                    $op_debit+=$op->credit;
-                    $op_credit+=$op->debit;
+                    $op_debit+=abs($op->credit);
+                    $op_credit+=abs($op->debit);
                 }elseif($request->type=='Supplier'){
-                    $op_debit+=$op->credit;
-                    $op_credit+=$op->debit;
+                    $op_debit+=abs($op->credit);
+                    $op_credit+=abs($op->debit);
                 }
                 else{
-                    $op_debit+=$op->debit;
-                    $op_credit+=$op->credit;
+                    $op_debit+=abs($op->debit);
+                    $op_credit+=abs($op->credit);
                 }
                
             }
@@ -433,7 +515,7 @@ trait Ledger
         return $array; 
     } 
     public function getQuery($request,$date){
-        $query=AccountTransition::where('is_cashbook',0);
+        $query=AccountTransition::with('cash_bank_subaccount')->where('is_cashbook',0);
             $query->when(!is_null($date),function($q)use($date){
                return  $q->where('transition_date','=',$date);
             });
@@ -450,20 +532,33 @@ trait Ledger
             //  $query->when(!is_null($request->invoice_no),function($q){
             //     return  $q->where('vochur_no',request('invoice_no'));
             //  });
+        if(!empty($request->account_group)) {
+            $acc_group = explode(',', $request->account_group);
+            $query->whereIn('account_group_id',$acc_group);
+        }
         if($request->type=='Other'){
             // dd($request->sub_account);
+            $query->whereNull('customer_id');
+            $query->whereNull('supplier_id');
             $query->when(!is_null($request->sub_account),function($q){
-                return  $q->where('sub_account_id',request('sub_account'));
+               // return  $q->where('sub_account_id',request('sub_account'));
+                $sub_acc_id = request('sub_account');
+                return $q->where(function($query) use ($sub_acc_id) {
+                            $query->Where('sub_account_id',$sub_acc_id)
+                                  ->orWhere('cash_bank_sub_account_id',$sub_acc_id);
+                        });
              });
             //  dd($query->get());
              return $query=$query->get();
         }elseif($request->type=='Supplier'){
+            $query->whereNotNull('supplier_id');
             $query->when(!is_null($request->supplier_id),function($q){
                 return  $q->where('supplier_id',request('supplier_id'));
              });
              return $query=$query->get();
             //  $this->filterBySupplier($q);
         }elseif($request->type=='Customer'){
+            $query->whereNotNull('customer_id');
             $query->when(!is_null($request->customer_id),function($q){
                 return  $q->where('customer_id',request('customer_id'));
              });
@@ -485,14 +580,36 @@ trait Ledger
     public function getClosingForLedger($request,$a,$opening_balance){
         $ac=AccountTransition::where('is_cashbook',0);
         $ac->whereDate('transition_date',$a);
+
+        if($request->type=='Other'){
+            // dd($request->sub_account);
+            $ac->whereNull('customer_id');
+            $ac->whereNull('supplier_id');
+            //  dd($query->get());
+        }elseif($request->type=='Supplier'){
+            $ac->whereNotNull('supplier_id');
+            //  $this->filterBySupplier($q);
+        }elseif($request->type=='Customer'){
+            $ac->whereNotNull('customer_id');
+        }
+
         $ac->when(!is_null($request->sub_account),function($q){
-            return  $q->where('sub_account_id',request('sub_account'));
+            //return  $q->where('sub_account_id',request('sub_account'));
+            $sub_acc_id = request('sub_account');
+            return $q->where(function($query) use ($sub_acc_id) {
+                    $query->Where('sub_account_id',$sub_acc_id)
+                          ->orWhere('cash_bank_sub_account_id',$sub_acc_id);
+                });
          });
          $ac->when(!is_null($request->customer_id),function($q){
             return  $q->where('customer_id',request('customer_id'));
          });
          $ac->when(!is_null($request->supplier_id),function($q){
             return  $q->where('supplier_id',request('supplier_id'));
+         });
+         $ac->when(!is_null($request->account_group),function($q){
+            $acc_group = explode(',', request('account_group'));
+            return  $q->whereIn('account_group_id',$acc_group);
          });
 //        if($request->sub_account!=null){
 //            $ac->where('sub_account_id',$request->sub_account);
@@ -510,14 +627,14 @@ trait Ledger
             $cl_debit=$cl_credit=0;
             foreach($closing as $c){
                 if($request->type=='Customer'){
-                    $cl_debit+=$c->credit;
-                    $cl_credit+=$c->debit;
+                    $cl_debit+=abs($c->credit);
+                    $cl_credit+=abs($c->debit);
                 }elseif ($request->type=='Other'){
-                    $cl_debit+=$c->debit;
-                    $cl_credit+=$c->credit;
+                    $cl_debit+=abs($c->debit);
+                    $cl_credit+=abs($c->credit);
                 }elseif($request->type=='Supplier'){
-                    $cl_debit+=$c->credit;
-                    $cl_credit+=$c->debit;
+                    $cl_debit+=abs($c->credit);
+                    $cl_credit+=abs($c->debit);
                 }
             }
             $closing_balance=(($opening_balance)+$cl_debit)-$cl_credit;
@@ -532,7 +649,7 @@ trait Ledger
         foreach($date_arr as $key=>$date){
             $ledger[$key]=new stdClass();
             $ats=$this->getQuery($request,$date);
-            if($ats->isNotEmpty()){
+            if(isset($ats) && $ats->isNotEmpty()){
                 $op_bal=$this->opening_balance;
                 $total_credit =0;
                 $total_debit  =0;
@@ -549,7 +666,7 @@ trait Ledger
                 $ledger[$key]->ledger_list= $ats;
                 $this->opening_balance=$ledger[$key]->closing_balance;
             }
-            elseif($ats->isNotEmpty() && count($date_arr)>1){
+            elseif(isset($ats) && $ats->isNotEmpty() && count($date_arr)>1){
                 // dd('Hell00');
                 $ledger[$key]->date=$date;
                 $ledger[$key]->opening_balance =$ledger[$key-1]->opening_balance;
@@ -570,6 +687,111 @@ trait Ledger
         }
         // dd($ledger);
         return $ledger;
+    }
+
+    public function storePurchaseCreditNoteForLedger($credit_note){
+        /**$description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        $sub_account_id=config('global.debit_note');
+        AccountTransition::create([
+            'sub_account_id' => $sub_account_id,
+            'transition_date' => $credit_note->credit_note_date,
+            'debit_note_id' => $credit_note->id,
+            'is_cashbook' => 0,
+            'description'=>$description,
+            'status'=>'debit_note',
+            'supplier_id'=>$credit_note->supplier_id,
+            'vochur_no'=>$credit_note->credit_note_no,
+            'credit' => $credit_note->amount,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);**/
+        $description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        //$sub_account_id=config('global.debit_note');
+        $sub_acc = DB::table('sub_accounts')
+                    ->where('sub_account_name', 'Debit')->first();
+        $sub_account_id=$sub_acc->id;
+        AccountTransition::create([
+            'sub_account_id' => $sub_account_id,
+            'account_group_id' => $credit_note->account_group,
+            'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+            'transition_date' => $credit_note->credit_note_date,
+            'debit_note_id' => $credit_note->id,
+            'is_cashbook' => 0,
+            'description'=>$description,
+            'status'=>'debit_note',
+            'supplier_id'=>$credit_note->supplier_id,
+            'vochur_no'=>$credit_note->credit_note_no,
+            //'credit' => $credit_note->amount,
+            'credit' => $credit_note->amount,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
+        //added by ep
+        if($credit_note->credit_note_type_id == 0) {
+            AccountTransition::create([
+                'sub_account_id' => 13,
+                'account_group_id' => $credit_note->account_group,
+                'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+                'transition_date' => $credit_note->credit_note_date,
+                'debit_note_id' => $credit_note->id,
+                'is_cashbook' => 0,
+                'description'=>$description,
+                'status'=>'debit_note',
+                'supplier_id'=>$credit_note->supplier_id,
+                'vochur_no'=>$credit_note->credit_note_no,
+                //'debit' => $credit_note->amount,
+                'debit' => $credit_note->amount,
+                'created_by' => Auth::user()->id,
+                'updated_by' => Auth::user()->id,
+            ]);
+        }
+    }
+    public function updatePurchaseCreditNoteForLedger($credit_note){
+        /**$description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        AccountTransition::where([
+            ['debit_note_id',$credit_note->id],
+            ['is_cashbook',0],
+            ['status','debit_note'],
+        ])->update([
+            'transition_date'=>$credit_note->credit_note_date,
+            'description'=>$description,
+            'debit'=>$credit_note->amount,
+        ]);**/
+        $description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        //$sub_account_id=config('global.debit_note');
+        $sub_acc = DB::table('sub_accounts')
+                    ->where('sub_account_name', 'Debit')->first();
+        $sub_account_id=$sub_acc->id;
+        AccountTransition::where([
+            ['debit_note_id',$credit_note->id],
+            ['is_cashbook',0],
+            ['status','debit_note'],
+            ['sub_account_id',$sub_account_id],
+        ])->update([
+            'transition_date'=>$credit_note->credit_note_date,
+            'account_group_id' => $credit_note->account_group,
+            'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+            'description'=>$description,
+            //'credit'=>$credit_note->amount,
+            'credit'=>$credit_note->amount,
+        ]);
+        //added by ep
+        if($credit_note->credit_note_type_id == 0) {
+            AccountTransition::where([
+                ['debit_note_id',$credit_note->id],
+                ['is_cashbook',0],
+                ['status','debit_note'],
+                ['sub_account_id',13],
+            ])->update([
+                'transition_date'=>$credit_note->credit_note_date,
+                'account_group_id' => $credit_note->account_group,
+                'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+                'description'=>$description,
+               // 'debit'=>$credit_note->amount,
+                'debit'=>$credit_note->amount,
+            ]);
+        }
     }
 }
 

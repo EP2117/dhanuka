@@ -181,9 +181,9 @@
                         <button class="btn btn-primary btn-icon btn-sm" @click="exportExcel()"><i class="fas fa-file-excel"></i> &nbsp;Export to Excel</button>
                         
                     </div>
-                    <div class="mb-2 pl-2" v-if="out_count> 0" style="display:inline-block;">
+                   <!-- <div class="mb-2 pl-2" v-if="out_count> 0" style="display:inline-block;">
                         <button class="btn btn-primary btn-icon btn-sm" @click="exportPdf()"><i class="fas fa-file-pdf"></i> &nbsp;Export to PDF</button>
-                    </div>
+                    </div>-->
                 </div>
                 <!-- Kamlesh End -->
                 <div class="table-responsive" v-if="out_count>0">
@@ -629,10 +629,10 @@ export default {
         exportExcel() {
             
             let app = this;
-            if(this.search.from_date == "") {
+            /**if(this.search.from_date == "") {
                 swal("Warning!", "From Date must be added!", "warning")
                 return false;
-            }
+            }**/
            var search =
                 "&from_date=" +
                 app.search.from_date +
@@ -681,13 +681,15 @@ export default {
          exportPdf() {   
 
                 let app = this;
-                if(this.search.from_date == "") {                  
+                /**if(this.search.from_date == "") {                  
                     swal("Warning!", "From Date must be added!", "warning")
                     return false;
                 } 
                 else {
                     $("#loading").show();
-                }
+                }**/
+
+                $("#loading").show();
 
                 var search =
                 "&from_date=" +

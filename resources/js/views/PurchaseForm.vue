@@ -6,7 +6,7 @@
                 <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
                 <li class="breadcrumb-item" v-if="purchase_type == 1"><a :href="site_path+'/purchase_office'">Purchase Office</a></li>
 <!--                <li class="breadcrumb-item" v-else><a :href="site_path+'/van'">Van Sale</a></li>-->
-                <li class="breadcrumb-item"><router-link tag="span" :to="'/purchase/'+purchase_type+'/'" class="font-weight-normal"><a href="#">Purchase Invoice</a></router-link></li>
+                <li class="breadcrumb-item"><router-link tag="span" :to="'/purchase/1/'" class="font-weight-normal"><a href="#">Purchase Invoice</a></router-link></li>
                 <li class="breadcrumb-item active" aria-current="page">Purchase Invoice Form</li>
             </ol>
         </nav>
@@ -156,8 +156,8 @@
 <!--                                        <th scope="col" >Stock Available</th>-->
                                         <th scope="col" class="mm-txt" v-if="!isMMK">စျေးနှုန်း(<label class="sign">{{sign}}</label>)</th>
                                         <th scope="col" class="mm-txt">စျေးနှုန်း(MMK)</th>
-                                        <th scope="col" class="mm-txt" v-if="!isMMK">သင့္ေင ြ(<label class="sign">{{sign}}</label>)</th>
-                                        <th scope="col" class="mm-txt">သင့္ေင ြ(MMK)</th>
+                                        <th scope="col" class="mm-txt" v-if="!isMMK">သင့်ငွေ(<label class="sign">{{sign}}</label>)</th>
+                                        <th scope="col" class="mm-txt">သင့်ငွေ(MMK)</th>
                                         <th scope="col" class="text-center"></th>
                                     </tr>
                                     </thead>
@@ -236,7 +236,7 @@
                                         </tr>
                                     </template>
                                     <tr class="total_row total_row_first">
-                                        <td :colspan="total_colspan" class="text-right mm-txt">စုစုေပါင္း</td>
+                                        <td :colspan="total_colspan" class="text-right mm-txt">စုစုပေါင်း</td>
                                         <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                             <div style="display:inline-block;">
                                                 <label style="display:inline-block;">{{sign}}</label>
@@ -252,7 +252,7 @@
                                         </td>
                                     </tr>
                                     <tr class="total_row">
-                                        <td :colspan="total_colspan" class="text-right mm-txt">ေလ်ာ့ေင ြ</td>
+                                        <td :colspan="total_colspan" class="text-right mm-txt">လျော့ငွေ</td>
                                         <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                             <div style="display:inline-block;">
                                                 <label style="display:inline-block;">{{sign}}</label>
@@ -268,7 +268,7 @@
                                         </td>
                                     </tr>
                                     <tr class="total_row">
-                                        <td :colspan="total_colspan" class="text-right mm-txt">လက္ခံရရိွေင ြ</td>
+                                        <td :colspan="total_colspan" class="text-right mm-txt">လက်ခံရရှိငွေ</td>
                                         <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                             <div style="display:inline-block;">
                                                 <label style="display:inline-block;">{{sign}}</label>
@@ -289,7 +289,7 @@
                                         </td>
                                     </tr>
                                     <tr class="total_row">                                        
-                                        <td :colspan="total_colspan" class="text-right mm-txt">လက္က်န္ေင ြစုစုေပါင္း</td>
+                                        <td :colspan="total_colspan" class="text-right mm-txt">လက်ကျန်ငွေ စုစုပေါင်း</td>
                                         <td v-if="!isMMK" class="p-0 m-0 pt-2">
                                             <div style="display:inline-block;">
                                                 <label style="display:inline-block;">{{sign}}</label>
@@ -301,6 +301,24 @@
                                                 <label style="display:inline-block;">MMK</label>
                                                 <input type="text" v-model="form.balance_amount" class="form-control num_txt" readonly style="width:100px;display:inline-block;" required />
                                             </div>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="total_row" v-show="form.payment_type =='cash' || (form.payment_type =='credit' && form.pay_amount != 0 && form.pay_amount != null)">
+                                        <td colspan="2" class="text-right mm-txt">Payment Method</td>
+                                        <td colspan="2">
+                                            <select class="form-control" id="account_group"
+                                                    v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                                <option value="">Select One</option>
+                                                <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                            </select>
+                                        </td>
+                                        <td colspan="2">
+                                            <select class="form-control"
+                                                    v-model="form.cash_bank_account" style="width:100%" id="cash_bank_account">
+                                                <option value="">Select One</option>
+                                                <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                            </select>
                                         </td>
                                     </tr>
                                     </tbody>
@@ -475,6 +493,8 @@ export default {
                 previous_balance: '',
                 currency_id: 1,
                 currency_rate: '',
+                account_group: '',
+                cash_bank_account: '',
 
             }),
             isEdit: false,
@@ -503,6 +523,8 @@ export default {
             total_colspan : 4,
             prev_pay_amount: 0,
             currency_type: 1,
+            account_group: [],
+            cash_bank_accounts: [],
         };
     },
 
@@ -553,6 +575,7 @@ export default {
         $("#loading").hide();
         let app = this;
         app.initWarehouses();
+        app.initAccountGroup();
         app.initSuppliers();
         // app.initBrands();
         // app.initCategories();
@@ -1372,6 +1395,15 @@ export default {
         });
     },
     methods: {
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
+        },
+
+        changeAccountGroup(id) {
+            var ag_id = this.form.account_group;
+            axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+        },
         initBrands() {
             axios.get("/brands").then(({ data }) => (this.brands = data.data));
             $(".brands").select2({ width: 'resolve' });
@@ -1606,7 +1638,7 @@ export default {
             // console.log("Row Id =" +row_id);
             let app = this;
             var table=document.getElementById("product_table");
-            var row=table.insertRow((table.rows.length)-4);
+            var row=table.insertRow((table.rows.length)-5);
             // var cell1=row.insertCell(0);
             row.id = row_id;
             // // brand select
@@ -1983,6 +2015,14 @@ export default {
                     } else {
                         app.isDisabled = true;
                     }
+
+                    app.form.account_group = response.data.purchase.account_group_id;                
+                    if(response.data.purchase.account_group_id != '' && response.data.purchase.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.purchase.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+
+                    app.form.cash_bank_account = response.data.purchase.sub_account_id;
+
                     app.form.currency_id = response.data.purchase.currency_id;
                     $("#currency_id").val(app.form.currency_id).trigger('change');
                     app.sign = response.data.purchase.currency.sign;
@@ -2046,7 +2086,7 @@ export default {
                         if(app.user_role != "Country Head" || (app.user_role == "Country Head")) {
 
                             var table=document.getElementById("product_table");
-                            var row=table.insertRow((table.rows.length) - 4);
+                            var row=table.insertRow((table.rows.length) - 5);
                             row.id = row_id;
 
                             // var cell1=row.insertCell(0);
@@ -3174,6 +3214,17 @@ export default {
         onSubmit: function(event){
             let app = this;
            
+            if(app.form.payment_type =='cash' || (app.form.payment_type =='credit' && app.form.pay_amount != 0 && app.form.pay_amount != null)) {
+                if(app.form.account_group == "" || app.form.account_group == null ) {
+                     swal("Warning!", "Payment Method is required", "warning");
+                     $("#account_group").focus();
+                     return false;
+                } else if(app.form.cash_bank_account == "" || app.form.cash_bank_account == null) {
+                     swal("Warning!", "Payment Method is required", "warning");
+                     $("#cash_bank_account").focus();
+                     return false;
+                } else {}
+            }
 
             //EP added
             if(app.form.payment_type == 'cash') {
@@ -3308,6 +3359,12 @@ export default {
                     });
             } else {
                 //Edit entry details
+
+                if(app.form.payment_type =='credit' && (app.form.pay_amount == 0 || app.form.pay_amount == null)) {
+                    app.form.account_group = '';
+                    app.form.cash_bank_account = '';
+                }
+
                 app.edit_form = $("#purchase_form").serialize();
                 if(app.edit_form == app.original_form) {
                     swal("Warning!", "Please edit at least one field", "warning");

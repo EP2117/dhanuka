@@ -68,6 +68,14 @@
                             <option v-for="sup in suppliers" :value="sup.id"  :key='sup.id'>{{sup.name}}</option>
                         </select>
                     </div>
+                    <div class="form-group col-md-8 col-lg-8" v-show="search.type=='Other'">
+                        <label for="account_group_id">Account Group</label>
+                        <select multiple id="account_group_id" class="form-control account_groups" required
+                                v-model="search.account_group" style="width:100%">
+                            <option value="">Select One</option>
+                            <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-3 col-lg-2">
                         <label class="small">&nbsp;</label>
                         <button
@@ -171,6 +179,9 @@
                                              </td>
                                              <td class="text-center" v-if=' type=="other" && c.receipt_id!=null'>
                                                 {{c.description}}
+                                             </td> 
+                                             <td class="text-center" v-if=' type=="other" && c.journal_entry_id!=null'>
+                                                {{c.description}}
                                              </td>  
                                         </template>
                                         <!-- <template v-if="type=='customer'">
@@ -184,8 +195,9 @@
                                         <template v-if="type=='other'">
                                              <td class="text-center" v-if='c.supplier_id!=null'>
                                             By {{c.supplier.name }} For Inv {{c.vochur_no}} Invoice</td>
-                                            <td class="text-center" v-if='c.customer_id!=null'>
+                                            <td class="text-center" v-else-if='c.customer_id!=null'>
                                             By {{c.cus_name }} For Inv {{c.vochur_no}} Invoice</td>
+                                            <td class="text-center" v-else></td>
                                         </template> -->
                                         <template v-if="type=='customer'">
                                             <td class="text-center" >{{c.debit != '' && c.credit != null  ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
@@ -195,7 +207,7 @@
                                             <td class="text-center">{{c.debit !='' &&  c.credit != null ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
                                             <td class="text-center" >{{c.credit !='' &&  c.debit != null ? decimalFormat(Math.abs(c.debit)) : ''}} </td>
                                         </template>
-                                         <template v-if="type=='other'">
+                                        <template v-if="type=='other'">
                                             <td class="text-center">{{c.debit !='' && c.debit != null ? decimalFormat(Math.abs(c.debit)) : ''}} </td>
                                             <td class="text-center" >{{c.credit !='' && c.credit != null ? decimalFormat(Math.abs(c.credit)) : ''}} </td>
                                         </template>
@@ -322,6 +334,7 @@ export default {
             search:{
                 account_head:'',
                 sub_account:'',
+                account_group: [],
                 from_date:'',
                 supplier_id:'',
                 customer_id:'',
@@ -342,6 +355,8 @@ export default {
             account_head:[],
             suppliers:[],
             customers:[],
+            account_group: [],
+            temp_account_group: [],
             opening_balance:'',
             closing_balance:'',
             type:'',
@@ -381,6 +396,32 @@ export default {
         app.initAccountHead();
         app.initCustomers();
         app.initSuppliers();
+
+        app.initAccountGroup();
+
+        $(".account_groups").select2();
+        $(".account_groups").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.temp_account_group.push(data.id); 
+
+            var unique_arr = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
+            app.temp_account_group = unique_arr;
+
+            $('.account_groups').val(app.temp_account_group).trigger('change');
+        });
+
+        $(".account_groups").on("select2:unselect", function(e) {
+            var data = e.params.data;
+            var unique_arr = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
+            app.temp_account_group = unique_arr;
+            const index = app.temp_account_group.indexOf(data.id);
+            if (index > -1) {
+              app.temp_account_group.splice(index, 1);
+            }
+            $('.account_groups').val(app.temp_account_group).trigger('change');
+
+        });
+
         $("#type_id").select2();
         $('#type_id').on('select2:select',function(e){
             var data = e.params.data;
@@ -493,6 +534,11 @@ export default {
            return decimal_num;
         },
 
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
+        },
+
         initSubAccount(){
             axios.get('/sub_account/get_all_sub_account').then(({data})=>(this.sub_account=data.sub_account));
             $("#sub_account_id").select2();
@@ -511,6 +557,7 @@ export default {
         },
         getLedger(page=1){
             let app = this;
+            app.search.account_group = app.temp_account_group.filter((a, b) => app.temp_account_group.indexOf(a) === b);
             if(this.search.from_date == "") {
                 swal("Warning!", "From Date must be added!", "warning")
                 return false;
@@ -529,6 +576,8 @@ export default {
             var search =
                 "&sub_account=" +
                 app.search.sub_account +
+                "&account_group=" +
+                app.search.account_group +
                 "&vochur_no=" +
                 app.search.vochur_no +
                 "&from_date=" +

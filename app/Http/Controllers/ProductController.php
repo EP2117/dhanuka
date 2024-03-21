@@ -176,6 +176,7 @@ class ProductController extends Controller
             $product->selling_price    = $request->selling_price;
             $product->purchase_price    = $request->purchase_price;
             $product->minimum_qty       = $request->min_qty;
+            $product->maximum_qty       = $request->max_qty;
             $product->reorder_level       = $request->reorder_level;
             $product->is_active = 1;
 	        $product->created_by        = Auth::user()->id;
@@ -256,6 +257,7 @@ class ProductController extends Controller
             $product->uom_id            = $request->uom_id;
             $product->category_id       = $request->category_id;
             $product->minimum_qty       = $request->min_qty;
+            $product->maximum_qty       = $request->max_qty;
             $product->selling_price    = $request->selling_price;
             $product->purchase_price    = $request->purchase_price;
             $product->reorder_level       = $request->reorder_level;
@@ -426,5 +428,16 @@ class ProductController extends Controller
         ]);*/
 
         return $pdf->output();
+    }
+
+    public function searchProducts(Request $request)
+    {
+        if ($request->term && $request->term != '') {
+            $data = Product::with('category')
+                ->where('is_active', 1)
+                ->whereRaw('lower(product_name) like lower(?)', ["%{$request->term}%"])
+                ->orderBy('product_name', 'ASC')->get();
+            return response()->json($data);
+        }
     }
 }

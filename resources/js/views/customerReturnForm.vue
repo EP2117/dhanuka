@@ -51,7 +51,7 @@
                                 <select multiple class="form-control invoices"
                                     name="invoices[]" id="invoices" required style="width:100%"
                                 >
-                                    <option v-for="sale in sale_invoices" :value="sale.id" :data-balance="sale.total_amount-(sale.discount+sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)">{{sale.invoice_no}}_{{(sale.total_amount-(sale.discount+sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)).toLocaleString()}}</option>
+                                    <option v-for="sale in sale_invoices" :value="sale.id" :data-balance="sale.balance_amount-(sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)">{{sale.invoice_no}}_{{(sale.balance_amount-(sale.collection_amount+sale.pay_amount+sale.return_amount+sale.customer_return_amount)).toLocaleString()}}</option>
                                 </select>
                             </div>
                         </div>
@@ -60,6 +60,25 @@
                             <div class="form-group col-md-4">
                                 <label for="pay_amount">Pay Amount</label>
                                 <input type="text" class="form-control num_txt" id="pay_amount" name="pay_amount" v-model="form.pay_amount" required>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3" >
+                             <div class="form-group col-md-4">
+                                <label for="">Payment Method</label>
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="">&nbsp;</label>
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
                             </div>
                         </div>
 
@@ -95,7 +114,9 @@
                 customer_id: "",
                 invoices: [],
                 sale_bals: [],
-                pay_amount: "",         
+                pay_amount: "",  
+                account_group: "",
+                cash_bank_account: '', 
 
               }),              
               isEdit: false,
@@ -112,7 +133,9 @@
               site_path: '',
               storage_path: '',
               returnReadonly: true,
-              canEdit: false
+              canEdit: false,
+              account_group: [],
+              cash_bank_accounts: [],
 
             };
         },
@@ -162,6 +185,7 @@
             let app = this;            
             
            // app.initWarehouses();
+           app.initAccountGroup();
 
             app.initCustomers();
 
@@ -276,6 +300,16 @@
 
         methods: {
 
+            initAccountGroup(){
+                axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+                // $("#financial_type2_id").select2();
+            },
+
+            changeAccountGroup(id) {
+                var ag_id = this.form.account_group;
+                axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+            },
+
             initCustomers() {
               axios.get("/customers").then(({ data }) => (this.customers = data.data));
               $("#customer_id").select2();
@@ -291,6 +325,12 @@
                     app.form.return_date = response.data.data.return_date;
                     app.form.customer_id = response.data.data.customer_id;
                     app.form.pay_amount = response.data.data.return_amount;
+
+                    app.form.account_group = response.data.data.account_group_id;             
+                    if(response.data.data.account_group_id != '' && response.data.data.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.data.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.data.sub_account_id;
 
                     $('#customer_id').val(response.data.data.customer_id).trigger('change');
 
@@ -360,6 +400,8 @@
                    
                 });
                 //app.form.invoices = app.form.invoices.reverse();
+                //alert(pay_amt_bal);
+                //alert(valid);
                 if(pay_amt > bal_amt || valid == false) {
                     if(valid == false) {
                         swal("Warning!", "Pay amount is not enough to return total balance amount!", "warning");

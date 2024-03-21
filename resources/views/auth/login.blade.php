@@ -41,7 +41,7 @@
                     <div class="card-body p-0">
                         <!-- Nested Row within Card Body -->
                         <div class="row">
-                            <div class="col-lg-6 d-none d-lg-block bg-login-image text-center"><img src="{{ asset('storage/image/logo.jpg') }}" style="margin-top: 4rem;" /></div>
+                            <div class="col-lg-6 d-none d-lg-block bg-login-image text-center"><img src="{{ asset('storage/image/dhanuka_logo.jpg') }}" style="margin-top: 10rem;" width="430px;" /></div>
                             <div class="col-lg-6" style="background-color: #f5f6f7;">
                                 <div class="p-5">
                                     <div class="mb-3">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\AccountTransition;
 use App\Http\Traits\AccountReport\Ledger;
 use App\Payment;
+use App\SubAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 class PaymentController extends Controller
@@ -54,8 +55,12 @@ class PaymentController extends Controller
             'updated_by'=>Auth::user()->id,
         ]);
         if ($payment) {
+            $ag = SubAccount::find($payment->credit->id);
+            $ag_id = $ag->account_group_id;
             AccountTransition::create([
                 'sub_account_id' => $payment->debit->id,
+                'account_group_id' => $ag_id,
+                'cash_bank_sub_account_id' => $payment->credit->id,
                 'transition_date' => $payment->date,
                 'vochur_no'=>$cash_payment_no,
                 'payment_id' => $payment->id,
@@ -118,10 +123,14 @@ class PaymentController extends Controller
         ]);
         $payment =Payment::whereId($id)->first();
         if($payment){
+            $ag = SubAccount::find($payment->credit->id);
+            $ag_id = $ag->account_group_id;
             AccountTransition::where('payment_id',$id)
                 ->where('is_cashbook',1)
                 ->update([
                 'sub_account_id' => $payment->debit->id,
+                'account_group_id' => $ag_id,
+                'cash_bank_sub_account_id' => $payment->credit->id,
                 'vochur_no'=>$request->cash_payment_no,
                 'transition_date' => $payment->date,
                 'payment_id' => $payment->id,

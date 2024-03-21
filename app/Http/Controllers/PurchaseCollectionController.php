@@ -44,8 +44,14 @@ class PurchaseCollectionController extends Controller
         } else {
             //other roles can access only one branch
             if (Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id', $branch);
+               /* $branch = Auth::user()->branch_id;
+                $data->where('branch_id', $branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach ($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id', $branch_arr);
             }
         }
 
@@ -142,6 +148,8 @@ class PurchaseCollectionController extends Controller
                 }
             }
             $p_collection = PurchaseCollection::create([
+                'account_group_id'=>$request->account_group,
+                'sub_account_id'=>$request->cash_bank_account,
                 'supplier_id' => $request->supplier_id,
                 'branch_id' => $request->branch_id,
                 'collection_no' => $collection_no,
@@ -159,6 +167,8 @@ class PurchaseCollectionController extends Controller
             if ($p_collection) {
                 AccountTransition::create([
                     'sub_account_id' => $sub_account_id,
+                    'account_group_id'=>$request->account_group,
+                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                     'transition_date' => $request->collection_date,
                     'purchase_id' => $p_collection->id,
                     'supplier_id' => $p_collection->supplier_id,
@@ -244,6 +254,8 @@ class PurchaseCollectionController extends Controller
                 if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
+                        'account_group_id'=>$request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'purchase_id' => $p_collection->id,
                         'supplier_id' => $p_collection->supplier_id,
@@ -259,6 +271,8 @@ class PurchaseCollectionController extends Controller
                 if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
+                        'account_group_id'=>$request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'purchase_id' => $p_collection->id,
                         'supplier_id' => $p_collection->supplier_id,
@@ -287,6 +301,8 @@ class PurchaseCollectionController extends Controller
     }
     public function edit(Request  $request, $c_id)
     {
+        ini_set('memory_limit', '1024M');
+        ini_set('max_execution_time', 480);
         $collection = PurchaseCollection::with('purchases', 'currency', 'supplier', 'branch')->find($c_id);
         $supplier_id = $collection->supplier_id;
         $branch_id = $collection->branch_id;
@@ -384,6 +400,8 @@ class PurchaseCollectionController extends Controller
                 $collection->total_paid_amount_fx = $total_paid_amount_fx;
             }
             $collection->branch_id = $request->branch_id;
+            $collection->account_group_id = $request->account_group;
+            $collection->sub_account_id = $request->cash_bank_account;
             $collection->currency_id = $request->currency_id;
             $collection->currency_rate = $request->currency_rate;
             $collection->updated_at = time();
@@ -417,6 +435,8 @@ class PurchaseCollectionController extends Controller
                         ]);**/
                     AccountTransition::create([
                         'sub_account_id' => $sub_account_id,
+                        'account_group_id'=>$request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'purchase_id' => $collection->id,
                         'supplier_id' => $collection->supplier_id,
@@ -562,6 +582,8 @@ class PurchaseCollectionController extends Controller
                 if ($gain != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 79,
+                        'account_group_id'=>$request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'purchase_id' => $collection->id,
                         'supplier_id' => $collection->supplier_id,
@@ -577,6 +599,8 @@ class PurchaseCollectionController extends Controller
                 if ($loss != 0) {
                     AccountTransition::create([
                         'sub_account_id' => 80,
+                        'account_group_id'=>$request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
                         'transition_date' => $request->collection_date,
                         'purchase_id' => $collection->id,
                         'supplier_id' => $collection->supplier_id,
@@ -842,11 +866,17 @@ class PurchaseCollectionController extends Controller
                 ->leftjoin('purchase_invoices', 'purchase_invoices.id', '=', 'account_transitions.purchase_id')
                 //->leftjoin('collection_purchase', 'collection_purchase.purchase_collection_id', '=', 'account_transitions.purchase_id')
                 //->leftjoin('credit_purchase_collections', 'credit_purchase_collections.id', '=', 'account_transitions.purchase_id')
-                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, credit_purchase_collections.*,purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM `account_transitions` JOIN collection_purchase ON collection_purchase.purchase_collection_id = account_transitions.purchase_id AND collection_purchase.gain_amount = coalesce(account_transitions.credit,0.000)AND collection_purchase.loss_amount = coalesce(account_transitions.debit,0.000) LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = account_transitions.purchase_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id GROUP BY collection_purchase.purchase_id) as pc"),function($join){
+                /**->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, credit_purchase_collections.*,purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM `account_transitions` JOIN collection_purchase ON collection_purchase.purchase_collection_id = account_transitions.purchase_id AND ABS(collection_purchase.gain_amount) = ABS(coalesce(account_transitions.credit,0.000)) AND ABS(collection_purchase.loss_amount) = ABS(coalesce(account_transitions.debit,0.000)) LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = account_transitions.purchase_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id GROUP BY collection_purchase.purchase_id) as pc"),function($join){
 
                             $join->on("pc.transition_id","=","account_transitions.id");
 
-                        })
+                        })**/
+                        
+                ->leftjoin(DB::raw("(SELECT account_transitions.id as transition_id, credit_purchase_collections.*,purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM `account_transitions` JOIN collection_purchase ON collection_purchase.purchase_collection_id = account_transitions.purchase_id AND ABS(collection_purchase.gain_amount) = ABS(coalesce(account_transitions.credit,0.000)) AND ABS(collection_purchase.loss_amount) = ABS(coalesce(account_transitions.debit,0.000)) LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = account_transitions.purchase_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id) as pc"),function($join){
+
+                    $join->on("pc.transition_id","=","account_transitions.id");
+
+                })
                 /*->leftjoin(DB::raw("(SELECT credit_purchase_collections.*, purchase_invoices.invoice_no as purchase_invoice_no, purchase_invoices.invoice_date as purchase_invoice_date, purchase_invoices.currency_id as purchase_currency_id, purchase_invoices.currency_rate as purchase_currency_rate FROM collection_purchase LEFT JOIN credit_purchase_collections ON credit_purchase_collections.id = collection_purchase.purchase_collection_id LEFT JOIN purchase_invoices ON purchase_invoices.id = collection_purchase.purchase_id WHERE purchase_invoices.currency_id != 1 GROUP BY credit_purchase_collections.id 
                             ) as pc"),function($join){
 
@@ -1002,5 +1032,27 @@ class PurchaseCollectionController extends Controller
         $fileName = 'currency_gain_loss_report_' . Carbon::now()->format('Ymd') . '.xlsx';
 
         return Excel::download($export, $fileName);
+    }
+
+    public function getPurchaseOverDue(Request $request){
+        $route_name=Route::currentRouteName();
+        $purchase_over_due=$this->purchaseOverDue($request);
+        $net_inv_amt=$net_paid_amt=$net_balance_amt=0;
+        foreach($purchase_over_due as $po){
+            foreach($po->out_list as $i){
+                if($i->type=='paid'){
+                    $net_inv_amt+=$i->total_amount; 
+                    $net_paid_amt+=$i->t_paid_amount;
+                    $net_balance_amt+=$i->t_balance_amount;
+                }
+            }
+        }
+        if($route_name=='purchase_over_due_export'){
+            $export=new PurchaseOverDueExport($purchase_over_due,$net_paid_amt,$net_balance_amt,$net_inv_amt,$request);
+            $fileName = 'Purchase Over Due Export'.Carbon::now()->format('Ymd').'.xlsx';
+            return Excel::download($export, $fileName);
+        }
+        // dd($purchas_over_due);
+        return compact('purchase_over_due','net_paid_amt','net_balance_amt','net_inv_amt');
     }
 }

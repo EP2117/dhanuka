@@ -90,10 +90,21 @@ class DailySaleProductExport implements FromView, WithTitle
             $sales->where('sales.customer_id', $request->customer_id);
         }
 
-        if($request->product_name != "") {
+        /*if($request->product_name != "") {
             //$products->where('products.product_name', 'LIKE', "%$request->product_name%"); 
             $binds = array(strtolower($request->product_name));
             $sales->whereRaw('lower(products.product_name) like lower(?)', ["%{$request->product_name}%"]);
+        }*/
+        if ($request->product_name != "") {
+            $sales->where('products.id', $request->product_name);
+        }
+
+        if ($request->state_id != "") {
+            $sales->where('customers.state_id', $request->state_id);
+        }
+
+        if ($request->township_id != "") {
+            $sales->where('customers.township_id', $request->township_id);
         }
 
         /*if($request->brand_id != "") {

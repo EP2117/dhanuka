@@ -148,7 +148,13 @@
                                                 <i class="fas fa-print"></i>
                                             </a>
 
-                                            <a class="dropdown-item" v-if="sreturn.payment_amount == sreturn.total_payment_amount">
+                                            <a class="dropdown-item" v-if="sreturn.return_method == 'with invoice' && ((sreturn.payment_amount == sreturn.total_payment_amount && sreturn.sale.extra_return_amount == 0) || (sreturn.return_status == 'extra' && sreturn.payment_amount == sreturn.total_payment_amount))">
+                                                <a title="Delete" class="text-danger" @click="removeReturn(sreturn.id)">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>           
+                                            </a>
+
+                                            <a class="dropdown-item" v-if="sreturn.return_method == 'without invoice' && sreturn.payment_amount == sreturn.total_payment_amount">
                                                 <a title="Delete" class="text-danger" @click="removeReturn(sreturn.id)">
                                                     <i class="fas fa-trash"></i>
                                                 </a>           

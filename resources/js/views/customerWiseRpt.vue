@@ -182,11 +182,11 @@
                                       <table cellpadding='0' cellspacing='0' border='0' width="100%">
                                       <template v-if="c.category_id != null">
                                         <template v-for="(cid,i) in c.category_id.split(',')" >
-                                            <template v-if="search.categories.length == 0 || (search.categories.length > 0 && search.categories.indexOf(cid) !== -1) || (c.cat_product_id.split('_')[i].split(',').filter(function(item){ return search.products.indexOf(item) > -1})).length > 0">
+                                            <template v-if="search.categories.length == 0 || (search.categories.length > 0 && search.categories.indexOf(cid) !== -1) || ( typeof(c.cat_product_id.split('_')[i]) != 'undefined' && c.cat_product_id.split('_')[i].split(',').filter(function(item){ return search.products.indexOf(item) > -1})).length > 0">
 
                                             <tr style="border:solid 1px #ccc">
 
-                                              <td style='background-color:#fff;width:150px;text-align:left;border-top:0px;border-bottom:solid 1px #ccc;border-right:solid 1px #ccc;vertical-align:middle' >{{c.category_name.split(',')[i]}}
+                                              <td style='background-color:#fff;width:150px;text-align:left;border-top:0px;border-bottom:solid 1px #ccc;border-right:solid 1px #ccc;vertical-align:middle' >{{c.category_name.split(',')[i] == null ? '' : c.category_name.split(',')[i]}}
                                               </td>
 
                                               <template  v-if="c.product_id != null">
@@ -196,7 +196,8 @@
                                               <table cellpadding='0' cellspacing='0' border='0' width="100%">
                                                
                                                     <template v-for="(pid,j) in c.product_id.split(',')">
-                                                    <tr v-if="c.cat_product_id.split('_')[i].split(',').indexOf(pid) !== -1" style="border:solid 1px #ccc">
+                                                    <template v-if='c.cat_product_id != null'>
+                                                    <tr v-if="typeof(c.cat_product_id.split('_')[i]) != 'undefined' && c.cat_product_id.split('_')[i].split(',').indexOf(pid) !== -1" style="border:solid 1px #ccc">
 
                                                     <template v-if="search.products.length == 0 || (search.products.length > 0 && search.products.indexOf(pid) !== -1)">
 
@@ -204,6 +205,7 @@
                                                     </template>
 
                                                     </tr>
+                                                    </template>
                                                     </template>
                                                 
                                               </table>

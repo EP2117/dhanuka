@@ -57,9 +57,17 @@ trait Cashbook{
     public function getOpening($request,$a){
         $opening=AccountTransition::whereDate('transition_date','<',$a)->where('is_cashbook',1);
         if($request->sub_account!=null){
-            $opening->where('sub_account_id',$request->sub_account);
+           // $opening->where('sub_account_id',$request->sub_account);
+             $opening->where(function($query) use ($request) {
+                $query->Where('sub_account_id',$request->sub_account)
+                      ->orWhere('cash_bank_sub_account_id',$request->sub_account);
+            });
         }
-        if($request->vochur_no!=null){
+        if(!empty($request->account_group)) {
+            $acc_group = explode(',', $request->account_group);
+            $opening->whereIn('account_group_id',$acc_group);
+        }
+        if($request->vochur_no!=null) {
             $opening->where('vochur_no',$request->vochur_no);
         }
         $opening=$opening->get();
@@ -89,6 +97,10 @@ trait Cashbook{
 //            $ac->whereDate('transition_date','>=',$request->from_date)
 //                ->whereDate('transition_date','<=',$request->to_date)->where('is_cashbook',1);
 //        }
+        if(!empty($request->account_group)) {
+            $acc_group = explode(',', $request->account_group);
+            $ac->whereIn('account_group_id',$acc_group);
+        }
         $closing=$ac->get();
         if($closing->isNotEmpty()){
             $cl_debit=$cl_credit=0;
@@ -106,11 +118,19 @@ trait Cashbook{
         $date_arr=$this->getDateArr($request);
         foreach($date_arr as $key=>$d){
             $cashbook[$key]=new \stdClass();
-            $account_transition=AccountTransition::whereDate('transition_date',$d)->where('is_cashbook',1);
+            $account_transition=AccountTransition::with('cash_bank_subaccount')->whereDate('transition_date',$d)->where('is_cashbook',1);
             if($request->vochur_no!= null){
                 $account_transition->where('vochur_no',$request->vochur_no);
             }if($request->sub_account!=null) {
-                $account_transition->where('sub_account_id',$request->sub_account);
+                //$account_transition->where('sub_account_id',$request->sub_account);
+                $account_transition->where(function($query) use ($request) {
+                    $query->Where('sub_account_id',$request->sub_account)
+                          ->orWhere('cash_bank_sub_account_id',$request->sub_account);
+                });
+            }
+            if(!empty($request->account_group)) {
+                $acc_group = explode(',', $request->account_group);
+                $account_transition->whereIn('account_group_id',$acc_group);
             }
             if($request->vochur_no !=null || $request->sub_account!=null) {
                 $cashbook[$key]->hide=true;
@@ -148,6 +168,44 @@ trait Cashbook{
             }
         }
         return $cashbook;
+    }
+
+    public function storePurchaseCreditNoteForCashBook($credit_note)
+    {
+        $description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        $sub_acc = DB::table('sub_accounts')
+                    ->where('sub_account_name', 'Debit')->first();
+        $sub_account_id=$sub_acc->id;
+        // $sub_account_id=config('global.debit_note');
+        AccountTransition::create([
+            'sub_account_id' => $sub_account_id,
+            'account_group_id' => $credit_note->account_group,
+            'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+            'transition_date' => $credit_note->credit_note_date,
+            'debit_note_id' => $credit_note->id,
+            'is_cashbook' => 1,
+            'description'=>$description,
+            'status'=>'debit_note',
+            'supplier_id'=>$credit_note->supplier_id,
+            'vochur_no'=>$credit_note->credit_note_no,
+            'debit' => $credit_note->amount,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+    }
+    public function updatePurchaseCreditNoteForCashBook($credit_note){
+        $description="Inv ".$credit_note->credit_note_no.",Inv Date ".$credit_note->credit_note_date." to " .$credit_note->supplier->name;
+        AccountTransition::where([
+            ['debit_note_id',$credit_note->id],
+            ['is_cashbook',1],
+            ['status','debit_note'],
+        ])->update([
+            'transition_date'=>$credit_note->credit_note_date,
+            'account_group_id' => $credit_note->account_group,
+            'cash_bank_sub_account_id' => $credit_note->sub_account_id,
+            'description'=>$description,
+            'debit'=>$credit_note->amount,
+        ]);
     }
     // public function storePurchaseInLedger($p){
     //     $p_account=AccountTransition::create([

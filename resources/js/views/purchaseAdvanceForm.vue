@@ -82,7 +82,25 @@
                                        v-model="form.amount" autocomplete="off" :readonly="!isMMK">
                             </div>
                         </div>
-                        <div class="form-group row text-right" v-if="">
+
+                        <div class="form-group row">
+                            <label class="col-lg-3 col-form-label text-right form-control-label">Payment Method</label>
+                            <div class="col-md-4">
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row text-center" v-if="">
                             <label class="col-lg-3 col-form-label form-control-label"></label>
                             <div class="col-lg-6">
                                 <input type="reset" class="btn btn-secondary btn-sm" value="Cancel" v-if="!isEdit">
@@ -113,6 +131,8 @@ export default {
                 currency_id: 1,
                 currency_rate: '',
                 amount_fx: '',
+                account_group: "",
+                cash_bank_account: '',
             }),
             isEdit:false,
             suppliers:[],
@@ -126,6 +146,8 @@ export default {
             currency: [],
             sign: '',
             rate_readonly: false,
+            account_group: [],
+            cash_bank_accounts: [],
         }
     },
     created() {
@@ -153,6 +175,8 @@ export default {
         app.initSuppliers();
 
         app.initCurrency();
+
+        app.initAccountGroup();
 
         $("#currency_id").on("select2:select", function(e) {            
             var data = e.params.data;
@@ -209,12 +233,14 @@ export default {
             var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
             var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
             $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+            app.form.amount = $('#amount').val();
         });
 
         $(document).on('keyup','#amount_fx',function(e) {
             var currency_rate = app.form.currency_rate == '' ? 0 : app.form.currency_rate;
             var amount_fx = app.form.amount_fx == '' ? 0 : app.form.amount_fx;
             $('#amount').val(Math.round(parseFloat(parseFloat(amount_fx) * parseFloat(currency_rate))));
+            app.form.amount = $('#amount').val();
         });
 
     },
@@ -223,6 +249,15 @@ export default {
             axios.get("/all_currency").then(({ data }) => (this.currency = data.data));
             $("#currency_id").select2();
 
+        },
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+            // $("#financial_type2_id").select2();
+        },
+
+        changeAccountGroup(id) {
+            var ag_id = this.form.account_group;
+            axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
         },
         initSuppliers() {
             axios.get("/supplier").then(({ data }) => (this.suppliers = data.data));
@@ -249,6 +284,13 @@ export default {
                     app.isMMK = true;
                 }
                 app.form.amount=response.data.data.amount;
+
+                app.form.account_group = response.data.data.account_group_id;        
+                if(response.data.data.account_group_id != '' && response.data.data.account_group_id != null) {
+                    axios.get('/sub_account/get_account_group/'+response.data.data.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                }
+                app.form.cash_bank_account = response.data.data.sub_account_id;
+                
                // app.check_collection=r.collection_amount;
                 app.form.supplier_id=response.data.data.supplier_id;
                 app.form.date = moment(response.data.data.advance_date).format('YYYY-MM-DD');

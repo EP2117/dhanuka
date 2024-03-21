@@ -148,6 +148,7 @@
     </div>
   </div>-->
   <!--<div>-->
+    <div style="margin-left:15px;margin-right: 15px;">
     <table id="t01" cellpadding="0" cellspacing="0" style="border:none;width:100%;">
       <thead>
         <tr style="border:none;">
@@ -156,9 +157,9 @@
           </td> --}}
         <td colspan="9" style="border:none;">
             <div style="width:100%; text-align: center;">
-              <div style="text-align: center;height: auto;float:left;margin-right: 10px;"><img src="{{url('storage/image/print_logo.jpg')}}" width="100" /></div>
-              <div style="vertical-align: middle; text-align: center;float:left">
-                  <b><u><font style="font-size: 20px">DHANUKA INTERNATIONAL CO.,LTD</font></u></b>
+              <div style="text-align: center;height: auto;float:left;margin-right: 10px;"><img src="{{url('storage/image/print_logo.jpg')}}" width="80" /></div>
+              <div style="vertical-align: middle; text-align: center;float:left; font-size: 14px;">
+                  <b><u><font style="font-size: 17px">DHANUKA INTERNATIONAL CO.,LTD</font></u></b>
                   <br />No(60),29th Street, Pabedan Township, Yangon, Myanmar.
                   <br />Office phone :01-250067, 09-954990290, 09-954990291,
                   <br />09-954990292, 09-954990293, 09-954990294
@@ -295,6 +296,7 @@
         </tr>
       </tfoot>-->
     </table>
+  </div>
     <script >
       $(document).ready(function(){
        setTimeout(function(){

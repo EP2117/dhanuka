@@ -279,7 +279,7 @@
             $("#loading").hide();
             let app = this;
 
-            app.initCustomers();
+            //app.initCustomers();
            // app.initWarehouses();
             app.initTownships();
             app.initTypes();
@@ -385,11 +385,47 @@
                 app.search.to_date = formatedValue;
             });
 
-            $("#customer_id").on("select2:select", function(e) {
+            /*$("#customer_id").on("select2:select", function(e) {
 
                 var data = e.params.data;
                 app.search.customer_id = data.id;
+            });*/
+
+            $("#customer_id").select2({
+                allowClear: true,
+                placeholder: "Select One",
+                minimumInputLength: 3,
+                ajax: {
+                    url: app.site_path+'/search_customers',
+                    data: function (params) {
+                    var query = {
+                        term: params.term,           
+                    }
+
+                    return query;
+                    },
+                    processResults: function (data) {
+
+                        return {
+                            results: $.map(data, function (obj) {
+                                return { 
+                                    'id': obj.id, 
+                                    'text': obj.cus_name,
+                                    'datatsp': obj.id,
+                                };
+                            })
+                        };
+                    }
+                }
             });
+            $("#customer_id").on("select2:select", function(e) {
+                    var data = e.params.data;
+                    
+                    app.search.customer_id = data.id;
+                });
+            $("#customer_id").on("select2:unselecting", function(e) {
+                    app.search.customer_id = '';
+                });
 
             $("#township_id").on("select2:select", function(e) {
 

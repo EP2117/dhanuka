@@ -44,6 +44,7 @@
            <?php
             $html = ''; $i=0;$total=0;
             foreach($data as $r) {
+                $total_amount = $r->total_amount - $r->discount;
                 $i++;
                 $html .= '<tr>';
                 $html .= '<td style="text-align:right;">'.$i.'</td>';
@@ -52,9 +53,10 @@
                 $html .= '<td class="text-center">'.$r->return_date.'</td>';
 
                 $html .= '<td class="text-center mm-txt">'.$r->customer->cus_name.'</td>';
-                $html .= '<td class="text-right" style="text-align:right;">'.number_format($r->total_amount).'</td>';
-                $html .= '<td class="text-right" style="text-align:right;">'.number_format($r->payment_amount + $r->total_payment_amount).'</td>';
-                $html .= '<td class="text-right" style="text-align:right;">'.number_format($r->total_amount - $r->total_payment_amount).'</td>';
+                $html .= '<td class="text-right" style="text-align:right;">'.number_format($total_amount).'</td>';
+                //$html .= '<td class="text-right" style="text-align:right;">'.number_format($r->payment_amount + $r->total_payment_amount).'</td>';
+                $html .= '<td class="text-right" style="text-align:right;">'.number_format($r->total_payment_amount).'</td>';
+                $html .= '<td class="text-right" style="text-align:right;">'.number_format($total_amount - $r->total_payment_amount).'</td>';
                 $html .= '</tr>';
 
             }

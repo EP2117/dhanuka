@@ -36,7 +36,7 @@
                                 v-model="form.collection_date" required>
                             </div>
 
-                            <div class="form-group col-md-4">
+                            <!--<div class="form-group col-md-4">
                                 <label for="branch_id">Collect Type</label>
                                 <select id="collect_type_id" class="form-control mm-txt"
                                     name="collect_type" v-model="form.collect_type" style="width:100%" :disabled="cusReadonly" required
@@ -44,9 +44,8 @@
                                     <option value="">Select One</option>
                                     <option value="cash">Cash</option>
                                     <option value="bank">Bank</option>
-                                    <!-- <option v-for="branch in branches" :value="branch.id"  >{{branch.branch_name}}</option> -->
                                 </select>
-                            </div>
+                            </div>-->
                             
                         </div>
                         <div class="row">
@@ -126,6 +125,25 @@
                                 <label for="pay_amount">Pay Amount ({{sign}})</label>
                                 <input type="text" class="form-control decimal_no" id="pay_amount" name="pay_amount" v-model="form.pay_amount" @blur="calcAutoPay()" :readonly="!form.is_auto" :required="form.is_auto">
                             </div>       
+                        </div>
+
+                        <div class="row mt-3" >
+                             <div class="form-group col-md-4">
+                                <label for="">Payment Method</label>
+                                <select class="form-control" required
+                                        v-model="form.account_group" style="width:100%" @change="changeAccountGroup()">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="">&nbsp;</label>
+                                <select class="form-control" required
+                                        v-model="form.cash_bank_account" style="width:100%">
+                                    <option value="">Select One</option>
+                                    <option v-for="at in cash_bank_accounts" :value="at.id"  >{{at.sub_account_name}}</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="row mt-4">
@@ -341,7 +359,9 @@
                 currency_id: 1,
                 currency_rate: '',
                 gain: [],
-                loss: [],           
+                loss: [],  
+                account_group: "",
+                cash_bank_account: '',         
               }),
               isEdit: false,
               isReadonly: true,
@@ -364,6 +384,8 @@
               sign: 'MMK',
               isMMK: true,
               total_colspan: 6,
+              account_group: [],
+              cash_bank_accounts: [],
             };
         },
 
@@ -403,6 +425,7 @@
             let app = this;
             app.initCustomers();
             app.initBranches();
+            app.initAccountGroup();
             $("#branch_id").on("select2:select", function(e) {
                 app.selected_invoices = [];
                 var data = e.params.data;
@@ -647,6 +670,16 @@
         },
 
         methods: {
+            initAccountGroup(){
+                axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
+                // $("#financial_type2_id").select2();
+            },
+
+            changeAccountGroup(id) {
+                var ag_id = this.form.account_group;
+                axios.get('/sub_account/get_account_group/'+ag_id).then(({data})=>(this.cash_bank_accounts=data.sub_accounts));
+            },
+
             sale_invoice_date(date){
                return moment(date).format('DD/MM/YY');
             },
@@ -1380,6 +1413,12 @@
                     app.form.collection_date    = response.data.collection.collection_date;
                     app.form.customer_id        = response.data.collection.customer_id;
                     $('#customer_id').val(app.form.customer_id).trigger('change');
+
+                    app.form.account_group = response.data.collection.account_group_id;             
+                    if(response.data.collection.account_group_id != '' && response.data.collection.account_group_id != null) {
+                        axios.get('/sub_account/get_account_group/'+response.data.collection.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
+                    }
+                    app.form.cash_bank_account = response.data.collection.sub_account_id;
 
                     if(response.data.collection.branch != null) {
                         app.form.branch_id = response.data.collection.branch.id;

@@ -43,6 +43,9 @@ Route::get('/inventory/', function () {
 Route::get('/report/', function () {
     return view('module_vw');
 })->middleware('auth');
+Route::get('/reminder/', function () {
+    return view('module_vw');
+})->middleware('auth');
 
 Route::get('/test', 'ProductTransitionController@test');
 
@@ -60,6 +63,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::resource('state', 'StateController');
     Route::get('/state_by_country/{id}', 'StateController@stateByCountry');
     Route::resource('township', 'TownshipController');
+    Route::get('get_townships', 'TownshipController@getTownship');
+    Route::get('township_status', 'TownshipController@changeStatus');
     Route::get('/township_by_state/{id}', 'TownshipController@townshipBystate');
     Route::get('/product/selling_uom/{product_id}', 'ProductController@getSellingUomByProductId');
     Route::get('/products', 'ProductController@allProducts');
@@ -73,6 +78,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::post('/transfer_receive/{id}', 'TransferController@receiveTransfer');
     Route::get('/warehouses', 'WarehouseController@allWarehouses');
     Route::get('/customers', 'CustomerController@allCustomers');
+    Route::get('/search_customers', 'CustomerController@searchCustomers');
+    Route::get('/search_products', 'ProductController@searchProducts');
     Route::post('/customer/image/upload', 'CustomerController@addPhoto');
     Route::post('/customer/image/delete/{name}/{id}', 'CustomerController@deletePhoto');
     Route::get('/productsByUserWarehouse', 'ProductTransitionController@getProductsByUserWarehouse');
@@ -93,9 +100,10 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/user/role/{id}', 'UserController@getByRole');
     Route::resource('role', 'RoleController');
     Route::get('/customer_sale_orders/{cus_id}', 'OrderController@getSaleOrders');
-    Route::get('/customer_previous_balance/{cus_id}', 'SaleController@getCustomerPreviousBalance');
+    Route::get('/customer_previous_balance/{cus_id}/{currency_id}', 'SaleController@getCustomerPreviousBalance');
     Route::get('/sale_order_approval/{id}', 'OrderApprovalController@getApproval');
     Route::get('/customer_credit_sale/{cus_id}', 'SaleController@getCreditSaleByCustomer');
+    Route::get('get_purchase_invoice_by_credit_note/{credit_type}', 'PurchaseInvoiceController@getPurchaseInvoiceByCreditNoteType');
     Route::get('/customer_all_sale/{cus_id}', 'SaleController@getAllSaleByCustomer');
     Route::post('/product/search', 'ProductController@search');
     Route::get('/ara_brand', 'AraProductController@allBrands');
@@ -107,6 +115,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/sale_delivery_approval/{sale_id}/{status}', 'SaleController@deliveryApproval');
     Route::get('/check_warehouse_uom/{product_id}', 'ProductTransitionController@checkWarehouseUom');
     Route::get('/check_selling_uom/{product_id}/{uom_id}', 'ProductTransitionController@checkSellingUom');
+    Route::get('/user_status/{id}/{status}', 'UserController@updateStatus');
     Route::get('/product_status/{id}/{status}', 'ProductController@updateStatus');
     Route::get('/customer_status/{id}/{status}', 'CustomerController@updateStatus');
     Route::get('/brand_status/{id}/{status}', 'BrandController@updateStatus');
@@ -167,6 +176,9 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
     Route::get('/sale_currency_gain_loss_export/', 'CollectionController@exportCurrencyGainLossReport');
     Route::get('/sale_return_report/', 'SaleReturnController@getSaleReturnReport');
     Route::get('/sale_return_export/', 'SaleReturnController@exportSaleReturnReport');
+
+    Route::get('/sale_return_os_report/', 'SaleReturnController@getSaleReturnOSReport');
+    Route::get('/sale_return_os_export/', 'SaleReturnController@exportSaleReturnOSReport');
 
     Route::get('/sale_return_product_report/', 'SaleReturnController@getSaleReturnProductReport');
     Route::get('/sale_return_product_export/', 'SaleReturnController@exportSaleReturnProductReport');
@@ -238,6 +250,8 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('get_all', 'SubAccountController@getAll');
         Route::get('get_sub_account/{type}', 'SubAccountController@getSubAccount');
         Route::get('get_account_type', 'SubAccountController@getAccountType');
+        Route::get('get_account_group','SubAccountController@getAccountGroup');
+        Route::get('get_account_group/{id}','SubAccountController@getByAccountGroup');
         Route::get('get_account_head', 'SubAccountController@getAccountHead');
         Route::get('get_all_sub_account', 'SubAccountController@getAllSubAccount');
 
@@ -262,7 +276,36 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::patch('update/{id}', 'PaymentController@update');
         Route::delete('destroy/{id}', 'PaymentController@destroy');
     });
+    Route::group(['prefix' => 'journal_entry'], function () {
+        Route::get('get_all', 'JournalEntryController@getAll');
+        Route::get('edit/{id}', 'JournalEntryController@edit');
+        Route::post('store', 'JournalEntryController@store');
+        Route::patch('update/{id}', 'JournalEntryController@update');
+        Route::delete('destroy/{id}', 'JournalEntryController@destroy');
+    });
+    Route::group(['prefix' => 'reminder'], function () {
+        Route::get('sale_over_due', ['App\Http\Controllers\CollectionController', 'getSaleOverDue']);
+        Route::get('sale_over_due_export', ['App\Http\Controllers\CollectionController', 'getSaleOverDue'])->name('sale_over_due_export');
+
+        Route::get('purchase_over_due', ['App\Http\Controllers\PurchaseCollectionController', 'getPurchaseOverDue']);
+        Route::get('purchase_over_due_export', ['App\Http\Controllers\PurchaseCollectionController', 'getPurchaseOverDue'])->name('purchase_over_due_export');
+
+        Route::get('get_min_max', ['App\Http\Controllers\ProductTransitionController', 'getMinMaxReport']);
+        Route::get('min_max_export', ['App\Http\Controllers\ProductTransitionController', 'getMinMaxReport'])->name('min_max_export');
+        Route::get('get_reorder_level', ['App\Http\Controllers\ProductTransitionController', 'getReorderLevelReport']);
+        Route::get('reorder_level_export', ['App\Http\Controllers\ProductTransitionController', 'getReorderLevelReport'])->name('reorder_level_export');
+    });
     Route::group(['prefix' => 'report'], function () {
+
+        Route::get('get_purchase_credit_note_report', ['App\Http\Controllers\PurchaseCreditNoteController', 'getPurchaseCreditNoteReport']);
+        Route::get('get_purchase_credit_note_product_wise', ['App\Http\Controllers\PurchaseCreditNoteController', 'getPurchaseCreditNoteProductWiseReport']);
+        Route::get('purchase_credit_note_product_export', ['App\Http\Controllers\PurchaseCreditNoteController', 'getPurchaseCreditNoteProductWiseReport'])->name('debit_note_product_export');
+        Route::get('purchase_credit_note_export', ['App\Http\Controllers\PurchaseCreditNoteController', 'getPurchaseCreditNoteReport'])->name('debit_note_export');
+        Route::get('get_sale_order_pending', ['App\Http\Controllers\SaleController', 'getSaleOrderPending']);
+        Route::get('sale_order_pending_export', ['App\Http\Controllers\SaleController', 'getSaleOrderPending'])->name('sale_order_pending_export');
+
+        Route::get('get_delivery_pending', ['App\Http\Controllers\SaleController', 'getDeliveryPending']);
+        Route::get('delivery_pending_export', ['App\Http\Controllers\SaleController', 'getDeliveryPending'])->name('delivery_pending_export');
 /**HEAD
         Route::get('get_all_cashbook','AccountTransitionController@getAllCashbook');
         Route::get('get_all_ledger','AccountTransitionController@getAllLedger');
@@ -299,6 +342,9 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('profit_and_loss', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport']);
         Route::get('export_p_and_l_pdf', ['App\Http\Controllers\AccountTransitionController', 'getProfitAndLossReport'])->name('export_p_and_l_pdf');
         Route::get('balance_sheet', ['App\Http\Controllers\AccountTransitionController', 'getBalanceSheetReport']);
+
+        Route::get('stock_ledger', ['App\Http\Controllers\ProductTransitionController', 'getStockLedger']);
+        Route::get('stock_ledger_export', ['App\Http\Controllers\ProductTransitionController', 'getStockLedger'])->name('stock_ledger_export');
     });
     Route::group(['prefix' => 'supplier_ob'], function () {
         Route::get('', ['\App\Http\Controllers\SupplierOpeningBalanceController', 'index']);
@@ -313,6 +359,13 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::post('store', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'store']);
         Route::patch('update/{id}', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'update']);
         Route::delete('{id}/destroy', ['\App\Http\Controllers\CustomerOpeningBalanceController', 'destroy']);
+    });
+    Route::group(['prefix' => 'purchase_credit_note'], function () {
+        Route::get('', ['\App\Http\Controllers\PurchaseCreditNoteController', 'index']);
+        Route::post('store', ['\App\Http\Controllers\PurchaseCreditNoteController', 'store']);
+        Route::get('edit/{id}', ['\App\Http\Controllers\PurchaseCreditNoteController', 'edit']);
+        Route::patch('update/{id}', ['\App\Http\Controllers\PurchaseCreditNoteController', 'update']);
+        Route::delete('destroy/{id}', ['\App\Http\Controllers\PurchaseCreditNoteController', 'destroy']);
     });
     Route::resource('inventory_adjustment', 'InventoryAdjustmentController');
     Route::post('landed_costing/create', 'LandedCostingController@store');

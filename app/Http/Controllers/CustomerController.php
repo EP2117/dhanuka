@@ -313,6 +313,17 @@ class CustomerController extends Controller
         return response(compact('data'), 200);
     }
 
+    public function searchCustomers(Request $request)
+    {
+        if($request->term && $request->term != '') {
+            $data = Customer::with('township')
+                            ->where('is_active',1)
+                            ->whereRaw('lower(cus_name) like lower(?)', ["%{$request->term}%"])
+                            ->orderBy('cus_name', 'ASC')->get();
+            return response()->json($data);
+        }
+    }
+
     /**
      * Remove the specified resource from storage.
      *

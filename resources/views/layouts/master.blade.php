@@ -12,12 +12,14 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="user-wh" content="{{ Auth::user()->warehouse->warehouse_name }}">
-    @if(Auth::user()->branch)
+   <!-- @if(Auth::user()->branch)
     <meta name="user-branch" content="{{ Auth::user()->branch->branch_name }}">
     @else
     <meta name="user-branch" content="">
-    @endif
+    @endif-->
+    <meta name="user-branch" content="{{ Session::get('user_branch') }}">
     <meta name="user-role" content="{{ Auth::user()->role->role_name }}">
+    <meta name="user-role-id" content="{{ Auth::user()->role->id }}">
     <meta name="site-path" content="{{ url('/') }}">
     <meta name="storage-path" content="{{ asset('storage') }}">
     <meta name="user-name-likelink" content="{{ Auth::user()->name }}">

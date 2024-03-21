@@ -55,8 +55,14 @@ class InventoryAdjustmentController extends Controller
         } else {
             //other roles can access only one branch
             if(Auth::user()->role->id != 1) { //system can access all branches
-                $branch = Auth::user()->branch_id;
-                $data->where('branch_id',$branch);
+                /*$branch = Auth::user()->branch_id;
+                $data->where('branch_id',$branch);*/
+                $branches = Auth::user()->branches;
+                $branch_arr = array();
+                foreach($branches as $branch) {
+                    array_push($branch_arr, $branch->id);
+                }
+                $data->whereIn('branch_id',$branch_arr);
             }
         }
 
@@ -109,6 +115,11 @@ class InventoryAdjustmentController extends Controller
         }
         DB::beginTransaction();
         try {
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
         $max_id = InventoryAdjustment::max('id');
             if($max_id) {
                 $max_id = $max_id + 1;
@@ -120,7 +131,7 @@ class InventoryAdjustmentController extends Controller
         $adjustment->reference_no = $request->reference_no;
         $adjustment->adjustment_date = $request->adjustment_date;
         $adjustment->warehouse_id = Auth::user()->warehouse_id;
-        $adjustment->branch_id = Auth::user()->branch_id;
+        $adjustment->branch_id = $branch_id;
         $adjustment->created_by = Auth::user()->id;
         $adjustment->updated_by = Auth::user()->id;        
         $adjustment->invoice_no = $adjustment_no;
@@ -159,7 +170,7 @@ class InventoryAdjustmentController extends Controller
             $obj->transition_type   	= $type;
             $obj->transition_adjustment_id 	= $adjustment_id;
             $obj->transition_product_pivot_id   = $pivot_id;
-            $obj->branch_id = Auth::user()->branch_id;
+            $obj->branch_id = $branch_id;
             //$obj->warehouse_id			= 1; // for Main Warehouse Entry
             $obj->warehouse_id = Auth::user()->warehouse_id;
             $obj->transition_date 		= $request->adjustment_date;
@@ -207,6 +218,11 @@ class InventoryAdjustmentController extends Controller
         // dd($request->all());
         DB::beginTransaction();
         try {
+        foreach (Auth::user()->branches as $k => $b) {
+            if ($k == 0) {
+                $branch_id = $b->id;
+            }
+        }
         if(!empty($request->reference_no)) {
             $validatedData = $request->validate([
                 'reference_no' => 'max:255|unique:inventory_adjustment,reference_no,'.$id,
@@ -266,7 +282,7 @@ class InventoryAdjustmentController extends Controller
                 DB::table('product_transitions')
                     ->where('transition_product_pivot_id', $request->product_pivot[$i])
                     ->where('transition_adjustment_id', $id)
-                    ->update(array('cost_price'=>$cost_price *$qty,'product_quantity' => $qty,'transition_type'=>$type, 'transition_product_quantity' => $qty));
+                    ->update(array('cost_price'=>$cost_price *$qty,'product_quantity' => $qty,'transition_type'=>$type,'transition_date'=>$request->adjustment_date, 'transition_product_quantity' => $qty));
             } else {
                 //add product into pivot table if not exist
                 $pivot = $adjustment->products()->attach($request->product[$i],['uom_id' => $request->uom[$i], 'add_qty' => $request->add_qty[$i],'less_qty' => $request->less_qty[$i]]);
@@ -281,7 +297,7 @@ class InventoryAdjustmentController extends Controller
                 $obj->transition_type       = $type;
                 $obj->transition_adjustment_id   = $adjustment_id;
                 $obj->transition_product_pivot_id   = $pivot_id;
-                $obj->branch_id = Auth::user()->branch_id;
+                $obj->branch_id = $branch_id;
                 //$obj->warehouse_id          = 1; // for Main Warehouse Entry
                 $obj->warehouse_id = Auth::user()->warehouse_id;
                 $obj->transition_date       = $request->adjustment_date;

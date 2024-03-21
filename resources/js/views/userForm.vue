@@ -487,10 +487,15 @@
 
                     } else {
                         $(".branch_div").show();
-                        if(response.data.user.branch_id != null) {
+                        /*if(response.data.user.branch_id != null) {
                             app.form.branch_id = response.data.user.branch_id;
                             branch = app.form.branch_id;
-                        }
+                        }*/
+
+                        $.each(response.data.user.branches, function( key, value ) { 
+                             app.form.branch_id = String(value.id);
+                             branch = app.form.branch_id;
+                        });
                     }
 
 

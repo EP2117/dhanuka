@@ -110,6 +110,15 @@
 
         <hr class="sidebar-divider">
 
+        <router-link  tag="li" to="/township" class="nav-item">
+            <a class="nav-link" >
+                <i class="fas fa-database"></i>
+                <span>Townships</span>
+            </a>
+        </router-link>
+
+        <hr class="sidebar-divider">
+
         <router-link  tag="li" to="/customer" class="nav-item">
             <a class="nav-link" >
                 <i class="fas fa-users"></i>
@@ -444,6 +453,14 @@
                             <span>Purchase Invoice</span>
                         </a>
                     </router-link>
+
+                    <hr class="sidebar-divider">
+                    <router-link  tag="li" to="/purchase_credit_note" class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-coins"></i>
+                            <span> Debit Note</span>
+                        </a>
+                    </router-link>
                     <!--if(Request::path() != 'van' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7) -->
                     <!--for only system and admin role -->
 
@@ -527,6 +544,15 @@
                         <a class="nav-link" href="#">
                             <i class="fas fa-receipt"></i>
                             <span>Payment</span>
+                        </a>
+                    </router-link>
+                @endif
+                 @if(Request::path() != 'van' && (Auth::user()->role->id == 1 || Auth::user()->role->id == 2 || Auth::user()->role->id == 3))
+                    <hr class="sidebar-divider">
+                    <router-link  tag="li" to="/journal_entry" class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-receipt"></i>
+                            <span>Journal Entry</span>
                         </a>
                     </router-link>
                 @endif
@@ -682,6 +708,14 @@
             </a>
         </router-link>
 
+        <hr class="sidebar-divider">
+        <router-link  tag="li" to="/report/stock-ledger" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Stock Ledger</span>
+            </a>
+        </router-link>
+
         <!-- Divider -->
        <!-- <hr class="sidebar-divider">
 
@@ -794,10 +828,92 @@
             </a>
         </router-link>
 
+        <hr class="sidebar-divider">
+        <router-link tag="li" to="/report/purchase_credit_note_report" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Debit Note Report</span>
+            </a>
+        </router-link>
+        <hr class="sidebar-divider">
+        <router-link tag="li" to="/report/purchase_credit_note_product_wise" class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-chart-bar"></i>
+                <span>Debit Note Product Wise Report</span>
+            </a>
+        </router-link>
+
         @endif
 
 
+    @if(Request::path() == 'reminder')
+    <li class="text-center">
+        <i class="far fa-chart-bar module_logo_sm"></i>
+        <h6 class="text-white">Remainder</h6>
+    </li>
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 10 || Auth::user()->role->id == 11 || Auth::user()->role->id == 14 || Auth::user()->role->id == 18)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/sale_order_pending" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Sale Order Pending</span>
+        </a>
+    </router-link>
+    @endif
 
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 12 || Auth::user()->role->id == 14)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/delivery_pending" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Delivery Pending</span>
+        </a>
+    </router-link>
+    @endif
+
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 10 || Auth::user()->role->id == 11 || Auth::user()->role->id == 13 || Auth::user()->role->id == 14 || Auth::user()->role->id == 18)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/sale_over_due" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Sale OverDue</span>
+        </a>
+    </router-link>
+    @endif 
+
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 15)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/purchase_over_due" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Purchase Over Due</span>
+        </a>
+    </router-link>
+    @endif
+
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 15 || Auth::user()->role->id == 16)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/min_max" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Min-Max Report</span>
+        </a>
+    </router-link>
+    @endif
+
+    @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->id == 19 || Auth::user()->role->id == 15 || Auth::user()->role->id == 16)
+    <hr class="sidebar-divider">
+    <router-link tag="li" to="/reminder/reorder_level" class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="fas fa-chart-bar"></i>
+            <span>Reorder Level Report</span>
+        </a>
+    </router-link>
+    @endif
+
+
+    @endif
+    
     <!-- Divider -->
     @if(Auth::user()->role->role_name != 'office_order_user')
     <hr class="sidebar-divider d-none d-md-block">

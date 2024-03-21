@@ -106,6 +106,8 @@ class ReturnPaymentController extends Controller
             $obj->return_payment_type = $request->payment_type;
             $obj->return_id = $request->return_id;
             $obj->total_amount = $request->return_amount;
+            $obj->account_group_id = $request->account_group;
+            $obj->sub_account_id = $request->cash_bank_account;
             $obj->created_by = Auth::user()->id;
             $obj->updated_by = Auth::user()->id;
             $obj->save();
@@ -120,10 +122,14 @@ class ReturnPaymentController extends Controller
             //update in sale table
             if($sr_obj->return_method=="with invoice") {
                 $sale=Sale::find($sr_obj->sale_id);
-                if($sale->payment_type == 'credit') {
-                    $sale->return_amount = $request->return_amount + $sale->return_amount;
+                if($sr_obj->return_status == 'extra') {
+                    $sale->extra_return_amount = $request->return_amount + $sale->extra_return_amount;
                 } else {
-                    $sale->cash_return_amount = $request->return_amount + $sale->cash_return_amount;
+                    if($sale->payment_type == 'credit') {
+                        $sale->return_amount = $request->return_amount + $sale->return_amount;
+                    } else {
+                        $sale->cash_return_amount = $request->return_amount + $sale->cash_return_amount;
+                    }
                 }
                 $sale->save();
             } else {
@@ -133,43 +139,69 @@ class ReturnPaymentController extends Controller
             //store in cashbook and ledger
             if($sr_obj->return_method == "with invoice" && $sale->payment_type == 'cash') {
             	//for cash invoice
-            	$description=$obj->return_payment_no.", Date ".$request->payment_date." by " .$obj->customer->cus_name;
-            	AccountTransition::create([
-	                'sub_account_id' => 78,
-	                'transition_date' => $request->payment_date,
-	                'customer_id' => $request->customer_id,
-	                //'sale_id' => $sale->id,
-	                'return_id' => $request->return_id,
-	                'return_payment_id' => $return_payment_id,
-	                'status'=>'return_payment',
-	                'vochur_no'=>$obj->return_payment_no,
-	                'description'=>$description,
-	                'is_cashbook' => 1,
-	                'credit' => $request->return_amount,
-	                'created_by' => Auth::user()->id,
-	                'updated_by' => Auth::user()->id,
-	            ]);
+                if($sr_obj->return_status == 'extra') {
+                    $description=$obj->return_payment_no.", Date ".$request->payment_date." by " .$obj->customer->cus_name;
+                    AccountTransition::create([
+                        'sub_account_id' => 78,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
+                        'transition_date' => $request->payment_date,
+                        'customer_id' => $request->customer_id,
+                        //'sale_id' => $sale->id,
+                        'return_id' => $request->return_id,
+                        'return_payment_id' => $return_payment_id,
+                        'status'=>'return_payment',
+                        'vochur_no'=>$obj->return_payment_no,
+                        'description'=>$description,
+                        'is_cashbook' => 1,
+                        'credit' => $request->return_amount,
+                        'created_by' => Auth::user()->id,
+                        'updated_by' => Auth::user()->id,
+                    ]);
 
-	            AccountTransition::create([
-	                'sub_account_id' => 78,
-	                'transition_date' => $request->payment_date,
-	                'customer_id' => $request->customer_id,
-	                //'sale_id' => $sale->id,
-	                'return_id' => $request->return_id,
-	                'return_payment_id' => $return_payment_id,
-	                'status'=>'return_payment',
-	                'vochur_no'=>$obj->return_payment_no,
-	                'description'=>'',
-	                'is_cashbook' => 0,
-	                'credit' => $request->return_amount,
-	                'created_by' => Auth::user()->id,
-	                'updated_by' => Auth::user()->id,
-	            ]);
-            } else {
-            	//for credit invoice and without invoice
-                if($sr_obj->return_method == "with invoice") {
+                    AccountTransition::create([
+                        'sub_account_id' => 78,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
+                        'transition_date' => $request->payment_date,
+                        'customer_id' => $request->customer_id,
+                        //'sale_id' => $sale->id,
+                        'return_id' => $request->return_id,
+                        'return_payment_id' => $return_payment_id,
+                        'status'=>'return_payment',
+                        'vochur_no'=>$obj->return_payment_no,
+                        'description'=>'',
+                        'is_cashbook' => 0,
+                        'credit' => $request->return_amount,
+                        'created_by' => Auth::user()->id,
+                        'updated_by' => Auth::user()->id,
+                    ]);
+
+                } else {
+
+                	$description=$obj->return_payment_no.", Date ".$request->payment_date." by " .$obj->customer->cus_name;
                 	AccountTransition::create([
     	                'sub_account_id' => 78,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
+    	                'transition_date' => $request->payment_date,
+    	                'customer_id' => $request->customer_id,
+    	                //'sale_id' => $sale->id,
+    	                'return_id' => $request->return_id,
+    	                'return_payment_id' => $return_payment_id,
+    	                'status'=>'return_payment',
+    	                'vochur_no'=>$obj->return_payment_no,
+    	                'description'=>$description,
+    	                'is_cashbook' => 1,
+    	                'credit' => $request->return_amount,
+    	                'created_by' => Auth::user()->id,
+    	                'updated_by' => Auth::user()->id,
+    	            ]);
+
+    	            AccountTransition::create([
+    	                'sub_account_id' => 78,
+                        'account_group_id' => $request->account_group,
+                        'cash_bank_sub_account_id' => $request->cash_bank_account,
     	                'transition_date' => $request->payment_date,
     	                'customer_id' => $request->customer_id,
     	                //'sale_id' => $sale->id,
@@ -179,10 +211,69 @@ class ReturnPaymentController extends Controller
     	                'vochur_no'=>$obj->return_payment_no,
     	                'description'=>'',
     	                'is_cashbook' => 0,
-    	                'debit' => $request->return_amount,
+    	                'credit' => $request->return_amount,
     	                'created_by' => Auth::user()->id,
     	                'updated_by' => Auth::user()->id,
     	            ]);
+                }
+            } else {
+            	//for credit invoice and without invoice
+                if($sr_obj->return_method == "with invoice") {
+                    if($sr_obj->return_status == 'extra') {
+                        AccountTransition::create([
+                            'sub_account_id' => 78,
+                            'account_group_id' => $request->account_group,
+                            'cash_bank_sub_account_id' => $request->cash_bank_account,
+                            'transition_date' => $request->payment_date,
+                            'customer_id' => $request->customer_id,
+                            //'sale_id' => $sale->id,
+                            'return_id' => $request->return_id,
+                            'return_payment_id' => $return_payment_id,
+                            'status'=>'return_payment',
+                            'vochur_no'=>$obj->return_payment_no,
+                            'description'=>'',
+                            'is_cashbook' => 1,
+                            'credit' => $request->return_amount,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);
+
+                    	AccountTransition::create([
+        	                'sub_account_id' => 78,
+                            'account_group_id' => $request->account_group,
+                            'cash_bank_sub_account_id' => $request->cash_bank_account,
+        	                'transition_date' => $request->payment_date,
+        	                'customer_id' => $request->customer_id,
+        	                //'sale_id' => $sale->id,
+        	                'return_id' => $request->return_id,
+        	                'return_payment_id' => $return_payment_id,
+        	                'status'=>'return_payment',
+        	                'vochur_no'=>$obj->return_payment_no,
+        	                'description'=>'',
+        	                'is_cashbook' => 0,
+        	                'credit' => $request->return_amount,
+        	                'created_by' => Auth::user()->id,
+        	                'updated_by' => Auth::user()->id,
+        	            ]);
+                    } else {
+                        AccountTransition::create([
+                            'sub_account_id' => 78,
+                            'account_group_id' => $request->account_group,
+                            'cash_bank_sub_account_id' => $request->cash_bank_account,
+                            'transition_date' => $request->payment_date,
+                            'customer_id' => $request->customer_id,
+                            //'sale_id' => $sale->id,
+                            'return_id' => $request->return_id,
+                            'return_payment_id' => $return_payment_id,
+                            'status'=>'return_payment',
+                            'vochur_no'=>$obj->return_payment_no,
+                            'description'=>'',
+                            'is_cashbook' => 0,
+                            'debit' => $request->return_amount,
+                            'created_by' => Auth::user()->id,
+                            'updated_by' => Auth::user()->id,
+                        ]);  
+                    }
                 }
             }
 
@@ -214,6 +305,8 @@ class ReturnPaymentController extends Controller
             $obj->return_payment_type = $request->payment_type;
             //$obj->return_id = $request->return_id;
             $obj->total_amount = $request->return_amount;
+            $obj->account_group_id = $request->account_group;
+            $obj->sub_account_id = $request->cash_bank_account;
             $obj->updated_by = Auth::user()->id;
             $obj->save();
            // AccountTransition::where('return_id',$id)->delete();
@@ -225,11 +318,16 @@ class ReturnPaymentController extends Controller
             //update in sale table
             if($sr_obj->return_method=="with invoice") {
                 $sale=Sale::find($sr_obj->sale_id);
-                if($sale->payment_type == 'credit') {
-                    $sale->return_amount = $request->return_amount + ($sale->return_amount - $old_return_amount);
+                if($sr_obj->return_status == 'extra') {
+                    $sale->extra_return_amount = $request->return_amount + ($sale->extra_return_amount - $old_return_amount);
                 } else {
-                    $sale->cash_return_amount = $request->return_amount + ($sale->cash_return_amount - $old_return_amount);
+                    if($sale->payment_type == 'credit') {
+                        $sale->return_amount = $request->return_amount + ($sale->return_amount - $old_return_amount);
+                    } else {
+                        $sale->cash_return_amount = $request->return_amount + ($sale->cash_return_amount - $old_return_amount);
+                    }   
                 }
+                
                 $sale->save();
             } else {
                 
@@ -239,21 +337,48 @@ class ReturnPaymentController extends Controller
             if($sr_obj->return_method == "with invoice" && $sale->payment_type == 'cash') {
             	//for cash invoice
             	$description=$obj->return_payment_no.", Date ".$request->payment_date." by " .$obj->customer->cus_name;
-            	DB::table('account_transitions')
-                            ->where('return_payment_id', $id)
-                            ->where('is_cashbook', 1)
-                            ->update(array('transition_date' => $request->payment_date,'description'=>$description,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                if($sr_obj->return_status == 'extra') {
 
-                DB::table('account_transitions')
-                            ->where('return_payment_id', $id)
-                            ->where('is_cashbook', 0)
-                            ->update(array('transition_date' => $request->payment_date,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                	DB::table('account_transitions')
+                                ->where('return_payment_id', $id)
+                                ->where('is_cashbook', 1)
+                                ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'description'=>$description,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+
+
+                    DB::table('account_transitions')
+                                ->where('return_payment_id', $id)
+                                ->where('is_cashbook', 0)
+                                ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                   
+                } else {
+                    DB::table('account_transitions')
+                                ->where('return_payment_id', $id)
+                                ->where('is_cashbook', 1)
+                                ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'description'=>$description,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+
+                    DB::table('account_transitions')
+                                ->where('return_payment_id', $id)
+                                ->where('is_cashbook', 0)
+                                ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));   
+                }
             } else {
             	//for credit invoice and without invoice
-            	DB::table('account_transitions')
+                if($sr_obj->return_status == 'extra') {
+                   DB::table('account_transitions')
+                            ->where('return_payment_id', $id)
+                            ->where('is_cashbook', 1)
+                            ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+            	   DB::table('account_transitions')
                             ->where('return_payment_id', $id)
                             ->where('is_cashbook', 0)
-                            ->update(array('transition_date' => $request->payment_date,'debit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                            ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'credit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                  
+                } else {
+                    DB::table('account_transitions')
+                            ->where('return_payment_id', $id)
+                            ->where('is_cashbook', 0)
+                            ->update(array('account_group_id' => $request->account_group,'cash_bank_sub_account_id' => $request->cash_bank_account,'transition_date' => $request->payment_date,'debit' => $request->return_amount,'updated_by' => Auth::user()->id));
+                }
             }
 
         	$status = "success";
@@ -287,11 +412,16 @@ class ReturnPaymentController extends Controller
 
         if($sr_obj->return_method=="with invoice") {
             $sale=Sale::find($sr_obj->sale_id);
-            if($sale->payment_type == 'credit') {
-                $sale->return_amount = $sale->return_amount - $delete_return_amount;
+            if($sr_obj->return_status == 'extra') {
+                $sale->extra_return_amount = $sale->extra_return_amount - $delete_return_amount;  
             } else {
-                $sale->cash_return_amount = $sale->cash_return_amount - $delete_return_amount;
+                if($sale->payment_type == 'credit') {
+                    $sale->return_amount = $sale->return_amount - $delete_return_amount;
+                } else {
+                    $sale->cash_return_amount = $sale->cash_return_amount - $delete_return_amount;
+                }   
             }
+            
             $sale->save();
         }
 

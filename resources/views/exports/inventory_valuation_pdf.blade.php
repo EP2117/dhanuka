@@ -6,27 +6,31 @@
     <style type="text/css">
         .body {
             font-family: 'ZawgyiOne2008' !important;
+            font-size: 12px;
         }
 
         .mm-txt {
             font-family: 'ZawgyiOne2008' !important;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         table#t01 {
             width: 100%;
             border: solid 1px #000;
             border-collapse: collapse;
+            font-size: 12px;
         }
 
         th,
         td {
             border: 1px solid black;
             padding: 5px;
+            font-size: 12px;
         }
 
         th {
             text-align: center;
+            font-size: 12px;
         }
 
         .text-center {
@@ -58,6 +62,9 @@
                 <th class="text-center">Warehouse UOM</th>
                 <th class="text-center">Balance Qty </th>
                 <th class="text-center">Valuation Amount</th>
+                <th class="text-center">Adjustment In <br />Valuation Amount</th>
+                <th class="text-center">Adjustment Out <br />Valuation Amount</th>
+                <th class="text-center">Before Adjustment <br />Valuation Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -77,6 +84,9 @@
                 <td class="text-center">{{$product->uom_name}}</td>
                 <td class="text-center">{{$product->balance}}</td>
                 <td class="text-center">{{$product->t_valuation_amount}}</td>
+                <td class="text-center">{{$product->adj_in_cost_price}}</td>
+                <td class="text-center">{{$product->adj_out_cost_price}}</td>
+                <td class="text-center">{{($product->t_valuation_amount + $product->adj_out_cost_price) - $product->adj_in_cost_price}}</td>
             </tr>
             @endforeach
             <tr>
@@ -84,6 +94,15 @@
                 <td class="text-center">
                     {{$total_valuation}}
                 </td>
+                <td class="text-center">
+                   {{$total_adj_in}}
+               </td>
+               <td class="text-center">
+                   {{$total_adj_out}}
+               </td>
+               <td class="text-center">
+                   {{$total_after_valuation}}
+               </td>
             </tr>
         </tbody>
     </table>

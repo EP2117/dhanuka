@@ -161,7 +161,7 @@
               <div style="vertical-align: middle; text-align: center;float:left">
                   <b><u><font style="font-size: 18px">DHANUKA INTERNATIONAL CO.,LTD</font></u></b>
                   <br />No(60),29th Street, Pabedan Township, Yangon, Myanmar.
-                  <br />Office phone :018-250067, 018-391901, 018-39190209-954990290, <br />09-954990291, 09-940737000. Complain No. : 09-979201727 
+                  <br />Office phone :018-250067, 018-391901, 018-39190209-954990290, <br />09-954990291, 09-940737000. <b>Complain No. : 09-979201727</b>
               </div>
               <div style="clear:both"></div>
             </div>
@@ -229,13 +229,13 @@
           </td>
         </tr>
         <tr class="tr_heigh">
-          <td class='mm-txt' style="text-align: center;width:10px;font-weight: bold;">နံပါတ်</td>
-          <td class='mm-txt' style="text-align: center;width:400px;font-weight: bold;">အမျိုးအမည်</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;">CTN</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;">PCS</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;width:150px;">ဈေးနှုန်း<br />(MMK)</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">လျှော့ငွေ<br />(MMK)</td>
-          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;">သင့်ငွေ<br />(MMK)</td>
+          <td class='mm-txt' style="text-align: center;width:10px;font-weight: bold;font-size:14px;">နံပါတ်</td>
+          <td class='mm-txt' style="text-align: center;width:400px;font-weight: bold;font-size:14px;">အမျိုးအမည်</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;font-size:14px;">CTN</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;font-size:14px;">PCS</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;width:150px;font-size:14px;">ဈေးနှုန်း<br />(MMK)</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;font-size:14px;">လျှော့ငွေ<br />(MMK)</td>
+          <td class='mm-txt' style="text-align: center;font-weight: bold;width:100px;font-size:14px;">သင့်ငွေ<br />(MMK)</td>
         </tr>
       </thead>
       <?php
@@ -248,13 +248,13 @@
         <tr class="tr_heigh">
           <td style="text-align: center;margin:0;padding:0;line-height: 0px;">{{$k}}</td>
           <td class="mm-txt" style="text-align: left;margin:0;padding:0;">{{$product->product_name}}</td>
-          <td style="text-align: right;line-height: 1px;margin:0;padding:0;">{{!empty($product->pivot->ctn) ? $product->pivot->ctn : ''}}</td>
+          <td style="text-align: center;line-height: 1px;margin:0;padding:0;">{{!empty($product->pivot->ctn) ? $product->pivot->ctn : ''}}</td>
           @if($product->pivot->uom_id == $product->uom_id)
-          <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
+          <td style="text-align: center;line-height: 1px;margin:0;padding:0;">
               {{(int)$product->pivot->product_quantity}}
           </td>          
           @else
-          <td style="text-align: right;line-height: 1px;margin:0;padding:0;">
+          <td style="text-align:center;line-height: 1px;margin:0;padding:0;">
               {{(int)$product->pivot->product_quantity}} {{getUomName($product,$product->pivot->uom_id)}} x {{getUomRelation($product,$product->pivot->uom_id)}} {{getUomName($product,$product->uom_id)}}
           </td>
           @endif
@@ -302,7 +302,7 @@
       ?>
 
       <tr class="tr_heigh">
-        <td colspan="4" rowspan="6" style="vertical-align: top;" class="mm-txt">
+        <td colspan="4" rowspan="4" style="vertical-align: top;" class="mm-txt">
           Sales Man: {{$sale->sale_man->sale_man}} <br />
           @if($sale->payment_type == 'credit' && !empty($sale->due_date))
           Due Date: <?php
@@ -310,38 +310,37 @@
           ?>{{date_format($date,'dMY')}} <br />
           @endif
           ယခင်လက်ကျန်ငွေ(MMK): {{number_format($previous_balance)}}<br />
-          Notes:<br /><br />
+          <!--Notes:-->User ID: {{ Auth::user()->name }}<br />
           <div>
-              <div style="float:left" class="mm-txt">User ID: {{ Auth::user()->name }}</div>
-              <div style="float:right" class="mm-txt">Signature: ........................</div>
+              <div style="float:left" class="mm-txt"><b>Signature:</b> .............................................................................</div>
+              <!--<div style="float:right" class="mm-txt">Signature: ........................</div>-->
           </div>           
         </td>
-        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Total Amount(MMK)</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->total_amount)}}</td>
+        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px; height:20px">Total Amount(MMK)</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px; height:20px">{{number_format($sale->total_amount)}}</td>
       </tr>
       <tr>
-        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Cash Discount(MMK)</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->cash_discount)}}</td>
+        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px; height:20px">Cash Discount(MMK)</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px; height:20px">{{number_format($sale->cash_discount)}}</td>
       </tr>
-      <tr>
+      <!--<tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Net Total(MMK)</td>
         <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->net_total)}}</td>
       </tr>
       <tr>
         <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Tax(MMK)</td>
-        <!--<td>{{!empty($sale->tax) ? number_format($sale->tax).'%':''}}</td>-->
         <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->tax_amount)}}</td>
+      </tr>-->
+      <tr>
+        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px; height:20px">Paid Amount(MMK)</td>
+        <td style="text-align: right;padding: 0px;padding-right: 5px; height:20px">{{!empty($sale->pay_amount) ? number_format($sale->pay_amount) : '0'}}</td>
       </tr>
       <tr>
-        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Paid Amount(MMK)</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{!empty($sale->pay_amount) ? number_format($sale->pay_amount) : '0'}}</td>
+        <td colspan="2" class="mm-txt" style="border:solid 2px #000;padding:0px;padding-left: 5px;font-weight: bold;">Balance Amount(MMK)</td>
+        <td style="border:solid 2px #000;font-weight: bold;text-align: right;padding: 0px;padding-right: 5px;">{{number_format($sale->balance_amount)}}</td>
       </tr>
       <tr>
-        <td colspan="2" class="mm-txt" style="padding:0px;padding-left: 5px">Balance Amount(MMK)</td>
-        <td style="text-align: right;padding: 0px;padding-right: 5px">{{number_format($sale->balance_amount)}}</td>
-      </tr>
-      <tr>
-        <td colspan="9" style="height:60px;vertical-align: top" class="mm-txt">Bank Details:</td>
+        <td colspan="9" style="height:60px;vertical-align: top" class="mm-txt">Remark:</td>
       </tr>
       <!--<tfoot>
         <tr style="border:none;">

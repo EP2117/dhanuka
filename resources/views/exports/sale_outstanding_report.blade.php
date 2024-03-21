@@ -83,7 +83,7 @@
                             <td class="text-center">{{$c->customer->cus_phone}}</td>
                             <td>
                               @foreach($c->products as $j=>$prod)
-                                {{$prod->product_name}}
+                                {{$prod['product_name']}}
                                 @if($j!=count($c->products) - 1)
                                   ,
                                 @endif

@@ -62,70 +62,6 @@
                   @else                  
                   <td class="text-right" style="vertical-align: middle;"></td>
                   @endif
-
-                  <!--<td >{{$c->category_name}}</td>-->
-                  <!--<td style="padding:0;margin:0;width: 30px; vertical-align: top;">
-                      @if(!empty($c->category_id))
-
-                      @foreach(explode(',',$c->category_id) as $i=>$cid)
-                        <?php
-                           $pCount = 0;
-                           $cat_p_arr = explode('_',$c->cat_product_id);
-                           foreach(explode(',',$c->product_id) as $j=>$pid) {
-                              if(in_array($pid, explode(',',$cat_p_arr[$i]))) {
-                                  $pCount++;
-                              }
-                           }
-                        ?>
-                          @php
-                            if(empty($request->categories)) {
-                              $cateArr = array();
-                            }
-                            else {
-                              $cateArr = explode(',',$request->categories);
-                            }
-                            $c_name = !empty($c->category_name) ? explode(',',$c->category_name) : array();
-                          @endphp
-                          @if(empty($request->categories) || (count($cateArr) > 0 &&  in_array($cid,$cateArr)) || !empty(array_intersect(explode(',',$cat_p_arr[$i]), explode(',',$request->products))))
-                           <br />
-                           {{$c_name[$i]}}  - {{$pCount}}
-                           @for($n=0; $n<=$pCount; $n++)
-                            <br />
-                           @endfor
-                          @endif
-                    @endforeach
-                    @endif
-                  </td>
-
-                  <td style="padding:0;margin:0;width: 40px; vertical-align: top;">
-                      @if(!empty($c->product_id))
-                      @foreach(explode(',',$c->category_id) as $i=>$cid)
-                       @foreach(explode(',',$c->product_id) as $j=>$pid)
-                        @php
-                           if(empty($request->products)) {
-                              $pArr = array();
-                           }
-                          else {
-                              $pArr = explode(',',$request->products);
-                          }
-                          $cp_arr = explode('_',$c->cat_product_id);
-                          $p_name = explode(',',$c->product_name);
-                        @endphp
-
-                        @if(in_array($pid, explode(',',$cp_arr[$i])))
-
-                       @if((empty($request->products) && (in_array($cid,explode(',',$request->categories)) || empty($request->categories))) || (count($pArr) > 0 &&  in_array($pid,$pArr)))
-                          {{trim($p_name[$j])}}<br />
-                        @else
-                          abc<br />
-                        @endif
-                        @else
-                          def<br />
-                        @endif
-                      @endforeach
-                     @endforeach
-                    @endif
-                  </td>-->
                   <td style="padding:0;margin:0;width: 30px; vertical-align: top;">
                       @php $pc=0; @endphp
                       @if(!empty($c->category_id))
@@ -134,11 +70,15 @@
                         <?php
                            $pCount = 0;
                            $cat_p_arr = explode('_',$c->cat_product_id);
-                           foreach(explode(',',$c->product_id) as $j=>$pid) {
-                              if(in_array($pid, explode(',',$cat_p_arr[$i]))) {
-                                  $pCount++;
+                           if(!empty($c->product_id)) {
+                             foreach(explode(',',$c->product_id) as $j=>$pid) {
+                              if(!empty($cat_p_arr[$i])) {
+                                if(in_array($pid, explode(',',$cat_p_arr[$i]))) {
+                                    $pCount++;
+                                }
                               }
-                           }
+                             }
+                            }
                         ?>
                           @php
                             if(empty($request->categories)) {
@@ -149,8 +89,14 @@
                             }
                             $c_name = !empty($c->category_name) ? explode(',',$c->category_name) : array();
                           @endphp
-                          @if(empty($request->categories) || (count($cateArr) > 0 &&  in_array($cid,$cateArr)) || !empty(array_intersect(explode(',',$cat_p_arr[$i]), explode(',',$request->products))))
-                           <strong>{{$c_name[$i]}}-</strong> &nbsp;
+                          @php
+                            $catp_arr = array();
+                            if(!empty($cat_p_arr[$i])) {
+                              $catp_arr = explode(',',$cat_p_arr[$i]);
+                            }
+                          @endphp
+                          @if(empty($request->categories) || (count($cateArr) > 0 &&  in_array($cid,$cateArr)) || !empty(array_intersect($catp_arr, explode(',',$request->products))))
+                           <strong>{{ isset($c_name[$i]) ?  $c_name[$i]  : ''}}-</strong> &nbsp;
                            <!-- product start -->
                            @if(!empty($c->product_id))
                              @php $pc = 0; @endphp
@@ -166,6 +112,7 @@
                                   $p_name = explode(',',$c->product_name);
                                 @endphp
 
+                               @if(!empty($cat_p_arr[$i]))
                                 @if(in_array($pid, explode(',',$cp_arr[$i])))
 
                                @if((empty($request->products) && (in_array($cid,explode(',',$request->categories)) || empty($request->categories))) || (count($pArr) > 0 &&  in_array($pid,$pArr)))
@@ -175,6 +122,7 @@
                                   {{$p_name[$j]}}; &nbsp;
                                 @endif
                                 @endif
+                              @endif
                               @endforeach
                             @endif
                            <!-- product End -->

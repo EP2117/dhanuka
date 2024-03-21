@@ -39,7 +39,17 @@ class BranchController extends Controller
         if(Auth::user()->role->role_name == "system") {
             $data = Branch::orderBy('branch_name', 'ASC')->where('is_active',1)->get();
         }
-        else if(Auth::user()->role->role_name == "Country Head" || Auth::user()->role->role_name == "admin") {
+        else {
+           $access_branches = array();
+            foreach(Auth::user()->branches as $b) {
+                array_push($access_branches, $b->id);
+            }
+            
+            $data = Branch::where('is_active',1);
+            $data->whereIn('id',$access_branches);
+            $data = $data->orderBy('branch_name', 'ASC')->get();  
+        }
+        /*else if(Auth::user()->role->role_name == "Country Head" || Auth::user()->role->role_name == "admin") {
             $access_branches = array();
             foreach(Auth::user()->branches as $b) {
                 array_push($access_branches, $b->id);
@@ -51,7 +61,7 @@ class BranchController extends Controller
             $data = Branch::where('is_active',1);
             $data->where('id',Auth::user()->branch_id);
             $data = $data->orderBy('branch_name', 'ASC')->get(); 
-        }
+        }*/
         return response(compact('data'), 200);
     }
 

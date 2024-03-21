@@ -58,6 +58,7 @@ import CollectionForm from './views/collectionForm.vue';
 import DailySaleProductRpt from './views/dailySaleProductRpt.vue';
 import DailySaleRpt from './views/dailySaleRpt.vue';
 import InventoryRpt from './views/inventoryRpt.vue';
+import StockLedger from './views/stockLedger.vue';
 import SOProductRpt from './views/saleOrderProductRpt.vue';
 import SaleComparisonRpt from './views/saleComparisonRpt.vue';
 import PendingApprovalRpt from './views/pendingApprovalRpt.vue';
@@ -84,7 +85,9 @@ import WarehouseForm from './views/warehouseForm.vue';
 import SaleMan from './views/saleMan.vue';
 import SaleManForm from './views/saleManForm.vue';
 import SupplierForm from "./views/SupplierForm";
-import Supplier  from "./views/Supplier.Vue";
+import Supplier  from "./views/Supplier.vue";
+import TownshipForm from "./views/townshipForm";
+import Township  from "./views/township";
 import Purchase  from "./views/Purchase";
 import PurchaseForm  from "./views/PurchaseForm";
 import PurchaseCollection from "./views/PurchaseCollection"
@@ -97,6 +100,8 @@ import Receipt from "./views/Receipt/Receipt";
 import ReceiptForm from "./views/Receipt/ReceiptForm";
 import Payment from "./views/Payment/Payment";
 import PaymentForm from "./views/Payment/PaymentForm";
+import JournalEntry from "./views/JournalEntry/JournalEntry";
+import JournalEntryForm from "./views/JournalEntry/JournalEntryForm";
 import Cashbook from "./views/Cashbook/Cashbook";
 import DailyPurchaseProductReport from "./views/Report/DailyPurchaseProductReport";
 import CreditPaymentReport from "./views/Report/CreditPaymentReport";
@@ -137,6 +142,19 @@ import SaleReturnProductRpt from "./views/saleReturnProductRpt";
 import SaleReturnPaymentRpt from "./views/saleReturnPaymentRpt";
 import ReturnOsRpt from "./views/returnOsRpt";
 import SaleAnalystRpt from "./views/report/saleAnalystRpt";
+
+import MinMaxReport from "./views/Reminder/MinMaxReport";
+import ReorderLevelReport from "./views/Reminder/ReorderLevel";
+import SaleOverDue from "./views/Reminder/SaleOverDue";
+import PurchaseOverDue from "./views/Reminder/PurchaseOverDue";
+import SaleOrderPending from "./views/Reminder/SaleOrderPending";
+import DeliveryPending from "./views/Reminder/DeliveryPending";
+
+import PurchaseCreditNote from './views/CreditNote/PurchaseCreditNote';
+import PurchaseCreditNoteForm from './views/CreditNote/PurchaseCreditNoteForm';
+import PurchaseCreditNoteReport from './views/Report/PurchaseCreditNoteReport';
+import PurchaseCreditNoteProductWiseReport from './views/Report/PurchaseCreditNoteProductWise';
+
 
 const routes = [
     {
@@ -349,6 +367,10 @@ const routes = [
       component: InventoryRpt
     },
     {
+      path: '/report/stock-ledger',
+      component: StockLedger
+    },
+    {
       path: '/report/so-product-rpt',
       component: SOProductRpt
     },
@@ -424,6 +446,19 @@ const routes = [
     {
         path: '/supplier/edit/:id',
         component: SupplierForm
+    },
+    {
+        name:'township',
+        path: '/township',
+        component: Township
+    },
+    {
+        path: '/township/new',
+        component: TownshipForm
+    },
+    {
+        path: '/township/edit/:id',
+        component: TownshipForm
     },
     {
         name:'purchase',
@@ -502,6 +537,19 @@ const routes = [
     {
         path: '/payment/edit/:id',
         component: PaymentForm
+    },
+    {
+        name:'journal_entry',
+        path: '/journal_entry',
+        component: JournalEntry
+    },
+    {
+        path: '/journal_entry/new',
+        component: JournalEntryForm
+    },
+    {
+        path: '/journal_entry/edit/:id',
+        component: JournalEntryForm
     },
     {
         name:'cashbook',
@@ -699,6 +747,53 @@ const routes = [
   {
       path: '/report/sale-analyst-rpt',
       component: SaleAnalystRpt,
+  },
+  {
+      path: "/reminder/sale_over_due",
+      component: SaleOverDue
+  },
+  {
+      path: "/reminder/purchase_over_due",
+      component: PurchaseOverDue
+  },
+  {
+      path: "/reminder/min_max",
+      component: MinMaxReport
+  },
+  {
+      path: "/reminder/reorder_level",
+      component: ReorderLevelReport
+  },
+  {
+      path: "/reminder/sale_order_pending",
+      component: SaleOrderPending
+  },
+  {
+      path: "/reminder/delivery_pending",
+      component: DeliveryPending
+  },
+  {
+      name: 'purchase_credit_note',
+      path: '/purchase_credit_note',
+      component: PurchaseCreditNote
+  },
+  {
+      path: '/purchase_credit_note/create',
+      component: PurchaseCreditNoteForm
+  },
+  {
+      path: '/purchase_credit_note/edit/:id',
+      component: PurchaseCreditNoteForm
+  },
+  {
+      name: 'purchase_credit_note_report',
+      path: '/report/purchase_credit_note_report',
+      component: PurchaseCreditNoteReport
+  },
+  {
+      name: 'purchase_credit_note_product_wise_report',
+      path: '/report/purchase_credit_note_product_wise',
+      component: PurchaseCreditNoteProductWiseReport
   },
   
 ];

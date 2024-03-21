@@ -75,7 +75,23 @@ class LoginController extends Controller
  
         $credentials = $request->only('email', 'password');
         if (Auth::attempt($credentials)) {
+
+            if(Auth::user()->is_active == 0){
+                Auth::logout();
+                //Session::forget('loginYear');
+                return Redirect::to("login")->withErrors([
+                                'email' => "Warning! User is In-Active!",
+                            ]);
+            }
+            
             session(['loginYear' => $request->year]);
+
+            foreach(Auth::user()->branches as $k=>$b) {
+                if($k == 0) {
+                    $branch_id = $b->id; 
+                    session(['user_branch' => $b->branch_name]); 
+                }
+            }
 
             //check already logged in user exist or not (if exist, auto logout)
             /*if(Auth::user()->online_status == 1){
@@ -111,7 +127,8 @@ class LoginController extends Controller
             $user->online_status = 0;
             $user->save();
             Auth::logout();
-            Session::forget('loginYear');            
+            Session::forget('loginYear'); 
+            Session::forget('user_branch');            
         } 
 
         return redirect('/login');

@@ -103,6 +103,8 @@ class CustomerReturnController extends Controller
             $return->return_date = $request->return_date;
             $return->customer_id = $request->customer_id;
             $return->return_amount = $request->pay_amount;
+            $return->account_group_id = $request->account_group;
+            $return->sub_account_id = $request->cash_bank_account;
             //$return->updated_by = Auth::user()->id;
             $return->save();
             //dd($request->sale_bals);
@@ -129,6 +131,8 @@ class CustomerReturnController extends Controller
 			if(!empty($request->pay_amount)) {
     			AccountTransition::create([
                     'sub_account_id' => 78,
+                    'account_group_id' => $request->account_group,
+                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                     'transition_date' => $request->return_date,
                     'customer_id' => $request->customer_id,
                     'customer_return_id' => $return->id,
@@ -164,6 +168,8 @@ class CustomerReturnController extends Controller
             $return->return_date = $request->return_date;
             $return->customer_id = $request->customer_id;
             $return->return_amount = $request->pay_amount;
+            $return->account_group_id = $request->account_group;
+            $return->sub_account_id = $request->cash_bank_account;
             //$return->updated_by = Auth::user()->id;
             $return->save();
             $return_no = $return->customer_return_no;
@@ -200,6 +206,8 @@ class CustomerReturnController extends Controller
 			if(!empty($request->pay_amount)) {
     			AccountTransition::create([
                     'sub_account_id' => 78,
+                    'account_group_id' => $request->account_group,
+                    'cash_bank_sub_account_id' => $request->cash_bank_account,
                     'transition_date' => $request->return_date,
                     'customer_id' => $request->customer_id,
                     'customer_return_id' => $return->id,

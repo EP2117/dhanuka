@@ -274,7 +274,7 @@
                                             </a>
 
                                             <a class="dropdown-item">
-                                                <a title="Delete" class="text-danger" @click="removeSale(sale.id)" v-if="(user_role == 'system' || user_role == 'office_user') && sale.collections.length == 0 && sale.delivery_approve == 0 && sale.deliveries.length == 0  && sale.return_amount == 0 && sale.cash_return_amount == 0">
+                                                <a title="Delete" class="text-danger" @click="removeSale(sale.id)" v-if="(user_role == 'system' || user_role == 'office_user') && sale.collections.length == 0 && sale.delivery_approve == 0 && sale.deliveries.length == 0  && sale.return_amount == 0 && sale.cash_return_amount == 0 && sale.sale_returns.length == 0">
                                                     <i class="fas fa-trash"></i>
                                                 </a>           
                                             </a>

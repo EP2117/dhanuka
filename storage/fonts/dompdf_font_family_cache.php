@@ -78,6 +78,6 @@
     'normal' => $rootDir . '/lib/fonts/DejaVuSerif',
   ),
   'zawgyione2008' => array(
-    'normal' => $fontDir . '/zawgyione2008-normal_02a32e2785a8e091d52cfdd5fddc2d51',
+    'normal' => $fontDir . '/zawgyione2008-normal_96aa6b577b288121118d29a641e3dedd',
   ),
 ) ?>

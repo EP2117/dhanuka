@@ -44,6 +44,15 @@
                             <option v-for="at in account_type" :value="at.id"  >{{at.name}}</option>
                         </select>
                     </div>
+
+                    <div class="form-group col-md-4 col-lg-3">
+                        <label>Account Group</label>
+                        <select id="account_group_id" class="form-control"
+                                name="account_group" v-model="search.account_group" style="width:100%">
+                            <option value="">Select One</option>
+                            <option v-for="at in account_group" :value="at.id"  >{{at.name}}</option>
+                        </select>
+                    </div>
                     <div class="form-group col-md-3 col-lg-2">
                         <label class="small">&nbsp;</label>
                         <button
@@ -71,6 +80,7 @@
                             <th class="text-center">Sub Account Name</th>
                             <th class="text-center">Head Account</th>
                             <th class="text-center">Account Type</th>
+                            <th class="text-center">Account Group</th>
                             <th class="text-center">Status</th>
 
                             <th class="text-center">  </th> <!--Kamlesh -->
@@ -82,6 +92,7 @@
                             <th class="text-center">Sub Account Name</th>
                             <th class="text-center">Head Account</th>
                             <th class="text-center">Account Type</th>
+                            <th class="text-center">Account Group</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">  </th> <!--Kamlesh -->
                         </tr>
@@ -93,6 +104,8 @@
                             <td class="text-center">{{sa.sub_account_name}}</td>
                             <td class="text-center">{{sa.account_head.name}}</td>
                             <td class="text-center">{{sa.account_type.name}}</td>
+                            <td class="text-center" v-if="sa.account_group != null">{{sa.account_group.name}}</td>
+                            <td v-else></td>
                             <td class="text-center" v-if="sa.is_active == 1">
                                 <span class="badge badge-success">Active</span>
                             </td>
@@ -185,6 +198,7 @@ export default {
                 sub_account_name:'',
                 account_head:'',
                 account_type:'',
+                account_group: '',
             },
             pagination: {
                 total: "",
@@ -196,6 +210,7 @@ export default {
             },
             account_head:[],
             account_type:[],
+            account_group:[],
             perPage: 30,
             currentPage: 1,
             sub_account_count: 0,
@@ -222,11 +237,15 @@ export default {
         var vm=this;
         vm.initAccountHead();
         vm.initAccountType();
+        vm.initAccountGroup();
     },
     methods:{
         initAccountHead(){
             axios.get('/sub_account/get_account_head').then(({data})=>(this.account_head=data.account_head));
 
+        },
+        initAccountGroup(){
+            axios.get('/sub_account/get_account_group').then(({data})=>(this.account_group=data.account_group));
         },
         initAccountType(){
             axios.get('/sub_account/get_account_type').then(({data})=>(this.account_type=data.account_type));
@@ -241,6 +260,8 @@ export default {
                 app.search.sub_account_name +
                 "&account_head=" +
                 app.search.account_head +
+                "&account_group=" +
+                app.search.account_group +
                 "&account_type=" +
                 app.search.account_type;
             axios.get('/sub_account/get_all?page='+ page + search).then(function (response){
