@@ -1,0 +1,64 @@
+
+
+@font-face {
+  font-family:'Zawgyi-One';
+  src:local('Zawgyi-One'), url('https://mmwebfonts-fonts.sgp1.cdn.digitaloceanspaces.com/fonts/zawgyi.woff') format('woff'), url('https://mmwebfonts-fonts.sgp1.cdn.digitaloceanspaces.com/fonts/zawgyi.ttf') format('ttf');
+}
+
+@font-face {
+  font-family: "Times New Roman";
+  src: url(url(/fonts/TimeNewRoman.woff2) format("woff2"),
+  url(url(/fonts/TimeNewRoman.woff) format("woff"),
+  url(url(/fonts/TimeNewRoman.ttf) format("truetype"),
+  url(url(/fonts/TimeNewRoman.svg#Times New Roman) format("svg");
+}
+
+body {
+  font-size: 12px;
+}
+
+.title {
+  font-family: "Times New Roman";
+}
+table {
+  width:100%;
+  font-size: 9px;
+}
+.mm-txt{
+    font-family: 'Zawgyi-One' !important;
+    font-size: 9px;
+}
+
+.text-center {
+  text-align: center !important;
+}
+.text-right {
+  text-align: right !important; 
+}
+
+.font-bold {
+  font-weight: bold !important;
+}
+.t-class tr, .t-class th, .t-class td{
+    /*border-top: 1px solid black;*/
+    border:none;
+}
+
+.t-office-class tr, .t-office-class th, .t-office-class td{
+   border: 1px solid #444;
+}
+
+.costing_tbl tr, .costing_tbl th, .costing_tbl td {
+    font-size:14px !important;
+}
+
+.bordered thead.costing_rpt + tbody td  {
+  border-collapse:collapse !important;
+  border: 1px solid #ccc !important;
+}
+
+th.costing_th {
+  border-collapse:collapse !important;
+  vertical-align:middle !important;
+  border: 1px solid #ccc !important;
+}

@@ -1,0 +1,38 @@
+{
+    "private": true,
+    "scripts": {
+        "dev": "npm run development",
+        "development": "cross-env NODE_ENV=development node_modules/webpack/bin/webpack.js --progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js",
+        "watch": "npm run development -- --watch",
+        "watch-poll": "npm run watch -- --watch-poll",
+        "hot": "cross-env NODE_ENV=development node_modules/webpack-dev-server/bin/webpack-dev-server.js --inline --hot --config=node_modules/laravel-mix/setup/webpack.config.js",
+        "prod": "npm run production",
+        "production": "cross-env NODE_ENV=production node_modules/webpack/bin/webpack.js --no-progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js"
+    },
+    "devDependencies": {
+        "axios": "^0.26.1",
+        "bootstrap": "^4.1.0",
+        "jquery": "^3.6.0",
+        "laravel-mix": "^4.0.7",
+        "lodash": "^4.17.21",
+        "popper.js": "^1.12",
+        "resolve-url-loader": "^2.3.1",
+        "sass": "^1.26.3",
+        "sass-loader": "^7.1.0",
+        "vue": "^2.5.17",
+        "vue-template-compiler": "^2.6.11"
+    },
+    "dependencies": {
+        "bootstrap-vue": "^2.9.0",
+        "cross-env": "^7.0.2",
+        "dropzone": "^5.9.2",
+        "moment": "^2.29.3",
+        "moment-timezone": "^0.5.28",
+        "select2": "^4.0.8",
+        "sweetalert": "^2.1.2",
+        "vue-axios": "^2.1.5",
+        "vue-bootstrap-datetimepicker": "^5.0.1",
+        "vue-router": "^3.1.6",
+        "vue-select": "^2.6.4"
+    }
+}

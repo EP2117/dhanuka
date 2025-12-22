@@ -1,0 +1,13 @@
+<?php
+  return[
+      'purchase'=>5,
+      'purchase_advance'=>6,
+      'credit_payment'=>7,
+      'sale'=>8,
+      'sale_advance'=>9,
+      'credit_collection'=>10,
+      'cash_sale'=>12,
+      'cash_purchase'=>13,
+      'discount_allowed'=>14,
+      'discount_received'=>15,
+  ];
