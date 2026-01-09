@@ -195,7 +195,7 @@ export default {
             login_to_date: '',
             user_role:'',
             storage_path:'',
-            site_path:'',
+            site_path:'https://authorsmm-tech.com/dhanuka/',
             user_year:'',
         }
     },
@@ -208,8 +208,8 @@ export default {
         alert(this.login_from_date);
         this.login_to_date = document.querySelector("meta[name='login_to_date']").getAttribute('content');
 
-        this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
-        //this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
+        // this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
+        // this.site_path = this.site_path.substring(this.site_path.lastIndexOf('/')+1);
         this.storage_path = document.querySelector("meta[name='storage-path']").getAttribute('content');
         this.getCustomerOB();
     },

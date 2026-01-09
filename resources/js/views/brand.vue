@@ -3,8 +3,8 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
-                <li class="breadcrumb-item"><a href="/">Home</a></li>
-                <li class="breadcrumb-item"><a href="/master">Master</a></li>
+                <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
+                <li class="breadcrumb-item"><a :href="site_path+'/master'">Master</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Brand</li>
 
             </ol>
@@ -191,12 +191,14 @@
                 brand_count: 0,
                 brands: [],
                 user_role: '',
+                site_path: '',
             };
         },
 
         created() {
 
             this.user_role = document.querySelector("meta[name='user-role']").getAttribute('content');
+            this.site_path = document.querySelector("meta[name='site-path']").getAttribute('content');
             /*if(this.user_role != "admin" && this.user_role != "system" && this.user_role != "office_user") {
                 var url =  window.location.origin;
                 window.location.replace(url);

@@ -10,12 +10,12 @@
     <!--</a>-->
         <!-- kamlesh start -->
         <div class="sidebar-brand-icon text-center" style="height: 96px; overflow: hidden;">
-            <div class="p-2">
-                <a class="" href="/">
-                    <img width="100" class="rounded" src="{{ asset('storage/images/logo.jpg') }}" />
+            <div style="width: 6rem; ">
+                <a href="/">
+                    <img id="logo" src="{{ asset('storage/image/logo.jpg') }}" style="width:6rem;padding:5px;" />
                 </a>
             </div>
-            {{-- <div class="logout"style="position:absolute;left:110px;top: 30px;">
+            <div class="logout"style="position:absolute;left:110px;top: 30px;">
                <span style="font-size:1.5rem;color: white;" class="side-log"></span>
                <a href="{{ route('logout') }}" class="sidelog-out" onclick="event.preventDefault();
                                     document.getElementById('logout-form').submit();">
@@ -23,7 +23,7 @@
                 <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
                 @csrf
             </form>
-           </div> --}}
+           </div>
         </div>
     <!-- Kamlesh end -->
   <!-- Divider -->

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-wh" content="{{ Auth::user()->warehouse->warehouse_name }}">
+    <!--@if (Auth::user()->branch)
+<meta name="user-branch" content="{{ Auth::user()->branch->branch_name }}">
+@else
+<meta name="user-branch" content="">
+@endif-->
+    <meta name="user-branch" content="{{ Session::get('user_branch') }}">
+    <meta name="user-role" content="{{ Auth::user()->role->role_name }}">
+    <meta name="site-path" content="{{ url('/') }}">
+    <meta name="storage-path" content="{{ asset('storage') }}">
+    <meta name="user-name-likelink" content="{{ Auth::user()->name }}">
+    <meta name="user-id-likelink" content="{{ Auth::user()->id }}">
+    <meta name="user-wh-id" content="{{ Auth::user()->warehouse_id }}">
+    <meta name="user-role-id" content="{{ Auth::user()->role->id }}">
+    <meta name="user-year-likelink" content="{{ Session::get('loginYear') }}">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dhanuka - Dashboard</title>
+    <link rel="icon" href="{{ asset('storage/images/logo.jpg') }}">
+
+    <!-- Custom fonts for this template-->
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+
+    <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />-->
+    <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/css/select2.min.css" rel="stylesheet" />-->
+    <link href="{{ asset('custom/select2.min.css') }}" rel="stylesheet" />
+
+    <!-- Custom styles for this template-->
+    <link href="{{ asset('css/sb-admin-2.min.css') }}" rel="stylesheet">
+
+    <!--<script src="https://use.fontawesome.com/releases/v5.7.2/js/all.js" data-auto-replace-svg="nest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">-->
+    <script src="{{ asset('custom/fontawesome_all.js') }}" data-auto-replace-svg="nest"></script>
+    <link rel="stylesheet" href="{{ asset('custom/font-awesome.min.css') }}">
+
+    <!-- bootstrap datetime picker styles -->
+    <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/css/bootstrap-datepicker.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet" />-->
+    <link href="{{ asset('custom/bootstrap-datepicker.css') }}" rel="stylesheet" />
+    <link href="{{ asset('custom/bootstrap-datetimepicker.min.css') }}" rel="stylesheet" />
+    <style>
+        /* =========================================================
+            LIGHT GRAY, DARK GRAY & WHITE THEME (Bootstrap overrides)
+           ========================================================= */
+
+        /* Grayscale color palette */
+        :root {
+            /* Gray Scale Palette */
+            --gray-darkest: #2C3E50;
+            --gray-dark: #34495E;
+            --gray-medium: #5D6D7E;
+            --gray-light: #85929E;
+            --gray-lighter: #AEB6BF;
+            --gray-lightest: #D5DBDB;
+            --gray-bg: #ECF0F1;
+            --gray-bg-light: #F8F9FA;
+            --gray-50: #FAFBFC;
+
+            /* White */
+            --white: #FFFFFF;
+
+            /* Bootstrap Variable Overrides */
+            --bs-primary: #2C3E50 !important;
+            --bs-primary-rgb: 44, 62, 80 !important;
+            --bs-primary-bg: #2C3E50 !important;
+            --bs-primary-border: #2C3E50 !important;
+            --bs-link-color: #5D6D7E !important;
+            --bs-link-hover-color: #2C3E50 !important;
+
+            /* Shadows */
+            --shadow-sm: rgba(44, 62, 80, 0.08);
+            --shadow-md: rgba(44, 62, 80, 0.15);
+            --shadow-lg: rgba(44, 62, 80, 0.25);
+        }
+
+        /* =========================================================
+            BUTTONS
+           ========================================================= */
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%) !important;
+            border-color: var(--gray-darkest) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 8px var(--shadow-md);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--gray-dark) 0%, var(--gray-medium) 100%) !important;
+            border-color: var(--gray-dark) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow-md);
+        }
+
+        .btn-primary:active,
+        .btn-primary:focus {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, #1a252f 100%) !important;
+            border-color: var(--gray-darkest) !important;
+            box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.5);
+        }
+
+        /* =========================================================
+            BADGES
+           ========================================================= */
+
+        .bg-primary,
+        .badge-primary {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%) !important;
+            color: #ffffff !important;
+        }
+
+        /* =========================================================
+            PAGINATION
+           ========================================================= */
+
+        .page-item.active .page-link {
+            background-color: var(--gray-darkest) !important;
+            border-color: var(--gray-darkest) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        .page-link {
+            color: var(--gray-medium) !important;
+            border-color: var(--gray-lightest) !important;
+        }
+
+        .page-link:hover {
+            background-color: var(--gray-bg) !important;
+            border-color: var(--gray-lighter) !important;
+            color: var(--gray-darkest) !important;
+        }
+
+        .page-link:focus {
+            box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25);
+        }
+
+        /* =========================================================
+            PROGRESS BAR
+           ========================================================= */
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--gray-darkest) 0%, var(--gray-medium) 100%) !important;
+        }
+
+        .progress {
+            background-color: var(--gray-bg) !important;
+        }
+
+        /* =========================================================
+            TOPBAR GRAY THEME
+           ========================================================= */
+
+        .topbar {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%) !important;
+            color: #fff !important;
+            border-bottom: none !important;
+            box-shadow: 0 4px 6px -1px var(--shadow-md), 0 2px 4px -1px var(--shadow-sm);
+            position: relative;
+        }
+
+        /* Gray accent line at bottom of topbar */
+        .topbar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gray-medium) 0%, var(--gray-light) 50%, var(--gray-medium) 100%);
+        }
+
+        .topbar a,
+        .topbar .nav-link,
+        .topbar .navbar-brand,
+        .topbar h3,
+        .topbar .text-gray-600 {
+            color: #ffffff !important;
+            text-shadow: 0 2px 4px var(--shadow-sm);
+        }
+
+        .topbar .fa-user,
+        .topbar .fa-home,
+        #sidebarToggleTop {
+            color: var(--gray-lighter) !important;
+            transition: all 0.3s ease;
+        }
+
+        .topbar .nav-link:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+        }
+
+        .topbar .fa-user:hover,
+        .topbar .fa-home:hover {
+            color: var(--white) !important;
+        }
+
+        /* =========================================================
+            SIDEBAR GRAY THEME
+           ========================================================= */
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--gray-darkest) 0%, var(--gray-dark) 100%) !important;
+            color: rgba(255, 255, 255, 0.92) !important;
+            box-shadow: 4px 0 10px var(--shadow-sm);
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 4px 8px;
+            padding: 12px 16px !important;
+        }
+
+        .sidebar .nav-link i {
+            color: var(--gray-lighter) !important;
+            transition: all 0.3s ease;
+        }
+
+        /* Hover */
+        .sidebar .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #fff !important;
+            transform: translateX(5px);
+        }
+
+        .sidebar .nav-link:hover i {
+            color: var(--white) !important;
+        }
+
+        /* Active */
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+            border-left: 4px solid var(--gray-light) !important;
+            color: #fff !important;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link.active i {
+            color: var(--white) !important;
+        }
+
+        /* =========================================================
+            COLLAPSE ITEMS (Dropdown menu items in sidebar)
+           ========================================================= */
+
+        .collapse-item {
+            background: #ffffff !important;
+            color: var(--gray-darkest) !important;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin: 4px 8px;
+            padding: 10px 16px !important;
+            font-weight: 500;
+        }
+
+        .collapse-item:hover {
+            background: var(--gray-bg) !important;
+            color: var(--gray-dark) !important;
+            transform: translateX(5px);
+        }
+
+        .collapse-item.active {
+            background: var(--gray-lighter) !important;
+            color: var(--gray-darkest) !important;
+            font-weight: 600;
+        }
+
+        /* =========================================================
+            SIDEBAR DIVIDER
+           ========================================================= */
+
+        .sidebar-divider {
+            border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        /* =========================================================
+            LOGO STYLING
+           ========================================================= */
+
+        .sidebar-brand-icon img {
+            border-radius: 12px;
+            box-shadow: 0 4px 14px var(--shadow-md);
+            border: 2px solid var(--gray-light);
+        }
+
+        /* Logout text */
+        .side-log {
+            color: var(--gray-lighter) !important;
+        }
+
+        /* =========================================================
+            PRIMARY TEXT OVERRIDE (Bootstrap)
+           ========================================================= */
+
+        /* Make all .text-primary elements use dark gray */
+        .text-primary {
+            color: var(--gray-darkest) !important;
+        }
+
+        /* Hover state (links, etc.) */
+        .text-primary:hover,
+        a.text-primary:hover {
+            color: var(--gray-medium) !important;
+        }
+
+        /* =========================================================
+            BREADCRUMB GRAY THEME
+           ========================================================= */
+
+        /* breadcrumb text color */
+        .breadcrumb,
+        .breadcrumb-item,
+        .breadcrumb-item a {
+            color: var(--gray-medium) !important;
+            font-weight: 500;
+        }
+
+        /* breadcrumb divider ( / or > ) */
+        .breadcrumb-item+.breadcrumb-item::before {
+            color: var(--gray-light) !important;
+            font-weight: 600;
+        }
+
+        /* active breadcrumb item */
+        .breadcrumb-item.active {
+            color: var(--gray-darkest) !important;
+            font-weight: 600;
+        }
+
+        /* breadcrumb hover */
+        .breadcrumb-item a:hover {
+            color: var(--gray-darkest) !important;
+            text-decoration: underline;
+        }
+
+        /* =========================================================
+            ADDITIONAL ENHANCEMENTS
+           ========================================================= */
+
+        /* Form Controls */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--gray-medium);
+            box-shadow: 0 0 0 0.2rem rgba(93, 109, 126, 0.25);
+        }
+
+        .form-control,
+        .form-select {
+            border-color: var(--gray-lightest);
+        }
+
+        .form-control:hover,
+        .form-select:hover {
+            border-color: var(--gray-lighter);
+        }
+
+        /* Cards */
+        .card {
+            border-color: var(--gray-lightest);
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--gray-bg) 0%, #ffffff 100%);
+            border-bottom: 2px solid var(--gray-lighter);
+            color: var(--gray-darkest);
+            font-weight: 600;
+        }
+
+        /* Tables */
+        .table thead th {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: var(--gray-bg) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: var(--gray-50);
+        }
+
+        /* Alerts */
+        .alert-primary {
+            background-color: var(--gray-bg);
+            border-color: var(--gray-lighter);
+            color: var(--gray-darkest);
+        }
+
+        /* Dropdown Menus */
+        .dropdown-menu {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px var(--shadow-lg);
+            border: 1px solid var(--gray-lightest);
+        }
+
+        .dropdown-item {
+            color: var(--gray-darkest);
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--gray-bg);
+            color: var(--gray-darkest);
+        }
+
+        .dropdown-item i {
+            color: var(--gray-medium);
+        }
+
+        /* Links */
+        a {
+            color: var(--gray-medium);
+            transition: all 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--gray-darkest);
+        }
+
+        /* Footer */
+        .sticky-footer {
+            background: #ffffff !important;
+            border-top: 1px solid var(--gray-lightest);
+            box-shadow: 0 -2px 10px var(--shadow-sm);
+        }
+
+        .sticky-footer .copyright {
+            color: var(--gray-medium);
+            font-weight: 500;
+        }
+
+        .sticky-footer .copyright strong {
+            color: var(--gray-darkest);
+        }
+
+        /* Scroll to Top Button */
+        .scroll-to-top {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%) !important;
+            border: 2px solid var(--gray-light);
+            box-shadow: 0 4px 12px var(--shadow-md);
+        }
+
+        .scroll-to-top:hover {
+            background: linear-gradient(135deg, var(--gray-dark) 0%, var(--gray-medium) 100%) !important;
+            transform: translateY(-2px);
+        }
+
+        /* Input Groups */
+        .input-group-text {
+            background-color: var(--gray-bg);
+            border-color: var(--gray-lightest);
+            color: var(--gray-medium);
+        }
+
+        /* List Groups */
+        .list-group-item.active {
+            background-color: var(--gray-darkest);
+            border-color: var(--gray-darkest);
+        }
+
+        .list-group-item:hover {
+            background-color: var(--gray-50);
+        }
+
+        /* Modals */
+        .modal-header {
+            background: linear-gradient(135deg, var(--gray-darkest) 0%, var(--gray-dark) 100%);
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+
+        /* Tabs */
+        .nav-tabs .nav-link.active {
+            background-color: white;
+            border-color: var(--gray-lightest) var(--gray-lightest) white;
+            color: var(--gray-darkest);
+            font-weight: 600;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-color: var(--gray-lighter);
+            color: var(--gray-medium);
+        }
+
+        /* =========================================================
+            RESPONSIVE ADJUSTMENTS
+           ========================================================= */
+
+        @media (max-width: 768px) {
+            .topbar::after {
+                height: 2px;
+            }
+
+            .sidebar .nav-link {
+                margin: 2px 4px;
+                padding: 10px 12px !important;
+            }
+
+            .collapse-item {
+                margin: 2px 4px;
+                padding: 8px 12px !important;
+            }
+        }
+    </style>
+</head>
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="app">
+        <div id="wrapper">
+            <!-- Sidebar -->
+            @include('layouts.leftmenu')
+            <!-- End of Sidebar -->
+
+            <!-- Content Wrapper -->
+            <div id="content-wrapper" class="d-flex flex-column">
+
+                <!-- Main Content -->
+                <div id="content">
+
+                    <!-- Topbar -->
+                    <!-- Kamlesh start -->
+                    <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow1"
+                        style="height:5rem !important;">
+
+                        <!-- Sidebar Toggle (Topbar) -->
+                        <!-- <span style="font-size:30px; margin-right:1rem;cursor:pointer; color: blue;">&#9776;</span> -->
+                        <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3"
+                            aria-label="Toggle sidebar (mobile)">
+                            <i class="fa fa-bars"></i>
+                        </button>
+
+                        <h3 class="color-blue"><a href="{{ url('/') }}"
+                                style="text-decoration: none; color: #fff; !important;font-family: 'Merriweather', serif;">DHANUKA - Dashboard</a></h3>
+
+                        <!--<img src="{{ asset('storage/images/logo.jpg') }}">-->
+
+                        <!-- Topbar Navbar -->
+                        <!-- Kamlesh end -->
+                        <ul class="navbar-nav ml-auto">
+
+                            <!-- Nav Item - Search Dropdown (Visible Only XS) -->
+                            <li class="nav-item dropdown no-arrow d-sm-none">
+                                <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-search fa-fw"></i>
+                                </a>
+                                <!-- Dropdown - Messages -->
+                                <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
+                                    aria-labelledby="searchDropdown">
+                                    <form class="form-inline mr-auto w-100 navbar-search">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-light border-0 small"
+                                                placeholder="Search for..." aria-label="Search"
+                                                aria-describedby="basic-addon2">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-primary" type="button">
+                                                    <i class="fas fa-search fa-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </li>
+                            @if (Request::path() != '/')
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url('/') }}">
+                                        <span class="mr-2 d-none d-lg-inline text-gray-600 small"
+                                            style="font-size: 20px;">Home <i class="fas fa-home text-primary"
+                                                style="font-size: 25px;"></i></span>
+                                    </a>
+                                </li>
+                            @endif
+                            <!-- Kamlesh start -->
+                            <!-- Nav Item - Alerts -->
+                            <!-- Nav Item - User Information -->
+                            <li class="nav-item dropdown no-arrow">
+                                <a class="nav-link dropdown-toggle user-dropdown-trigger" href="#"
+                                    id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true"
+                                    aria-expanded="false">
+
+                                    <span class="mr-2 d-none d-lg-inline user-dropdown-name">
+                                        {{ Auth::user()->name }}
+                                    </span>
+
+                                    <i class="far fa-user user-dropdown-icon"></i>
+                                </a>
+
+                                <!-- Dropdown Menu -->
+                                <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                    aria-labelledby="userDropdown">
+
+                                    <a class="dropdown-item text-primary" href="{{ route('logout') }}"
+                                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                        <i class="fas fa-sign-out-alt mr-2 text-primary"></i>
+                                        <span class="text-primary">Logout</span>
+                                    </a>
+
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                        class="d-none">
+                                        @csrf
+                                    </form>
+                                </div>
+                            </li>
+
+
+                        </ul>
+
+                    </nav>
+                    <!-- Kamlesh end -->
+                    <!-- End of Topbar -->
+
+                    <!-- Begin Page Content -->
+                    <div class="container-fluid">
+
+                        @if (Request::path() != '/')
+                            <router-view></router-view>
+                        @endif
+                        <!-- /.container-fluid -->
+                    </div>
+                </div>
+                <!-- End of Main Content -->
+
+                <!-- Footer -->
+                <footer class="sticky-footer bg-white">
+                    <div class="container my-auto">
+                        <div class="copyright text-center my-auto">
+                            <span>Copyright &copy; Authors Consulting 2020</span>
+                        </div>
+                    </div>
+                </footer>
+                <!-- End of Footer -->
+
+            </div>
+            <!-- End of Content Wrapper -->
+
+        </div>
+        <!-- End of Page Wrapper -->
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <!--<a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>-->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCJCjG6DQ568im0P28wBhJ5ghPqwDjWHDU"></script>
+    <script src="{{ asset('js/app.js') }}" type="text/javascript"></script>
+    <script type="text/javascript" src="{{ asset('js/notify.min.js') }}"></script>
+    <!-- Custom scripts for all pages-->
+    <script src="{{ asset('js/sb-admin-2.min.js') }}"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/js/bootstrap-datepicker.js"></script>-->
+    <script src="{{ asset('custom/bootstrap-datepicker.js') }}"></script>
+    <script>
+        // kamlesh Start
+        // Remove mouseover/mouseleave auto-expand behaviour.
+        // Keep mobile toggle click showing logo safely (guarded).
+        const mobileView = document.querySelector('#sidebarToggleTop');
+        if (mobileView) {
+            mobileView.addEventListener('click', function() {
+                const logoEl = document.querySelector('#logo');
+                if (logoEl) {
+                    logoEl.style.display = "inline";
+                }
+            });
+        }
+
+        // Previously we had 'mouseleave' and 'mouseover' listeners on .sidebar.
+        // Those have been removed so sidebar will not auto-expand/collapse on hover.
+        // Sidebar now controlled only by collapse/toggle buttons or explicit JS.
+
+        // If you have code elsewhere that depends on sidebar mouse handlers, update it to call
+        // your toggle functions instead (e.g., click handlers or keyboard shortcuts).
+
+        // kamlesh end
+
+        $(document).ready(function() {
+            const timeout = 1800000; // 900000 ms = 15 minutes 1800000 ms = 30 minutes
+            var idleTimer = null;
+            $('*').bind(
+                'mousemove click mouseup mousedown keydown keypress keyup submit change mouseenter scroll resize dblclick',
+                function() {
+                    clearTimeout(idleTimer);
+
+                    idleTimer = setTimeout(function() {
+                        document.getElementById('logout-form').submit();
+                    }, timeout);
+                });
+            $("body").trigger("mousemove");
+
+            $(document).on('keypress', 'body .num_txt', function(evt) {
+
+                evt = (evt) ? evt : window.event;
+                var charCode = (evt.which) ? evt.which : evt.keyCode;
+
+                if ((charCode > 31 && (charCode < 48 || charCode > 57)) && charCode !== 46) {
+                    evt.preventDefault();;
+                } else {
+                    return true;
+                }
+
+                /*if ((charCode > 31 && (charCode < 48 || charCode > 57)) && charCode !== 46) {
+                evt.preventDefault();;
+                }*/
+            });
+
+            $(".sidebar").on('click', function(evt) {
+                console.log(evt.target);
+                //if(evt.target.className != 'collapse-item' && !(evt.target.className.includes('inventory'))) {
+                $('.collapse').collapse('hide');
+                //}
+            });
+
+            $(document).on('keypress', 'body .decimal_no', function(evt) {
+                var $this = $(this);
+                if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
+                    ((event.which < 48 || event.which > 57) &&
+                        (event.which != 0 && event.which != 8))) {
+                    event.preventDefault();
+                }
+
+                var text = $(this).val();
+                if ((event.which == 46) && (text.indexOf('.') == -1)) {
+                    setTimeout(function() {
+                        if ($this.val().substring($this.val().indexOf('.')).length > 3) {
+                            $this.val($this.val().substring(0, $this.val().indexOf('.') + 3));
+                        }
+                    }, 1);
+                }
+
+                if ((text.indexOf('.') != -1) &&
+                    (text.substring(text.indexOf('.')).length > 2) &&
+                    (event.which != 0 && event.which != 8) &&
+                    ($(this)[0].selectionStart >= text.length - 2)) {
+                    event.preventDefault();
+                }
+            });
+
+            $('.decimal_no').bind("paste", function(e) {
+                var text = e.originalEvent.clipboardData.getData('Text');
+                if ($.isNumeric(text)) {
+                    if ((text.substring(text.indexOf('.')).length > 3) && (text.indexOf('.') > -1)) {
+                        e.preventDefault();
+                        $(this).val(text.substring(0, text.indexOf('.') + 3));
+                    }
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>

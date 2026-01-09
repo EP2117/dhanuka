@@ -5,7 +5,7 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="#!"><i class="feather icon-home"></i></a></li>
                 <li class="breadcrumb-item"><a :href="site_path+'/'">Home</a></li>
-                <li class="breadcrumb-item"><a :href="site_path+'/master'">Master</a></li>
+                <li class="breadcrumb-item"><a :href="site_path+'/account'">Account</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Account Head</li>
             </ol>
         </nav>

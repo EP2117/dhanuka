@@ -1,0 +1,53 @@
+<!-- Sidebar -->
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+    <!-- Sidebar - Brand -->
+    <!--<a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
+        <div class="sidebar-brand-icon rotate-n-15">
+            <i class="fas fa-grin-beam"></i>
+        </div>
+    <!--<div class="sidebar-brand-text mx-3">Like Link</div>-->
+    <!--</a>-->
+    <!-- kamlesh start -->
+    <div class="sidebar-brand-icon text-center" style="height: 96px; overflow: hidden;">
+        <div class="d-flex justify-content-center align-items-center" style="height: 90px;">
+            <a href="{{ url('/') }}">
+                <img class="bg-white p-1" width="100" src="{{ asset('storage/images/logo.jpg') }}" />
+            </a>
+        </div>
+    </div>
+    <!-- Kamlesh end -->
+    <!-- Divider -->
+    <!--<hr class="sidebar-divider my-0">
+    <router-link  tag="li" to="/" exact class="nav-item">
+        <a class="nav-link">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Home</span>
+        </a>
+    </router-link>-->
+
+    <!-- Divider -->
+
+    <hr class="sidebar-divider">
+
+    @if (Request::path() != '/')
+
+        @include('layouts.components.master-menu')
+        @include('layouts.components.inventory-menu')
+        @include('layouts.components.office-menu')
+        @include('layouts.components.purchase-menu')
+        @include('layouts.components.account-menu')
+        @include('layouts.components.marketing-menu')
+        @include('layouts.components.hr-menu')
+        @include('layouts.components.report-menu')
+        @include('layouts.components.reminder-menu')
+        
+
+        <!-- Divider -->
+        @if (Auth::user()->role->role_name != 'office_order_user')
+            <hr class="sidebar-divider d-none d-md-block">
+        @endif
+    @endif
+
+</ul>
+<!-- End of Sidebar -->
