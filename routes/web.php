@@ -49,6 +49,7 @@ Route::get('/reminder/', function () {
 Route::get('/test', 'ProductTransitionController@test');
 
 Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
+    require __DIR__ . '/permission.php';
     Route::resource('brand', 'BrandController');
     Route::get('/brands', 'BrandController@allBrands');
     Route::resource('uom', 'UomController');

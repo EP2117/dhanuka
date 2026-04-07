@@ -11,11 +11,14 @@
     <meta name="user-wh" content="{{ Auth::user()->warehouse->warehouse_name }}">
     <meta name="description" content="">
     <meta name="author" content="">
+    <link rel="icon" href="{{ asset('images/logo.jpg') }}" />
 
-    <title>Authors Consulting</title>
+    <title>Dhanuka - Dashboard</title>
 
     <!-- Custom fonts for this template-->
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather&display=swap" rel="stylesheet">
     <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />-->
@@ -79,24 +82,28 @@
                         <!--  <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button> -->
-                        <img id="logo" src="{{ asset('storage/image/logo.jpg') }}">
+                        <img width="100" src="{{ asset('images/logo.jpg') }}">
 
 
-                        <h3 class="color-blue" style="font-family: 'Merriweather', serif;">Authors Consulting</h3>
+                        <h3 class="color-blue ml-2" style="font-family: 'Merriweather', serif;">Dhanuka - Dashboard</h3>
 
                         <!-- Topbar Navbar -->
                         <ul class="navbar-nav ml-auto">
 
                             <!-- Nav Item - Search Dropdown (Visible Only XS) -->
                             <li class="nav-item dropdown no-arrow d-sm-none">
-                                <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="fas fa-search fa-fw"></i>
                                 </a>
                                 <!-- Dropdown - Messages -->
-                                <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in" aria-labelledby="searchDropdown">
+                                <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
+                                    aria-labelledby="searchDropdown">
                                     <form class="form-inline mr-auto w-100 navbar-search">
                                         <div class="input-group">
-                                            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2">
+                                            <input type="text" class="form-control bg-light border-0 small"
+                                                placeholder="Search for..." aria-label="Search"
+                                                aria-describedby="basic-addon2">
                                             <div class="input-group-append">
                                                 <button class="btn btn-primary" type="button">
                                                     <i class="fas fa-search fa-sm"></i>
@@ -110,23 +117,39 @@
                             <!-- Nav Item - Alerts -->
                             <!-- Nav Item - User Information -->
                             <li class="nav-item dropdown no-arrow">
-                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <span class="mr-2 d-none d-lg-inline text-gray-600 small" style="font-size: 20px">{{ Auth::user()->name }}</span>
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="mr-2 d-none d-lg-inline text-gray-600 small"
+                                        style="font-size: 20px">{{ Auth::user()->name }}</span>
                                     <i class="far fa-user text-primary" style="font-size: 25px;"></i>
                                 </a>
                                 <!-- Dropdown - User Information -->
-                                <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                                <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                    aria-labelledby="userDropdown">
 
                                     <!--<a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Logout
                                 </a>-->
-                                    <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault();
+                                    @if (Auth::user()->role->role_name == 'system')
+                                        @php
+                                            $check = App\Setting::first();
+
+                                        @endphp
+                                        <a class="dropdown-item" href="{{ route('settings.index') }}">
+                                            <i
+                                                class="fas fa-door-{{ $check->status === 'ACTIVATED' ? 'closed text-danger' : 'open text-success' }}"></i>
+                                            Maintenance Mode {{ $check->status === 'ACTIVATED' ? 'Off' : 'On' }}
+                                        </a>
+                                    @endif
+                                    <a class="dropdown-item" href="{{ route('logout') }}"
+                                        onclick="event.preventDefault();
                                     document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
                                     </a>
 
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                        style="display: none;">
                                         @csrf
                                     </form>
                                 </div>
@@ -141,224 +164,254 @@
                     <div class="container-fluid">
 
                         <div class="row home-main">
-                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'office_user' || Auth::user()->role->id==9)
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-1 carhover">
-                                    <a href="{{url('/master')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Master</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-pen"></i>Products</li>
-                                                    <li><i class="fas fa-users"></i>Customer</li>
-                                                    @if(Auth::user()->role->role_name == 'system')
-                                                    <li><i class="fas fa-file-import"></i>Import</li>
-                                                    @endif
+                            @if (Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->role_name == 'office_user' ||
+                                    Auth::user()->role->id == 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-1 carhover">
+                                        <a href="{{ url('/master') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Master</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-pen"></i>Products</li>
+                                                        <li><i class="fas fa-users"></i>Customer</li>
+                                                        @if (Auth::user()->role->role_name == 'system')
+                                                            <li><i class="fas fa-file-import"></i>Import</li>
+                                                        @endif
 
-                                                </ul>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2">
+                                                    <i class="fab fa-medium-m"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2">
-                                                <i class="fab fa-medium-m"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
 
-                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'office_user' || Auth::user()->role->role_name == 'office_order_user' || Auth::user()->role->id == 6 || Auth::user()->role->id == 7 || Auth::user()->role->id == 8 || Auth::user()->role->id==9)
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-3 carhover">
-                                    <a href="{{url('/office')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Sale</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Sale Invoice</li>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Credit Collection</li>
-                                                </ul>
+                            @if (Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'office_user' ||
+                                    Auth::user()->role->role_name == 'office_order_user' ||
+                                    Auth::user()->role->id == 6 ||
+                                    Auth::user()->role->id == 7 ||
+                                    Auth::user()->role->id == 8 ||
+                                    Auth::user()->role->id == 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-3 carhover">
+                                        <a href="{{ url('/office') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Sale</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Sale Invoice</li>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Credit Collection
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 office-sale">
+                                                    <i class="fas fa-building"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 office-sale">
-                                                <i class="fas fa-building"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
 
-                            @if(Auth::user()->role->role_name != 'office_order_user' && Auth::user()->role->id != 6 && Auth::user()->role->id != 7 && Auth::user()->role->id != 8 && Auth::user()->role->id!=9)
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-4 carhover">
-                                    <a href="{{url('/inventory')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Inventory</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-warehouse"></i>Main WareHouse</li>
-                                                    <li><i class="fas fa-random"></i>Internal Transfer</li>
-                                                    <li><i class="fas fa-receipt"></i>Internal Receive</li>
+                            @if (Auth::user()->role->role_name != 'office_order_user' &&
+                                    Auth::user()->role->id != 6 &&
+                                    Auth::user()->role->id != 7 &&
+                                    Auth::user()->role->id != 8 &&
+                                    Auth::user()->role->id != 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-4 carhover">
+                                        <a href="{{ url('/inventory') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Inventory</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-warehouse"></i>Main WareHouse</li>
+                                                        <li><i class="fas fa-random"></i>Internal Transfer</li>
+                                                        <li><i class="fas fa-receipt"></i>Internal Receive</li>
 
-                                                </ul>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 inventory">
+                                                    <i class="fas fa-boxes"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 inventory">
-                                                <i class="fas fa-boxes"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
 
-                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system' || Auth::user()->role->id==9)
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-5 carhover">
-                                    <a href="{{url('/report')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Report</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-scroll"></i>Daily Sale Report</li>
-                                                    <li><i class="fas fa-scroll"></i>Product Wise Report</li>
-                                                    <li><i class="fas fa-scroll"></i>Inventory Report</li>
-                                                </ul>
+                            @if (Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->id == 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-5 carhover">
+                                        <a href="{{ url('/report') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Report</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-scroll"></i>Daily Sale Report</li>
+                                                        <li><i class="fas fa-scroll"></i>Product Wise Report</li>
+                                                        <li><i class="fas fa-scroll"></i>Inventory Report</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 report">
+                                                    <i class="fas fa-paste"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 report">
-                                                <i class="fas fa-paste"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @elseif(Auth::user()->role->role_name == 'office_user')
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-5 carhover">
-                                    <a href="{{url('/report')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Report</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-scroll"></i>Minimun Qty Report</li>
-                                                </ul>
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-5 carhover">
+                                        <a href="{{ url('/report') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Report</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-scroll"></i>Minimun Qty Report</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 report">
+                                                    <i class="fas fa-paste"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 report">
-                                                <i class="fas fa-paste"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
 
-                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system' || Auth::user()->role->id==9)
-                            <div class="col-lg-4 col-md-4">
-                             <div class="card-5 carhover">
-                                 <a href="{{url('/reminder')}}">
-                                 <div class="main-col">
-                                     <div class="col1-1">
-                                         <h3>Reminder</h3>
-                                         <ul>
-                                            @if(Auth::user()->role->id != 18)
-                                             <li><i class="fas fa-scroll"></i>Sale Over Due</li>
-                                             <li><i class="fas fa-scroll"></i>Purchase Over Due</li>
-                                            @endif
-                                             <li><i class="fas fa-scroll"></i>Sale Order Pending</li>
-                                         </ul>
-                                     </div>
-                                     <div class="col1-2 report">
-                                        <i class="fas fa-paste"></i>
-                                     </div>
-                                 </div>
-                                 </a>
-                             </div>
-                             </div>
+                            @if (Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->id == 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-5 carhover">
+                                        <a href="{{ url('/reminder') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Reminder</h3>
+                                                    <ul>
+                                                        @if (Auth::user()->role->id != 18)
+                                                            <li><i class="fas fa-scroll"></i>Sale Over Due</li>
+                                                            <li><i class="fas fa-scroll"></i>Purchase Over Due</li>
+                                                        @endif
+                                                        <li><i class="fas fa-scroll"></i>Sale Order Pending</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 report">
+                                                    <i class="fas fa-paste"></i>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
                             @endif
 
-                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'office_user')
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-5 carhover">
-                                    <a href="{{url('/purchase_office')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Purchase</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Purchase Invoice</li>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Credit Payment</li>
-                                                </ul>
+                            @if (Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'office_user')
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-5 carhover">
+                                        <a href="{{ url('/purchase_office') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Purchase</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Purchase Invoice
+                                                        </li>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Credit Payment
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 report">
+                                                    <i class="fas fa-paste"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 report">
-                                                <i class="fas fa-paste"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
-                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system' || Auth::user()->role->id==9)
-                            <div class="col-lg-4 col-md-4">
-                                <div class="card-5 carhover">
-                                    <a href="{{url('/account')}}">
-                                        <div class="main-col">
-                                            <div class="col1-1">
-                                                <h3>Account</h3>
-                                                <ul>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Account Head</li>
-                                                    <li><i class="fas fa-file-invoice-dollar"></i>Sub Account</li>
-                                                </ul>
+                            @if (Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->id == 9)
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="card-5 carhover">
+                                        <a href="{{ url('/account') }}">
+                                            <div class="main-col">
+                                                <div class="col1-1">
+                                                    <h3>Account</h3>
+                                                    <ul>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Account Head</li>
+                                                        <li><i class="fas fa-file-invoice-dollar"></i>Sub Account</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col1-2 report">
+                                                    <i class="fas fa-paste"></i>
+                                                </div>
                                             </div>
-                                            <div class="col1-2 report">
-                                                <i class="fas fa-paste"></i>
-                                            </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
 
                         </div>
 
                         <!-- <div class="row">
-                            @if(Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system')
-                            <div class="col-md-4 col-sm-6 offset-sm-3 offset-md-4 block mt-4">
+                            @if (Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'system')
+<div class="col-md-4 col-sm-6 offset-sm-3 offset-md-4 block mt-4">
                                 <div class="circle">
                                     <p><a href='/master'><i class="fab fa-medium module_logo"></i> <br />Master</a></p>
                                 </div>
                             </div>
-                            @endif
+@endif
 
-                            @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'van_user')
-                            <div class="col-md-6 col-sm-6 block">
+                            @if (Auth::user()->role->role_name == 'system' ||
+                                    Auth::user()->role->role_name == 'admin' ||
+                                    Auth::user()->role->role_name == 'van_user')
+<div class="col-md-6 col-sm-6 block">
                                 <div class="circle">
                                     <p><a href='/van'><i class="fas fa-shipping-fast module_logo"></i> <br />Van Sale</a></p>
                                 </div>
                             </div>
-                            @endif
+@endif
 
-                             @if(Auth::user()->role->role_name == 'system' || Auth::user()->role->role_name == 'admin' || Auth::user()->role->role_name == 'office_user' || Auth::user()->role->role_name == 'office_order_user')
-                            <div class="col-md-6 col-sm-6 block">
+                             @if (Auth::user()->role->role_name == 'system' ||
+                                     Auth::user()->role->role_name == 'admin' ||
+                                     Auth::user()->role->role_name == 'office_user' ||
+                                     Auth::user()->role->role_name == 'office_order_user')
+<div class="col-md-6 col-sm-6 block">
                                 <div class="circle">
                                     <p><a href='/office'><i class="fas fa-building module_logo"></i> <br />Office Sale</a></p>
                                 </div>
                             </div>
-                            @endif
+@endif
 
-                            @if(Auth::user()->role->role_name != 'office_order_user')
-                            <div class="col-md-6 col-sm-6 block">
+                            @if (Auth::user()->role->role_name != 'office_order_user')
+<div class="col-md-6 col-sm-6 block">
                                 <div class="circle">
                                     <p><a href='/inventory'><i class="fas fa-boxes module_logo"></i> <br />Inventory</a></p>
                                 </div>
                             </div>
-                            @endif
+@endif
 
-                            @if(Auth::user()->role->role_name != 'van_user' && Auth::user()->role->role_name != 'office_order_user')
-                            <div class="col-md-6 col-sm-6 block">
+                            @if (Auth::user()->role->role_name != 'van_user' && Auth::user()->role->role_name != 'office_order_user')
+<div class="col-md-6 col-sm-6 block">
                                 <div class="circle">
                                     <p><a href='/report'><i class="far fa-chart-bar module_logo"></i> <br />Report</a>
 
                                     </p>
                                 </div>
                             </div>
-                            @endif
+@endif
 
                       </div> -->
                         <!-- /.container-fluid -->
@@ -398,13 +451,15 @@
         $(document).ready(function() {
             const timeout = 5400000; // 900000 ms = 15 minutes 1800000 ms = 30 minutes
             var idleTimer = null;
-            $('*').bind('mousemove click mouseup mousedown keydown keypress keyup submit change mouseenter scroll resize dblclick', function() {
-                clearTimeout(idleTimer);
+            $('*').bind(
+                'mousemove click mouseup mousedown keydown keypress keyup submit change mouseenter scroll resize dblclick',
+                function() {
+                    clearTimeout(idleTimer);
 
-                idleTimer = setTimeout(function() {
-                    document.getElementById('logout-form').submit();
-                }, timeout);
-            });
+                    idleTimer = setTimeout(function() {
+                        document.getElementById('logout-form').submit();
+                    }, timeout);
+                });
             $("body").trigger("mousemove");
 
             $(document).on('keypress', 'body .num_txt', function(evt) {

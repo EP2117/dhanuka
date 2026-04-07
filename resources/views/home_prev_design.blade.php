@@ -52,7 +52,7 @@
             <!--<div class="sidebar-brand-text mx-3">Like Link</div>-->
             <!--</a>-->
                 <div class="sidebar-brand-icon text-center">
-                     <img id="logo"src="{{ asset('storage/image/logo.jpg') }}">
+                     <img id="logo"src="{{ asset('image/logo.jpg') }}">
                 </div>
           <!-- Divider -->
           <hr class="sidebar-divider my-0">
@@ -73,7 +73,7 @@
                         <i class="fa fa-bars"></i>
                     </button>
 
-                    <h3 class="color-blue">Author Consulting</h3>
+                    <h3 class="color-blue">Dhanuka - Dashboard</h3>
 
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
