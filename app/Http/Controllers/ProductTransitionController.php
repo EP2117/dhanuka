@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use DB;
 use PDF;
 use stdClass;
+use Session;
 use App\Sale;
 use APp\User;
 use App\Product;

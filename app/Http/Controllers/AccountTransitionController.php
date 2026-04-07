@@ -54,9 +54,7 @@ class AccountTransitionController extends Controller
         ]);
     }
     public function getProfitAndLossReport(Request $request){
-        $month = Carbon::now()
-        ->year($request->year)
-        ->month($request->month);
+        $month = Carbon::now()->year($request->year)->month($request->month);
         // dd($targetDate);
         // dd($request->all());
         // $profit_and_loss=$this->getProfitAndLoss($request);
@@ -118,7 +116,8 @@ class AccountTransitionController extends Controller
                    if(!empty($request->month)){
                     $pl_sr->whereMonth('return_date','=',$request->month);
                 }
-               // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+
+                // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
                 if(!empty($request->year)){
                     $pl_sr->whereYear('return_date','=',$request->year);
                 }
@@ -160,7 +159,7 @@ class AccountTransitionController extends Controller
                               ->orwhereNotNull('customer_return_id');
                     });**/
                 $profitAndLoss[$ah->name]=new stdClass();
-               if($ah->name=='Revenue'){
+                if($ah->name=='Revenue'){
                    $pl=$pl->whereHas('sub_account.account_head',function($q)use($ah){
                         $q->whereId($ah->id);
                     })->selectRaw('*, sum(credit) as sale_amount')->groupBy('sub_account_id')->get();
@@ -562,9 +561,12 @@ class AccountTransitionController extends Controller
                               $total_expense+=$p->amount;
                               $total+=$p->amount;
                             }**/
-                              $expense[$key][$k]->amount=$p->amount - $p->cr_amount;
+                             /* $expense[$key][$k]->amount=$p->amount - $p->cr_amount;
                               $total_expense+=$p->amount - $p->cr_amount;
-                              $total+=$p->amount - $p->cr_amount;
+                              $total+=$p->amount - $p->cr_amount;*/
+                              $expense[$key][$k]->amount=$p->amount;
+                              $total_expense+=$p->amount;
+                              $total+=$p->amount;
                             
                             
                             $this->account_head_name=$p->sub_account->account_head->name;
@@ -654,7 +656,8 @@ class AccountTransitionController extends Controller
         
         $gross_profit=$this->total_revenue-$this->total_cor;
         $net_profit=($gross_profit+$total_income)- $total_expense;
-
+        //echo 'gp='.$gross_profit.', income='.$total_income.', expense='.$total_expense;
+        //dd($net_profit);
         //ep
         $route_name=Route::currentRouteName();
         
@@ -882,16 +885,46 @@ class AccountTransitionController extends Controller
        foreach($account_head as $key=>$ah) {
                     //kaung (comment by ep)
                    $pl=AccountTransition::where('is_cashbook',0);
-                    $pl->whereYear('transition_date','=',$year);
-                  $pl->where('sub_account_id',8);
+                   /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   $pl->when(!is_null($request->from_date),function($q)use($request){
+                       return  $q->whereDate('transition_date','>=',$request->from_date);
+                   });
+                   $pl->when(!is_null($request->from_date),function($q){
+                       return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+                   });**/
+                  $pl->whereYear('transition_date','=',$year);
 
-                  $pl_sr=SaleReturn::whereNotNull('return_no');
+                  
+                //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                if(!empty($request->year)){
+                    $pl->whereYear('transition_date','=',$request->year);
+                }
+                $pl->where('sub_account_id',8);
+
+                 $pl_sr=SaleReturn::whereNotNull('return_no');
+                  /* $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   $pl_sr->when(!is_null($request->from_date),function($q)use($request){
+                       return  $q->whereDate('return_date','>=',$request->from_date);
+                   });
+                   $pl_sr->when(!is_null($request->from_date),function($q){
+                       return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
+                   });*/
                    $pl_sr->where('return_method','=','with invoice');
-                    $pl_sr->whereYear('return_date','=',$year);
+                   $pl_sr->whereYear('return_date','=',$year);
+
+                // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                
 
                 $pl_cr=CustomerReturn::whereNotNull('customer_return_no');
-                    $pl_cr->whereYear('return_date','=',$year);
-                
+                  /** $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                   $pl_cr->when(!is_null($request->from_date),function($q)use($request){
+                       return  $q->whereDate('return_date','>=',$request->from_date);
+                   });
+                   $pl_cr->when(!is_null($request->from_date),function($q){
+                       return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
+                   });**/
+               // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                  $pl_cr->whereYear('return_date','=',$year);
                 /**$pl_sr->whereNotNull('return_id');
                 $pl_sr->where(function($query) {
                         $query->where('sub_account_id',77)
@@ -903,7 +936,7 @@ class AccountTransitionController extends Controller
                               ->orwhereNotNull('customer_return_id');
                     });**/
                 $profitAndLoss[$ah->name]=new stdClass();
-               if($ah->name=='Revenue'){
+                if($ah->name=='Revenue'){
                    $pl=$pl->whereHas('sub_account.account_head',function($q)use($ah){
                         $q->whereId($ah->id);
                     })->selectRaw('*, sum(credit) as sale_amount')->groupBy('sub_account_id')->get();
@@ -975,7 +1008,18 @@ class AccountTransitionController extends Controller
                     $pl->whereNotNull('sale_id');
                     $pl->whereNull('return_id');
                    //end ep
-                    $pl->whereYear('transition_date','=',$year);
+                   // $pl->whereHas('sale.products',function($q){
+                   //     $q->
+                   // });
+                   /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                  /* $pl->when(!is_null($request->from_date),function($q)use($request){
+                       return  $q->whereDate('transition_date','>=',$request->from_date);
+                   });//
+                   $pl->when(!is_null($request->from_date),function($q){
+                    return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+                });**/
+                // $request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                  $pl->whereYear('transition_date','=',$year);
                 
                    $pl=$pl->get();
                 //    dd($pl);
@@ -992,10 +1036,16 @@ class AccountTransitionController extends Controller
                         $product_sale=DB::table('product_transitions')
                                     ->where('transition_sale_id',$p->sale_id)
                                     ->whereNull('transition_return_id');
+
+                           // $request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
                                 /**$product_sale->when(!is_null($request->from_date),function($q)use($request){
                                    return  $q->whereDate('transition_date','>=',$request->from_date);
                                });**/
-                                $product_sale->whereYear('transition_date','=',$year);
+                               /*$product_sale->when(!is_null($request->from_date),function($q){
+                                return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+                            });*/
+                             //$request->year=$request->year==null ? Carbon::now()->year :  $request->year;
+                              $product_sale->whereYear('transition_date','=',$year);
 
                             $product_sale = $product_sale->get();
 
@@ -1022,7 +1072,14 @@ class AccountTransitionController extends Controller
                    // $pl->whereHas('sale.products',function($q){
                    //     $q->
                    // });
-                    $pl_sr->whereYear('return_date','=',$year);
+                   //$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                  /* $pl->when(!is_null($request->from_date),function($q)use($request){
+                       return  $q->whereDate('transition_date','>=',$request->from_date);
+                   });*/
+                   /*$pl_sr->when(!is_null($request->from_date),function($q){
+                    return  $q->whereBetween('return_date',[request('from_date'),request('to_date')]);
+                });*/
+                   $pl_sr->whereYear('return_date','=',$year);
                 
                    $pl_sr=$pl_sr->get();
                 //    dd($pl);
@@ -1038,6 +1095,14 @@ class AccountTransitionController extends Controller
                         //ep 
                         $product_sale=DB::table('product_transitions')
                                     ->where('transition_return_id',$p->id);
+
+                            //$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+                                /**$product_sale->when(!is_null($request->from_date),function($q)use($request){
+                                   return  $q->whereDate('transition_date','>=',$request->from_date);
+                               });**/
+                               /**$product_sale->when(!is_null($request->from_date),function($q){
+                                return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+                            });**/
                             $product_sale->whereYear('transition_date','=',$year);
 
                             $product_sale = $product_sale->get();
@@ -1081,6 +1146,13 @@ class AccountTransitionController extends Controller
         })->where('name','!=','Indirect Expense')->get();
         foreach($ah_income as $key=>$ai){
             $pla=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',79);
+            /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+            $pla->when(!is_null($request->from_date),function($q)use($request){
+                return  $q->whereDate('transition_date','>=',$request->from_date);
+            });
+            $pla->when(!is_null($request->from_date),function($q){
+                return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+            });**/
             $pla->whereYear('transition_date','=',$year);
           
             $pla->whereHas('sub_account.account_head',function($q)use($ai){
@@ -1127,11 +1199,22 @@ class AccountTransitionController extends Controller
       
         foreach($ah_expense as $key=>$ae){
             $ple=AccountTransition::where('is_cashbook',0)->where('sub_account_id','!=',80);
+            /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+            $ple->when(!is_null($request->from_date),function($q)use($request){
+                return  $q->whereDate('transition_date','>=',$request->from_date);
+            });
+            $ple->when(!is_null($request->from_date),function($q){
+                return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+            });**/
             $ple->whereYear('transition_date','=',$year);
+            /*$ple->whereHas('sub_account.account_head',function($q)use($ae){
+                $q->whereId($ae->id);
+            })->selectRaw('*, (CASE WHEN journal_entry_id IS NULL THEN sum(IFNULL(debit,0))  ELSE sum(IFNULL(debit,0) - IFNULL(credit,0)) END)  as amount, sum(IFNULL(credit,0)) as cr_amount')->groupBy('sub_account_id');*/
 
             $ple->whereHas('sub_account.account_head',function($q)use($ae){
                 $q->whereId($ae->id);
-            })->selectRaw('*, sum(debit) as amount, sum(credit) as cr_amount')->groupBy('sub_account_id');
+            })->selectRaw('*, sum(IFNULL(debit,0)) as amount, sum(IFNULL(credit,0)) as cr_amount')->groupBy('sub_account_id');
+
             $ple=$ple->get();
             // if($ai->name==='Other Income'){
                 if($ple->isNotEmpty()){
@@ -1150,9 +1233,13 @@ class AccountTransitionController extends Controller
                               $total_expense+=$p->amount;
                               $total+=$p->amount;
                             }**/
-                            $expense[$key][$k]->amount=$p->amount;
-                            $total_expense+=$p->amount;
-                            $total+=$p->amount;
+                             /* $expense[$key][$k]->amount=$p->amount - $p->cr_amount;
+                              $total_expense+=$p->amount - $p->cr_amount;
+                              $total+=$p->amount - $p->cr_amount;*/
+                              $expense[$key][$k]->amount=$p->amount;
+                              $total_expense+=$p->amount;
+                              $total+=$p->amount;
+                            
                             
                             $this->account_head_name=$p->sub_account->account_head->name;
                             //$total_expense+=$p->amount;
@@ -1173,6 +1260,13 @@ class AccountTransitionController extends Controller
 
       /** currency gain **/
       $c_gain=AccountTransition::where('is_cashbook',0)->where('sub_account_id',79);
+      /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      $c_gain->when(!is_null($request->from_date),function($q)use($request){
+          return  $q->whereDate('transition_date','>=',$request->from_date);
+      });
+      $c_gain->when(!is_null($request->from_date),function($q){
+          return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+      });**/
       $c_gain->whereYear('transition_date','=',$year);
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
           $q->whereId($ae->id);
@@ -1183,6 +1277,13 @@ class AccountTransitionController extends Controller
 
         /** currency Loss **/
       $c_loss=AccountTransition::where('is_cashbook',0)->where('sub_account_id',80);
+      /**$request->to_date= $request->to_date !=null ? $request->to_date : now()->today();
+      $c_loss->when(!is_null($request->from_date),function($q)use($request){
+          return  $q->whereDate('transition_date','>=',$request->from_date);
+      });
+      $c_loss->when(!is_null($request->from_date),function($q){
+          return  $q->whereBetween('transition_date',[request('from_date'),request('to_date')]);
+      });**/
       $c_loss->whereYear('transition_date','=',$year);
       /*$c_gain->whereHas('sub_account.account_head',function($q)use($ae){
           $q->whereId($ae->id);
@@ -1195,7 +1296,6 @@ class AccountTransitionController extends Controller
         $net_profit=($gross_profit+$total_income)- $total_expense;
 
         //ep
-        $route_name=Route::currentRouteName();
         
         $profit_and_loss=isset($profitAndLoss) ? $profitAndLoss : '';
         $gross_profit=$gross_profit;
@@ -1204,23 +1304,9 @@ class AccountTransitionController extends Controller
         $expense=isset($index_expense) ? $index_expense :'';
         $total_expense=$total_expense;
         $net_profit=$net_profit;
-
-        if($route_name=='export_p_and_l_pdf'){
-            $pdf = PDF::loadView('exports.profit_and_loss', compact('profit_and_loss','income','gross_profit','total_income','expense','total_expense','net_profit','c_gain','c_loss'));
-            $pdf->setPaper('a4' , 'portrait');
-           // $output = $pdf->output();
-            /*  return new Response($output, 200, [
-               'Content-Type' => 'application/pdf',
-                'Content-Disposition' =>  'inline; filename="sale_invoice.pdf"',
-            ]);*/
-            return $pdf->output();
-        }
         //end ep
-        return compact('net_profit','c_gain','c_loss');
-        /**return response()->json([            
-            'net_profit'=>$net_profit,
-            'c_gain'=>$c_gain,
-            'c_loss'=>$c_loss,
+        // return compact('index_income');
+        /*return response()->json([
             'profit_and_loss'=>isset($profitAndLoss) ? $profitAndLoss : '',
             'gross_profit'=>$gross_profit,
             'total_income'=>$total_income,
@@ -1228,8 +1314,12 @@ class AccountTransitionController extends Controller
             'expense'=>isset($index_expense) ? $index_expense :'',
             'total_expense'=>$total_expense,
             'total_revenue'=>$this->total_revenue,
+            'net_profit'=>$net_profit,
+            'c_gain'=>$c_gain,
+            'c_loss'=>$c_loss,
             'status'=>200,
-        ]);**/
+        ]);*/
+        return compact('net_profit','c_gain','c_loss');
     }
 
     public function getBalanceSheetReport(Request $request){
@@ -1256,8 +1346,8 @@ class AccountTransitionController extends Controller
                 $p->t_valuation_amount =0;
                 //$total_valuation = 0;
             } else {
-                //$p->t_valuation_amount = ((int)$p->entry_cost_price) + (int)(((int)$p->p_valuation_amount + $p->in_cost_price) - (int)$p->cost_price);
-                $p->t_valuation_amount = $p->balance * round($p->product_cost_price); 
+                 $p->t_valuation_amount = ((int)$p->entry_cost_price) + (int)(((int)$p->p_valuation_amount + $p->in_cost_price) - (int)$p->cost_price);
+                //$p->t_valuation_amount = $p->balance * round($p->product_cost_price); 
                 $total_valuation += $p->t_valuation_amount;   
 
             }
@@ -1313,7 +1403,7 @@ class AccountTransitionController extends Controller
             }
             /*$c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select sub_accounts.account_group_id, account_transitions.cash_bank_sub_account_id, sub_account_name, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) = ".$year. " AND cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as t LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) < ".$year." AND  cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as op ON t.cash_bank_sub_account_id=op.cash_bank_sub_account_id WHERE t.amount != 0 AND t.account_group_id IS NOT NULL"));*/
 
-            $c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select sub_accounts.id as subAccId, sub_accounts.account_group_id,sub_accounts.sub_account_name, tt.* FROM sub_accounts LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM sub_accounts LEFT JOIN account_transitions ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) = ".$year. " AND cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_accounts.id) as tt ON tt.cash_bank_sub_account_id = sub_accounts.id) as t LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (ABS(SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0)))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) < ".$year." AND  cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as op ON t.subAccId=op.cash_bank_sub_account_id WHERE (t.amount IS NOT NULL OR op.opening_amount IS NOT NULL) AND t.account_group_id IS NOT NULL"));
+            $c_asset = DB::SELECT(DB::raw("Select t.*, COALESCE(op.opening_amount,0) as op_amount, op.opening_amount_type FROM (Select sub_accounts.id as subAccId, sub_accounts.account_group_id,sub_accounts.sub_account_name, tt.* FROM sub_accounts LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0))) as amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as amount_type FROM sub_accounts LEFT JOIN account_transitions ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) = ".$year. " AND cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY sub_accounts.id) as tt ON tt.cash_bank_sub_account_id = sub_accounts.id) as t LEFT JOIN (Select account_transitions.cash_bank_sub_account_id, (SUM(COALESCE(debit,0)) - SUM(COALESCE(credit,0))) as opening_amount, (CASE  WHEN SUM(ABS(COALESCE(debit,0))) > SUM(ABS(COALESCE(credit,0))) THEN 'debit' ELSE 'credit' END)  as opening_amount_type From account_transitions LEFT JOIN sub_accounts ON sub_accounts.id = account_transitions.cash_bank_sub_account_id WHERE YEAR(transition_date) < ".$year." AND  cash_bank_sub_account_id IN (".$ca_str.") AND is_cashbook=0 GROUP BY cash_bank_sub_account_id) as op ON t.subAccId=op.cash_bank_sub_account_id WHERE (t.amount IS NOT NULL OR op.opening_amount IS NOT NULL) AND t.account_group_id IS NOT NULL"));
           }
           //end current asset
 
@@ -1343,7 +1433,14 @@ class AccountTransitionController extends Controller
         $c_gain = empty($pl['c_gain']) ? 0 : $pl['c_gain']->amount;
         $c_loss = empty($pl['c_loss']) ? 0 : $pl['c_loss']->amount;
         $net_profit= empty($pl['net_profit']) ? 0 : $pl['net_profit'];
-        $gain_loss_profit = ($net_profit + $c_gain)  - $c_loss;
+        $gain_loss_profit = ($net_profit + abs($c_gain))  - abs($c_loss);
+
+        /*$pl = $this->getProfitAndLossReport($request);
+        $pl = $pl->getData(true); // convert JSON response to array
+        $c_gain = empty($pl['c_gain']) ? 0 : $pl['c_gain']->amount;
+        $c_loss = empty($pl['c_loss']) ? 0 : $pl['c_loss']->amount;
+        $net_profit= empty($pl['net_profit']) ? 0 : $pl['net_profit'];
+        $gain_loss_profit = ($net_profit + abs($c_gain))  - abs($c_loss);*/
         //end profit and loss
 
         // purchase os amount  total_amount - (discount + pay_amount + collection_amount)
@@ -1395,12 +1492,16 @@ class AccountTransitionController extends Controller
         $html.='<tr><td>Trade Receiable</td><td>'.$os_amount.'</td></tr>';
         if(!empty($c_asset)) {
             
-          foreach($c_asset as $casset) {   
-            if($casset->opening_amount_type == $casset->amount_type) {
-              $amt = abs((float)$casset->op_amount + (float)$casset->amount);
+          foreach($c_asset as $casset) {  
+            if(!empty($casset->opening_amount_type) && !empty($casset->op_amount)) {
+              if($casset->opening_amount_type == $casset->amount_type) {
+                $amt = (float)$casset->op_amount + (float)$casset->amount;
+              } else {
+                $amt = (float)$casset->op_amount - (float)$casset->amount;
+              } 
             } else {
-              $amt = abs((float)$casset->op_amount - (float)$casset->amount);
-            } 
+              $amt = $casset->amount;
+            }
             $html.='<tr><td>'.$casset->sub_account_name.'</td><td>'.$amt.'</td></tr>';
             $total_c+=$amt;
           }

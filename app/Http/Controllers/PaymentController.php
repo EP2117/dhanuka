@@ -140,6 +140,7 @@ class PaymentController extends Controller
                 'created_by' => Auth::user()->id,
                 'updated_by' => Auth::user()->id,
             ]);
+                
             $this->updatePaymentInLedger($payment);
 //              For leger
 //            AccountTransition::where('payment_id',$id)->update([

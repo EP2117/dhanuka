@@ -225,7 +225,7 @@
                                             <a :title="'Print '+p.sign" class=" dropdown-item text-primary" @click="generateCurrencyPDF(p.id)" v-if="p.currency_id != 1">
                                                 <i class="fas fa-print"></i> &nbsp;{{p.sign}}
                                             </a>
-                                            <a class="dropdown-item" v-if="(p.collection_amount==0 && p.payment_type=='credit') || p.payment_type=='cash' ">
+                                            <a class="dropdown-item" v-if="user_role == 'system' && ((p.collection_amount==0 && p.payment_type=='credit') || p.payment_type=='cash')">
                                                 <a title="Delete" class="text-danger" @click="removePurchase(p.id)" v-if="(user_role == 'system' || user_role == 'admin') ">
                                                     <i class="fas fa-trash"></i>
                                                 </a>

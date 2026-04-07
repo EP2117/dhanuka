@@ -222,7 +222,7 @@ trait Ledger
         $p_account = AccountTransition::create([
             'sub_account_id' => $this->purchase_account,
             'account_group_id' => $p->account_group_id,
-            'cash_bank_sub_account_id' => $p->sub_account_id,
+            'cash_bank_sub_account_id' => $this->purchase_account,
             'transition_date' => $p->invoice_date,
             'purchase_id' => $p->id,
             'supplier_id' => $p->supplier_id,
@@ -301,7 +301,7 @@ trait Ledger
         $this->storeCreditPaymentInLedger($cp, $request);
     }
     public function storePaymentInLedger($payment){
-        $ag = SubAccount::find($payment->credit->id);
+        /*$ag = SubAccount::find($payment->credit->id);
         $ag_id = $ag->account_group_id;
         $p=AccountTransition::create([
             'sub_account_id' => $payment->debit->id,
@@ -316,6 +316,42 @@ trait Ledger
             'description' => $payment->remark,
             'created_by' => Auth::user()->id,
             'updated_by' => Auth::user()->id,
+        ]);*/
+
+        $ag = SubAccount::find($payment->debit->id);
+        $ag_id = $ag->account_group_id;
+        $pd=AccountTransition::create([
+            'sub_account_id' => $payment->debit->id,
+            'account_group_id' => $ag_id,
+            //'cash_bank_sub_account_id' => $entry->credit->id,
+            'cash_bank_sub_account_id' => $payment->debit->id,
+            'transition_date' => $payment->date,
+            'payment_id' => $payment->id,
+            'vochur_no'=>$payment->cash_payment_no,
+            'is_cashbook' => 0,
+            'status'=>'payment',
+            'debit' => $payment->amount,
+            'description' => $payment->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
+        $ag1 = SubAccount::find($payment->credit->id);
+        $ag_id1 = $ag1->account_group_id;
+        $pc=AccountTransition::create([
+            'sub_account_id' => $payment->credit->id,
+            'account_group_id' => $ag_id1,
+            //'cash_bank_sub_account_id' => $payment->debit->id,
+            'cash_bank_sub_account_id' => $payment->credit->id,
+            'transition_date' => $payment->date,
+            'payment_id' => $payment->id,
+            'vochur_no'=>$payment->cash_payment_no,
+            'is_cashbook' => 0,
+            'status'=>'payment',
+            'credit' => $payment->amount,
+            'description' => $payment->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
         ]);
     }
     public function updatePaymentInLedger($payment){
@@ -327,7 +363,7 @@ trait Ledger
         $this->storePaymentInLedger($payment);
     }
     public function storeJournalEntryInLedger($entry){
-        $ag = SubAccount::find($entry->credit->id);
+        $ag = SubAccount::find($entry->debit->id);
         $ag_id = $ag->account_group_id;
         $jd=AccountTransition::create([
             'sub_account_id' => $entry->debit->id,
@@ -345,7 +381,7 @@ trait Ledger
             'updated_by' => Auth::user()->id,
         ]);
 
-        $ag1 = SubAccount::find($entry->debit->id);
+        $ag1 = SubAccount::find($entry->credit->id);
         $ag_id1 = $ag1->account_group_id;
         $jc=AccountTransition::create([
             'sub_account_id' => $entry->credit->id,
@@ -372,7 +408,7 @@ trait Ledger
         $this->storeJournalEntryInLedger($entry);
     }
     public function storeReceiptInLedger($receipt){
-        $ag = SubAccount::find($receipt->debit->id);
+        /*$ag = SubAccount::find($receipt->debit->id);
         $ag_id = $ag->account_group_id;
         $r=AccountTransition::create([
             'sub_account_id'=>$receipt->credit->id,
@@ -387,6 +423,42 @@ trait Ledger
             'description'=>$receipt->remark,
             'created_by'=>Auth::user()->id,
             'updated_by'=>Auth::user()->id,
+        ]);*/
+
+        $ag = SubAccount::find($receipt->debit->id);
+        $ag_id = $ag->account_group_id;
+        $rd=AccountTransition::create([
+            'sub_account_id' => $receipt->debit->id,
+            'account_group_id' => $ag_id,
+            //'cash_bank_sub_account_id' => $receipt->credit->id,
+            'cash_bank_sub_account_id' => $receipt->debit->id,
+            'transition_date' => $receipt->date,
+            'receipt_id' => $receipt->id,
+            'vochur_no'=>$receipt->cash_receipt_no,
+            'is_cashbook' => 0,
+            'status'=>'receipt',
+            'debit' => $receipt->amount,
+            'description' => $receipt->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
+        ]);
+
+        $ag1 = SubAccount::find($receipt->credit->id);
+        $ag_id1 = $ag1->account_group_id;
+        $rc=AccountTransition::create([
+            'sub_account_id' => $receipt->credit->id,
+            'account_group_id' => $ag_id1,
+            //'cash_bank_sub_account_id' => $receipt->debit->id,
+            'cash_bank_sub_account_id' => $receipt->credit->id,
+            'transition_date' => $receipt->date,
+            'receipt_id' => $receipt->id,
+            'vochur_no'=>$receipt->cash_receipt_no,
+            'is_cashbook' => 0,
+            'status'=>'receipt',
+            'credit' => $receipt->amount,
+            'description' => $receipt->remark,
+            'created_by' => Auth::user()->id,
+            'updated_by' => Auth::user()->id,
         ]);
         // if($r){
         //     $r1=$r->replicate()->fil([
@@ -406,7 +478,7 @@ trait Ledger
     }
     public function getOpenigBalanceForLedger($request,$date){
         // dd($date);
-        $opening=AccountTransition::whereDate('transition_date','<',$date)->where('is_cashbook',0);
+        $opening=AccountTransition::whereDate('transition_date','<',$date)->where('is_cashbook',0)->whereNull('inventory_adjustment_id');
         // if($request->sub_account!=null){
         //     $opening->where('sub_account_id',$request->sub_account);
         // }
@@ -522,7 +594,7 @@ trait Ledger
         return $array; 
     } 
     public function getQuery($request,$date){
-        $query=AccountTransition::with('cash_bank_subaccount')->where('is_cashbook',0);
+        $query=AccountTransition::with('cash_bank_subaccount')->where('is_cashbook',0)->whereNull('inventory_adjustment_id');
             $query->when(!is_null($date),function($q)use($date){
                return  $q->where('transition_date','=',$date);
             });
@@ -589,7 +661,7 @@ trait Ledger
         // return $query;
     }
     public function getClosingForLedger($request,$a,$opening_balance){
-        $ac=AccountTransition::where('is_cashbook',0);
+        $ac=AccountTransition::where('is_cashbook',0)->whereNull('inventory_adjustment_id');
         $ac->whereDate('transition_date',$a);
 
         if($request->type=='Other'){

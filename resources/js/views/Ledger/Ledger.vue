@@ -132,7 +132,7 @@
                                         </td>
                                     <!-- </template> -->
                                     <!-- <template v-else-if="type=='customer'">
-                                         <td colspan="4" class="text-right mm-txt"><strong>Opening Balance</strong></td>
+                                         <td colspan="5" class="text-right mm-txt"><strong>Opening Balance</strong></td>
                                          <td class="text-center" colspan="1" v-if="at.opening_balance > 0 ">
                                         </td>
                                         <td class="text-center" colspan="1" v-else-if="at.opening_balance < 0 ">
@@ -172,16 +172,20 @@
                                             <td class="text-center" v-if=' type=="other" && c.customer_id!=null'>
                                                By {{c.customer.cus_name }} For Inv {{c.vochur_no}} Invoice</td> 
                                             <td class="text-center" v-if=' type=="other" && c.payment_id!=null'>
-                                                {{c.description}}
+                                               <!-- {{c.description}}-->
+                                               {{c.cash_bank_subaccount!=null ? c.cash_bank_subaccount.sub_account_name : ''}}
                                              </td> 
                                             <td class="text-center" v-if='type=="other" && (c.status =="opening payment" || c.status == "opening receipt")'>
-                                                {{c.description}}
+                                                <!-- {{c.description}}-->
+                                                {{c.cash_bank_subaccount!=null ? c.cash_bank_subaccount.sub_account_name : ''}}
                                              </td>
                                              <td class="text-center" v-if=' type=="other" && c.receipt_id!=null'>
-                                                {{c.description}}
+                                                <!-- {{c.description}}-->
+                                                {{c.cash_bank_subaccount!=null ? c.cash_bank_subaccount.sub_account_name : ''}}
                                              </td> 
                                              <td class="text-center" v-if=' type=="other" && c.journal_entry_id!=null'>
-                                                {{c.description}}
+                                                <!-- {{c.description}}-->
+                                                {{c.cash_bank_subaccount!=null ? c.cash_bank_subaccount.sub_account_name : ''}}
                                              </td>  
                                         </template>
                                         <!-- <template v-if="type=='customer'">

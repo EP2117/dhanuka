@@ -374,8 +374,8 @@ export default {
                     close: "fa fa-remove"
                 },
                 format:"YYYY-MM-DD",
-                minDate: app.user_year+"-01-01",
-                maxDate: app.user_year+"-12-31",
+                //minDate: app.user_year+"-01-01",
+                //maxDate: app.user_year+"-12-31",
             })
             .on("dp.show", function(e) {
                 app.search.from_date = moment().format('YYYY-MM-DD');
@@ -406,8 +406,8 @@ export default {
                     close: "fa fa-remove"
                 },
                 format:"YYYY-MM-DD",
-                minDate: app.user_year+"-01-01",
-                maxDate: app.user_year+"-12-31",
+                //minDate: app.user_year+"-01-01",
+                //maxDate: app.user_year+"-12-31",
             })
             .on("dp.show", function(e) {
                 app.search.to_date = moment().format('YYYY-MM-DD');
@@ -438,8 +438,8 @@ export default {
                     close: "fa fa-remove"
                 },
                 format:"YYYY-MM-DD",
-                minDate: app.user_year+"-01-01",
-                maxDate: app.user_year+"-12-31",
+                //minDate: app.user_year+"-01-01",
+                //maxDate: app.user_year+"-12-31",
             })
             .on("dp.show", function(e) {
                 app.search.due_date = moment().format('YYYY-MM-DD');

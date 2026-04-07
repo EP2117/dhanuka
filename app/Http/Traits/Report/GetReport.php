@@ -647,7 +647,7 @@ trait GetReport
         } else if ($request->to_date != '') {
             $cus->whereDate('invoice_date', '<=', $request->to_date);
         } else {
-            $cus->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+            //$cus->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
         }
         //$cus=$cus->groupBy('customer_id')->toSql();
         $cus = $cus->groupBy('customer_id')->orderBy('states.state_name')->orderBy('townships.township_name')->get();
@@ -706,7 +706,7 @@ trait GetReport
                 } else if ($request->to_date != '') {
                     $invoices->whereDate('invoice_date', '<=', $request->to_date);
                 } else {
-                    $invoices->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
+                   // $invoices->whereBetween('invoice_date', array($login_year.'-01-01', $login_year.'-12-31'));
                 }
                 if ($request->currency_id != 1 && $request->currency_id != "") {
                     $invoices->where('currency_id', $request->currency_id);
@@ -1291,6 +1291,7 @@ trait GetReport
 
     public function getValuation($request)
     {
+        $login_year = Session::get('loginYear');
         $where = "";
         $p_where = "";
         $s_where = "";
@@ -1299,7 +1300,9 @@ trait GetReport
             $p_where .= " purchase_invoices.invoice_date <= '" . $request->date . "'";
             $s_where .= " sales.invoice_date <= '" . $request->date . "'";
         } else {
-            $today = Carbon::now()->today();
+            //$today = Carbon::now()->today();
+            //$data->whereBetween('invoice_date', array($login_year . '-01-01', $login_year . '-12-31'));
+            $today = $login_year . '-12-31';
             $where = " product_transitions.transition_date <= '" . $today . "'";
             $p_where = " purchase_invoices.invoice_date <= '" . $today . "'";
             $s_where = " sales.invoice_date <= '" . $today . "'";

@@ -97,7 +97,8 @@ class PurchaseInvoiceController extends Controller
             $p->branch_id = $branch_id;
             $p->reference_no = $request->reference_no;
             $p->invoice_date = $request->invoice_date;
-            $p->warehouse_id = Auth::user()->warehouse_id;
+            //$p->warehouse_id = Auth::user()->warehouse_id;
+            $p->warehouse_id = $request->warehouse_id;
             $p->supplier_id = $request->supplier_id;
             $p->office_purchase_man_id = Auth::user()->id;
             $p->total_amount = $request->sub_total;
@@ -293,7 +294,7 @@ class PurchaseInvoiceController extends Controller
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
                                     'account_group_id' => $p->account_group_id,
-                                    'cash_bank_sub_account_id' => $p->sub_account_id,
+                                    'cash_bank_sub_account_id' => config('global.purchase'),
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -587,7 +588,7 @@ class PurchaseInvoiceController extends Controller
                             AccountTransition::create([
                                     'sub_account_id' => config('global.purchase'),
                                     'account_group_id' => $p->account_group_id,
-                                    'cash_bank_sub_account_id' => $p->sub_account_id,
+                                    'cash_bank_sub_account_id' => config('global.purchase'),
                                     'transition_date' => $p->invoice_date,
                                     'purchase_id' => $p->id,
                                     'supplier_id'=>$p->supplier_id,
@@ -779,7 +780,8 @@ class PurchaseInvoiceController extends Controller
                 $obj->transition_purchase_id   = $p->id;
                 $obj->transition_product_pivot_id = $pivot_id;
                 $obj->branch_id  = $branch_id;
-                $obj->warehouse_id          = Auth::user()->warehouse_id;
+               // $obj->warehouse_id          = Auth::user()->warehouse_id;
+                $obj->warehouse_id          = $request->warehouse_id;
                 $obj->transition_date       = $request->invoice_date;
                 $obj->transition_product_uom_id        = $request->uom[$i];
                 $obj->transition_product_quantity      = $request->qty[$i];
@@ -788,6 +790,14 @@ class PurchaseInvoiceController extends Controller
                 $obj->created_by = Auth::user()->id;
                 $obj->updated_by = Auth::user()->id;
                 $obj->save();
+
+                $cost_price=$this->getCostPrice($request->product[$i])->product_cost_price;
+                //ep
+                if($cost_price == 0) {
+                    $cost_price = $product_result->purchase_price;
+                }                
+
+                DB::table('product_purchase')->where('id', $pivot_id)->update(array('cost_price' => $cost_price));
             }
             $status = "success";
             $purchase_id = $p->id;
@@ -801,6 +811,7 @@ class PurchaseInvoiceController extends Controller
         }
       
     }
+    
     public function edit($id){
 //        $access_brands = array();
         $purchase = PurchaseInvoice::with('products','warehouse','currency','supplier','products.brand','products.category','products.uom','products.selling_uoms','office_purchase_man','branch')->find($id);
@@ -842,7 +853,7 @@ class PurchaseInvoiceController extends Controller
         //$p->invoice_no = $request->invoice_no;
         $p->reference_no = $request->reference_no;
         $p->invoice_date = $request->invoice_date;
-        //$p->warehouse_id = Auth::user()->warehouse_id;
+        $p->warehouse_id = $request->warehouse_id;
         $p->office_purchase_man_id = Auth::user()->id;
         $p->supplier_id = $request->supplier_id;
         $p->total_amount = $request->sub_total;
@@ -1576,7 +1587,7 @@ class PurchaseInvoiceController extends Controller
                 DB::table('product_transitions')
                     ->where('transition_product_pivot_id', $request->product_pivot[$i])
                     ->where('transition_purchase_id', $id)
-                    ->update(array('product_uom_id' => $main_uom_id,'product_quantity'=>$request->qty[$i],'transition_date'=>$request->invoice_date, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i]));
+                    ->update(array('product_uom_id' => $main_uom_id,'product_quantity'=>$request->qty[$i],'transition_date'=>$request->invoice_date, 'transition_product_uom_id' => $request->uom[$i], 'transition_product_quantity' => $request->qty[$i],'warehouse_id' => $request->warehouse_id));
             } else {
                 //add product into pivot table if not exist
                 //get product pre-defined UOM
@@ -1611,7 +1622,7 @@ class PurchaseInvoiceController extends Controller
                 $obj->transition_product_pivot_id   = $pivot_id;
                 $obj->branch_id  = $branch_id;
                // $obj->warehouse_id          = Auth::user()->warehouse_id; // for Main Warehouse Entry
-                $obj->warehouse_id          = $warehouse_id;
+                $obj->warehouse_id          = $request->warehouse_id;
                 $obj->transition_date       = $request->invoice_date;
                 $obj->transition_product_uom_id        = $request->uom[$i];
                 $obj->transition_product_quantity      = $request->qty[$i];

@@ -314,7 +314,7 @@ export default {
     },
     methods:{
         initDebit(){
-            axios.get('/sub_account/get_sub_account/'+"debit").then(({data})=>(this.debit=data.sub_account));
+            axios.get('/sub_account/get_all_active_sub_account').then(({data})=>(this.debit=data.sub_account));
         },
         initCredit(){
             axios.get('/sub_account/get_sub_account/'+"credit").then(({data})=>(this.credit=data.sub_account));

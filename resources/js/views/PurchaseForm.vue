@@ -48,10 +48,21 @@
                                     <option v-for="sup in suppliers" :value="sup.id"  >{{sup.name}}</option>
                                 </select>
                             </div>
-                            <div class="form-group col-md-4">
+                           <!-- <div class="form-group col-md-4">
                                 <label for="vehicle_warehouse">Vehicle Warehouse</label>
                                 <input type="text" class="form-control" id="vehicle_warehouse" name="vehicle_warehouse"
                                        v-model="user_warehouse" readonly>
+                            </div> -->
+                            <div class="form-group col-md-4">
+                                <label for="warehouse_id">Vehicle Warehouse</label>
+                                <select id="warehouse_id" class="form-control mm-txt"
+                                        name="warehouse_id" v-model="form.warehouse_id" style="width:100%" :disabled="isEdit || (user_role != 'admin' && user_role !='system')" required>
+                                    <option value="">Select One</option>
+                                    <template v-for="wh in warehouses">
+                                    <option  :value="wh.id" v-if="wh.warehouse_name == user_warehouse" selected disabled >{{wh.warehouse_name}}</option>
+                                    <option  :value="wh.id" v-else >{{wh.warehouse_name}}</option>
+                                    </template>
+                                </select>
                             </div>
                             <div class="form-group col-md-4" >
                                 <label for="reference_no">Reference No.</label>
@@ -111,7 +122,7 @@
                                 <!--<a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white"  v-if="((user_role == 'admin' || user_role == 'system') && !isDisabled) || (!isEdit)"  data-toggle="modal" data-target="#mix_form">
                                     <i class="fas fa-plus"></i> Add Mixed Product
                                 </a>-->
-                                <a class='d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system' || user_role == 'office_user') && !isDisabled) || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus'></i></a>
+                                <a class='d-sm-inline-block btn btn-sm btn-primary shadow-sm bg-blue text-white' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system' || user_role == 'office_user') && !isDisabled && user_role=='system') || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus'></i></a>
                                 <!--<a class='blue-icon' title='Add Product' @click="addProduct()" v-if="((user_role == 'admin' || user_role == 'system') && !isDisabled) || (!isEdit)" style="verticle-align:middle"><i class='fas fa-plus-square' style='font-size: 30px;'></i></a>-->
                                 <div style="display:none;">
                                     <select class="form-control txt_product"
@@ -461,6 +472,7 @@ export default {
                 invoice_date: "",
                 invoice_no: "",
                 vehicle_warehouse: "",
+                warehouse_id: "",
                 supplier_id: "",
                 office_purchase_man: "",
                 office_purchase_man_id: "",
@@ -502,6 +514,7 @@ export default {
             brands: [],
             currency: [],
             categories: [],
+            warehouses: [],
             products: [],
             uoms: [],
             purchase_id: '',
@@ -571,9 +584,11 @@ export default {
     },
     mounted() {
         // console.log($('#product_table tr').length);
-
-        $("#loading").hide();
+        
         let app = this;
+        if(!app.isEdit) {
+            $("#loading").hide();
+        }
         app.initWarehouses();
         app.initAccountGroup();
         app.initSuppliers();
@@ -587,6 +602,12 @@ export default {
             var data = e.params.data;
             app.form.currency_id = data.id;
         }); ***/
+
+        $("#warehouse_id").select2();
+        $("#warehouse_id").on("select2:select", function(e) {
+            var data = e.params.data;
+            app.form.warehouse_id = data.id;
+        });
 
         $("#currency_id").on("select2:select", function(e) {            
             var data = e.params.data;
@@ -1609,7 +1630,8 @@ export default {
 
         initWarehouses() {
             axios.get("/warehouses").then(({ data }) => (this.warehouses = data.data));
-            $("#to_warehouse").select2();
+            $("#warehouse_id").select2();
+            console.log(this.warehouses);
         },
 
 
@@ -2017,8 +2039,10 @@ export default {
             //     app.filterProducts(brand_id,cat_id,product_select_id);
             // });
         },
+
         getPurchase(id) {
             let app = this;
+            $("#loading").show();
             axios.get("/purchase/" + id+'/edit')
                 .then(function(response) {
                     //prevent to Edit (save button permission)
@@ -2038,6 +2062,9 @@ export default {
                     if(response.data.purchase.account_group_id != '' && response.data.purchase.account_group_id != null) {
                         axios.get('/sub_account/get_account_group/'+response.data.purchase.account_group_id).then(({data})=>(app.cash_bank_accounts=data.sub_accounts));
                     }
+
+                    app.form.warehouse_id = response.data.purchase.warehouse_id;
+                    $("#warehouse_id").val(app.form.warehouse_id).trigger('change');
 
                     app.form.cash_bank_account = response.data.purchase.sub_account_id;
 
@@ -2168,6 +2195,9 @@ export default {
                             if(parseInt(p_available_qty) <= 0) {
                                 $(t4).attr("readonly", true);
                             }
+                            if(app.user_role != 'system') {
+                                 $(t4).attr("readonly", true);
+                            }
                             $(t4).attr("required", true);
                             // t4.addEventListener('blur', function(){ app.checkQty(t4); });
                             cell4.appendChild(t4);
@@ -2178,6 +2208,10 @@ export default {
                             t5.className = "form-control txt_uom";
                             t5.style = "width:100px;";
                             $(t5).attr("required", true);
+
+                            if(app.user_role != 'system') {
+                                 $(t5).attr("disabled", true);
+                            }
 
                             // t5.addEventListener('blur', function(){ app.checkQty(t5); });
 
@@ -2446,6 +2480,9 @@ export default {
                                     $(t8).attr("readonly", true);
                                 }
                                 $(t8).attr("required", true);
+                                if(app.user_role != 'system') {
+                                    $(t8).attr("readonly", true);
+                                }
                                 cell8.appendChild(t8);
 
                                 var cell9=row.insertCell(4);
@@ -2465,7 +2502,7 @@ export default {
 
                                 var cell10=row.insertCell(5);
                                 cell10.className = "text-center";
-                                if(parseInt(p_available_qty) > 0) {
+                                if(parseInt(p_available_qty) > 0 && app.user_role=='system') {
                                     if((app.user_role == 'admin' || app.user_role == 'system') && !app.isDisabled)
                                     {
                                         var row_action = "<a class='remove-exrow red-icon' title='Remove'><i class='fas fa-times-circle' style='font-size: 25px;'></i></a>";
@@ -2488,6 +2525,9 @@ export default {
                                 if(parseInt(p_available_qty) <= 0) {
                                     $(t8fx).attr("readonly", true);
                                 }
+                                if(app.user_role != 'system') {
+                                    $(t8fx).attr("readonly", true);
+                                }
                                 cell8fx.appendChild(t8fx);
 
                                 var cell8=row.insertCell(4);
@@ -2500,6 +2540,9 @@ export default {
                                 t8.addEventListener('blur', function(){ app.calTotalAmount(t8); });
                                 $(t8).attr("required", true);
                                 if(parseInt(p_available_qty) <= 0) {
+                                    $(t8).attr("readonly", true);
+                                }
+                                if(app.user_role != 'system') {
                                     $(t8).attr("readonly", true);
                                 }
                                 cell8.appendChild(t8);
@@ -2536,7 +2579,7 @@ export default {
 
                                 var cell10=row.insertCell(7);
                                 cell10.className = "text-center";
-                                if(parseInt(p_available_qty) > 0) {
+                                if(parseInt(p_available_qty) > 0 && app.user_role=='system') {
                                 
                                     if((app.user_role == 'admin' || app.user_role == 'system') && !app.isDisabled)
                                     {
@@ -2588,7 +2631,7 @@ export default {
                         //     app.filterProducts(brand_id,cat_id,product_select_id);
                         // });
                     });
-
+                    $("#loading").hide();
 
                 })
                 .catch(function(error) {

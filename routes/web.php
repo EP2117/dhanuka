@@ -256,6 +256,7 @@ Route::group(['prefix' => '',  'middleware' => 'auth'], function () {
         Route::get('get_account_group/{id}','SubAccountController@getByAccountGroup');
         Route::get('get_account_head', 'SubAccountController@getAccountHead');
         Route::get('get_all_sub_account', 'SubAccountController@getAllSubAccount');
+        Route::get('get_all_active_sub_account', 'SubAccountController@getAllActiveSubAccount');
 
         Route::get('change_status/{id}/{active}', 'SubAccountController@changeStatus');
         Route::get('edit/{id}', 'SubAccountController@edit');

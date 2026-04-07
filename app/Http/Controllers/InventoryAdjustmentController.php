@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Product;
+use App\SubAccount;
+use App\AccountTransition;
 use App\ProductTransition;
 use App\InventoryAdjustment;
 use Illuminate\Http\Request;
@@ -183,6 +185,46 @@ class InventoryAdjustmentController extends Controller
             $obj->updated_by = Auth::user()->id;
             $obj->save();
             // dd($obj);
+
+            if ($type == 'out') {
+                $ag = SubAccount::find(126);
+                $ag_id = $ag->account_group_id;
+                AccountTransition::create([
+                    'sub_account_id' => 126,
+                    'account_group_id' => $ag_id,
+                    'cash_bank_sub_account_id' => 126,
+                    'transition_date' => $request->adjustment_date,
+                    'inventory_adjustment_id' => $adjustment_id,
+                    'customer_id' => NULL,
+                    'is_cashbook' => 0,
+                    'description' => 'Adjustment Out',
+                    'vochur_no' => $adjustment_no,
+                    //'credit' => abs($loss),
+                    'credit' => abs($request->less_qty[$i] * $cost_price),
+                    'status' => 'adjustment_out',
+                    'created_by' => Auth::user()->id,
+                    'updated_by' => Auth::user()->id,
+                ]);
+            } else {
+                $ag = SubAccount::find(125);
+                $ag_id = $ag->account_group_id;
+                AccountTransition::create([
+                    'sub_account_id' => 125,
+                    'account_group_id' => $ag_id,
+                    'cash_bank_sub_account_id' => 125,
+                    'transition_date' => $request->adjustment_date,
+                    'inventory_adjustment_id' => $adjustment_id,
+                    'customer_id' => NULL,
+                    'is_cashbook' => 0,
+                    'description' => 'Adjustment In',
+                    'vochur_no' => $adjustment_no,
+                    //'credit' => abs($loss),
+                    'debit' => abs($request->add_qty[$i] * $cost_price),
+                    'status' => 'adjustment_in',
+                    'created_by' => Auth::user()->id,
+                    'updated_by' => Auth::user()->id,
+                ]);
+            }
         }
         $status = "success";
         DB::commit();
@@ -250,6 +292,10 @@ class InventoryAdjustmentController extends Controller
                 ->delete();
         }
 
+         DB::table('account_transitions')
+                ->where('inventory_adjustment_id', $adjustment_id)
+                ->delete();
+
         //update in product pivot table
         for($i=0; $i<count($request->product); $i++) {
             if($request->add_qty[$i]==null){
@@ -309,6 +355,46 @@ class InventoryAdjustmentController extends Controller
                 $obj->created_by = Auth::user()->id;
                 $obj->updated_by = Auth::user()->id;
                 $obj->save();
+            }
+
+            if ($type == 'out') {
+                $ag = SubAccount::find(126);
+                $ag_id = $ag->account_group_id;
+                AccountTransition::create([
+                    'sub_account_id' => 126,
+                    'account_group_id' => $ag_id,
+                    'cash_bank_sub_account_id' => 126,
+                    'transition_date' => $request->adjustment_date,
+                    'inventory_adjustment_id' => $adjustment_id,
+                    'customer_id' => NULL,
+                    'is_cashbook' => 0,
+                    'description' => 'Adjustment Out',
+                    'vochur_no' => $adjustment_no,
+                    //'credit' => abs($loss),
+                    'credit' => abs($qty * $cost_price),
+                    'status' => 'adjustment_out',
+                    'created_by' => Auth::user()->id,
+                    'updated_by' => Auth::user()->id,
+                ]);
+            } else {
+                $ag = SubAccount::find(125);
+                $ag_id = $ag->account_group_id;
+                AccountTransition::create([
+                    'sub_account_id' => 125,
+                    'account_group_id' => $ag_id,
+                    'cash_bank_sub_account_id' => 125,
+                    'transition_date' => $request->adjustment_date,
+                    'inventory_adjustment_id' => $adjustment_id,
+                    'customer_id' => NULL,
+                    'is_cashbook' => 0,
+                    'description' => 'Adjustment In',
+                    'vochur_no' => $adjustment_no,
+                    //'credit' => abs($loss),
+                    'debit' => abs($qty * $cost_price),
+                    'status' => 'adjustment_in',
+                    'created_by' => Auth::user()->id,
+                    'updated_by' => Auth::user()->id,
+                ]);
             }
         }
 

@@ -1729,6 +1729,7 @@
                                     t3.append(option);
                                 });
                              cell3.appendChild(t3);
+                             
                             var cell4=row.insertCell(3);
                             var rate=document.createElement("input");
                                 rate.name = "rate[]";
