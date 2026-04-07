@@ -2707,8 +2707,8 @@ export default {
                             var total_amount = parseInt(obj.value) * parseInt(relation_val) * parseFloat(unit_price);
                         }***/
 
-                    var total_amount = parseFloat(obj.value) * parseInt(unit_price);
-                    $("#total_amount_"+row_id).val(Math.round(total_amount));
+                    var total_amount = parseFloat(obj.value) * parseFloat(unit_price);
+                    $("#total_amount_"+row_id).val(parseInt(total_amount));
                 }
 
                 //get all sub total amount
@@ -2908,9 +2908,9 @@ export default {
             var row_id = $(obj).closest('tr').attr('id');
             var qty = $("#qty_"+row_id).val();
             var price = $("#unit_price_"+row_id).val();
-            var total=parseInt(qty)* parseInt(price);
+            var total=parseInt(parseFloat(qty)* parseFloat(price));
             if(qty !=null && price !=null && qty != '' && price!= ''){
-                var total=parseInt(qty)* parseInt(price);
+                var total=parseInt(parseFloat(qty)* parseFloat(price));
                 $('#total_amount_'+row_id).val(total);
             }else{
                 $('#total_amount_'+row_id).val('');
@@ -3055,13 +3055,13 @@ export default {
             var price_fx = $("#unit_price_fx_"+row_id).val() == '' ? 0 : $("#unit_price_fx_"+row_id).val();
             var price = parseFloat(price_fx) * parseFloat(currency_rate);
             $('#unit_price_'+row_id).val(Math.round(price));
-            var total=Math.round(parseInt(qty)* parseFloat(price));
-            var total_fx =parseInt(qty)* parseFloat(price_fx);
+            var total=parseInt(parseFloat(qty)* parseFloat(price));
+            var total_fx =parseFloat(qty)* parseFloat(price_fx);
             if(qty !=null && price !=null && price_fx != '') {
-                var total=Math.round(parseInt(qty)* parseFloat(price));
+                var total=parseInt(parseFloat(qty)* parseFloat(price));
                 $('#total_amount_'+row_id).val(total);
 
-                var total_fx=parseInt(qty)* parseFloat(price_fx);
+                var total_fx=parseFloat(qty)* parseFloat(price_fx);
                 $('#total_amount_fx_'+row_id).val(app.decimalFormat(total_fx));
             }else{
                 $('#total_amount_'+row_id).val('');
